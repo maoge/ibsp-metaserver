@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="GBK"?>
+<project default="output" basedir=".">
+	<tstamp>
+	</tstamp>
+	<property file="build.properties" />
+	<property file="version.properties" />
+	<property environment="env" />
+	<property name="src.dir" value="${basedir}/src/main/java" />
+	<property name="schema.dir" value="${basedir}/schema" />
+	<property name="build.dir" value="${basedir}/build" />
+	<property name="output.dir" value="${basedir}/output" />
+
+	<target name="output">
+		<antcall target="clean" />
+		<antcall target="init" />
+		<antcall target="build" />
+		<antcall target="copy" />
+		<antcall target="makejar" />
+	</target>
+
+	<path id="project.classpath">
+		<fileset file="${basedir}/lib/*.jar" />
+	</path>
+
+	<target name="clean">
+		<delete dir="${build.dir}" />
+	</target>
+
+	<target name="init">
+		<mkdir dir="${build.dir}" />
+		<mkdir dir="${output.dir}" />
+	</target>
+
+	<target name="build">
+		<javac srcdir="${src.dir}" destdir="${build.dir}" debug="on" includeantruntime="on">
+			<compilerarg line="-encoding UTF-8"/>
+			<classpath refid="project.classpath" />
+		</javac>
+	</target>
+
+	<target name="copy">
+		<copy todir="${build.dir}/schema" overwrite="true">
+			<fileset dir="${schema.dir}">
+				<include name="**/*.schema" />
+			</fileset>
+		</copy>
+	</target>
+
+	<target name="makejar" depends="build">		
+		
+		<jar jarfile="${output.dir}/${projectname}-${version}.jar">
+			<fileset dir="${build.dir}">
+				<include name="*"/>
+				<include name="ibsp/metaserver/**"/>
+				<include name="/schema/**"/>
+			</fileset>
+			
+			<manifest>
+				<attribute name="Main-Class" value="ibsp.metaserver.startup.BootStrap" />
+			</manifest>
+		</jar>
+
+	</target>
+</project>
