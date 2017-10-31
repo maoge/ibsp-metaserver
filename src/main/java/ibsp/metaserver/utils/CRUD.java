@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -255,10 +256,8 @@ public class CRUD {
 				while (rs.next()) {
 					HashMap<String, Object> map = new HashMap<String, Object>();
 					for (int i = 1; i <= colnum; i++) {
-						String listName = metaData.getColumnLabel(i)
-								.toUpperCase(); // metaData.getColumnName(i).toUpperCase();
-						String listValue = rs.getString(i);
-						map.put(listName, listValue);
+						String columnName = metaData.getColumnLabel(i).toUpperCase();
+						map.put(columnName, rs.getObject(i));
 					}
 					resultList.add(map);
 				}
@@ -275,6 +274,79 @@ public class CRUD {
 			} 
 		}
 		return resultList;
+	}
+	
+	private void mapping(HashMap<String, Object> resultMap, int column, ResultSet rs, ResultSetMetaData metaData) throws SQLException {
+		String columnName = metaData.getColumnLabel(column).toUpperCase();
+		int columnType = metaData.getColumnType(column);
+		
+		switch(columnType) {
+		case Types.BIT:
+			resultMap.put(columnName, rs.getByte(column));
+			break;
+		case Types.TINYINT:
+		case Types.SMALLINT:
+		case Types.INTEGER:
+			resultMap.put(columnName, rs.getInt(column));
+			break;
+		case Types.DATE:
+			resultMap.put(columnName, rs.getDate(column));
+			break;
+		case Types.TIME:
+			resultMap.put(columnName, rs.getTime(column));
+			break;
+		case Types.DECIMAL:
+		case Types.BIGINT:
+		case Types.TIMESTAMP:
+			resultMap.put(columnName, rs.getLong(column));
+			break;
+		case Types.FLOAT:
+			resultMap.put(columnName, rs.getFloat(column));
+			break;
+		case Types.REAL:
+		case Types.DOUBLE:
+		case Types.NUMERIC:
+			resultMap.put(columnName, rs.getDouble(column));
+			break;
+		case Types.CHAR:
+		case Types.VARCHAR:
+		case Types.LONGVARCHAR:
+			resultMap.put(columnName, rs.getString(column));
+			break;
+		case Types.BOOLEAN:
+			resultMap.put(columnName, rs.getBoolean(column));
+			break;
+		case Types.NCHAR:
+		case Types.NVARCHAR:
+		case Types.LONGNVARCHAR:
+			resultMap.put(columnName, rs.getNString(column));
+			break;
+		case Types.BINARY:
+		case Types.VARBINARY:
+		case Types.LONGVARBINARY:
+			resultMap.put(columnName, rs.getBytes(column));
+			break;
+		case Types.BLOB:
+		case Types.CLOB:
+		case Types.NCLOB:
+		case Types.NULL:
+		case Types.OTHER:
+		case Types.JAVA_OBJECT:
+		case Types.DISTINCT:
+		case Types.STRUCT:
+		case Types.ARRAY:
+		case Types.REF:
+		case Types.DATALINK:
+		case Types.SQLXML:
+		case Types.REF_CURSOR:
+		case Types.TIME_WITH_TIMEZONE:
+		case Types.TIMESTAMP_WITH_TIMEZONE:
+			logger.error("not surpported type ......");
+			break;
+		default:
+			logger.error("data type undefined ......");
+			break;
+		}
 	}
 
 	public JsonArray queryForJSONArray() throws CRUDException {
@@ -338,7 +410,7 @@ public class CRUD {
 		return res;
 	}
 
-	public Map<String, String> queryForMap() throws CRUDException {
+	public Map<String, Object> queryForMap() throws CRUDException {
 		if (conn == null) {
 			try {
 				getConn();
@@ -347,7 +419,7 @@ public class CRUD {
 				return null;
 			}
 		}
-		Map<String, String> res = null;
+		Map<String, Object> res = null;
 		SqlBean sb = null;
 		try {
 			sb = queue.poll();
@@ -392,10 +464,8 @@ public class CRUD {
 				while (rs.next()) {
 					JsonObject jsonObj = new JsonObject();
 					for (int i = 1; i <= colnum; i++) {
-						String listName = metaData.getColumnLabel(i)
-								.toUpperCase();
-						String listValue = rs.getString(i);
-						jsonObj.put(listName, listValue);
+						String listName = metaData.getColumnLabel(i).toUpperCase();
+						jsonObj.put(listName, rs.getObject(i));
 					}
 					jsonarray.add(jsonObj);
 				}
@@ -417,19 +487,19 @@ public class CRUD {
 
 	public JsonObject queryForJSONObject(Connection conn, String sql,
 			Object[] params) throws CRUDException {
-		Map<String, String> queryResult = queryForMap(conn, sql, params);
+		Map<String, Object> queryResult = queryForMap(conn, sql, params);
 		JsonObject obj = new JsonObject();
-		Set<Entry<String, String>> entrySet = queryResult.entrySet();
-		for (Entry<String, String> entry : entrySet) {
+		Set<Entry<String, Object>> entrySet = queryResult.entrySet();
+		for (Entry<String, Object> entry : entrySet) {
 			obj.put(entry.getKey(), entry.getValue());
 		}
 
 		return obj;
 	}
 
-	public Map<String, String> queryForMap(Connection conn, String sql,
+	public Map<String, Object> queryForMap(Connection conn, String sql,
 			Object[] params) throws CRUDException {
-		Map<String, String> map = new HashMap<String, String>();
+		Map<String, Object> map = new HashMap<String, Object>();
 		if (conn != null) {
 			PreparedStatement ps = null;
 			ResultSet rs = null;
@@ -476,8 +546,7 @@ public class CRUD {
 	/**
 	 * 数据库的更新操作
 	 * 
-	 * @param sql更新语句参数使用
-	 *            "?",类型必须和数据库字段类型匹配
+	 * @param sql更新语句参数使用"?",类型必须和数据库字段类型匹配           
 	 * @param params
 	 * @return 出现异常时返回-1
 	 * @throws CRUDException
