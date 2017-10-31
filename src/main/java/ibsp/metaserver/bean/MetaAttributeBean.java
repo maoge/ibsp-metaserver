@@ -91,4 +91,24 @@ public class MetaAttributeBean extends BeanMapper {
 		return new MetaAttributeBean(attrID, attrName, attrNameCN, autoGen);
 	}
 	
+	public JsonObject asJson() {
+		JsonObject json = new JsonObject();
+		json.put(FixHeader.HEADER_ATTR_ID,      attrID);
+		json.put(FixHeader.HEADER_ATTR_NAME,    attrName);
+		json.put(FixHeader.HEADER_ATTR_NAME_CN, attrNameCN);
+		json.put(FixHeader.HEADER_AUTO_GEN,     autoGen ? CONSTS.AUTO_GEN_Y : CONSTS.AUTO_GEN_N);
+		
+		return json;
+	}
+	
+	public String asJsonString() {
+		JsonObject json = new JsonObject();
+		json.put(FixHeader.HEADER_ATTR_ID,      attrID);
+		json.put(FixHeader.HEADER_ATTR_NAME,    attrName);
+		json.put(FixHeader.HEADER_ATTR_NAME_CN, attrNameCN);
+		json.put(FixHeader.HEADER_AUTO_GEN,     autoGen ? CONSTS.AUTO_GEN_Y : CONSTS.AUTO_GEN_N);
+		
+		return json.toString();
+	}
+	
 }

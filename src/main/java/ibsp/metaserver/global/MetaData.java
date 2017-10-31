@@ -6,6 +6,8 @@ import ibsp.metaserver.bean.MetaComponentBean;
 import ibsp.metaserver.bean.RelationBean;
 import ibsp.metaserver.dbservice.MetaDataService;
 
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -150,6 +152,42 @@ public class MetaData {
 			return null;
 		
 		return metaCmptMap.get(cmptID);
+	}
+	
+	public List<MetaAttributeBean> getCmptAttrByName(String cmptName) {
+		Integer cmptID = metaCmptName2IDMap.get(cmptName);
+		if (cmptID == null)
+			return null;
+		
+		IdSetBean<Integer> idSet = metaCmpt2AttrMap.get(cmptID);
+		if (idSet == null)
+			return null;
+		
+		List<MetaAttributeBean> attrs = new LinkedList<MetaAttributeBean>();
+		Iterator<Integer> it = idSet.iterator();
+		while (it.hasNext()) {
+			Integer attrID = it.next();
+			MetaAttributeBean attr = metaAttrMap.get(attrID);
+			attrs.add(attr);
+		}
+		
+		return attrs;
+	}
+	
+	public List<MetaAttributeBean> getCmptAttrByID(Integer cmptID) {
+		IdSetBean<Integer> idSet = metaCmpt2AttrMap.get(cmptID);
+		if (idSet == null)
+			return null;
+		
+		List<MetaAttributeBean> attrs = new LinkedList<MetaAttributeBean>();
+		Iterator<Integer> it = idSet.iterator();
+		while (it.hasNext()) {
+			Integer attrID = it.next();
+			MetaAttributeBean attr = metaAttrMap.get(attrID);
+			attrs.add(attr);
+		}
+		
+		return attrs;
 	}
 	
 	public IdSetBean<Integer> getAttrIdSet(Integer cmptID) {

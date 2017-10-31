@@ -159,6 +159,7 @@ public class FixHeader {
 	public static final String HEADER_ATTR_NAME_CN             = "ATTR_NAME_CN";
 	public static final String HEADER_AUTO_GEN                 = "AUTO_GEN";
 	
+	public static final String HEADER_CMPT_TYPE                = "CMPT_TYPE";
 	public static final String HEADER_CMPT_ID                  = "CMPT_ID";
 	public static final String HEADER_CMPT_NAME                = "CMPT_NAME";
 	public static final String HEADER_CMPT_NAME_CN             = "CMPT_NAME_CN";
@@ -195,6 +196,8 @@ public class FixHeader {
 	public static final String HEADER_DB_COLLECTD              = "DB_COLLECTD";
 	public static final String HEADER_COLLECTD_ID              = "COLLECTD_ID";
 	public static final String HEADER_COLLECTD_NAME            = "COLLECTD_NAME";
+	
+	public static final String HEADER_ATTRIBUTES               = "ATTRS";
 	
 	
 }
