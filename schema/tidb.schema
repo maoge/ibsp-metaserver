@@ -6,15 +6,15 @@
 			"type":"object",
 			"required":true,
 			"properties": {
-				"DB_SVC_CONTAINER_ID": {"type":"string","required":true,"minLength":36},
-				"DB_SVC_CONTAINER_NAME": {"type":"string","required":true},
+				"DB_SVC_CONTAINER_ID": {"type":"string","required":true,"minLength":36,"description":"DB服务容器ID"},
+				"DB_SVC_CONTAINER_NAME": {"type":"string","required":true,"description":"DB服务容器名字"},
 				
 				"DB_TIDB_CONTAINER": {
 					"type":"object",
 					"required":true,
 					"properties": {
-						"TIDB_CONTAINER_ID": {"type":"string","required":true,"minLength":36},
-						"TIDB_CONTAINER_NAME": {"type":"string","required":true},
+						"TIDB_CONTAINER_ID": {"type":"string","required":true,"minLength":36,"description":"TIDB容器ID"},
+						"TIDB_CONTAINER_NAME": {"type":"string","required":true,"description":"TIDB容器名字"},
 						"POS": {
 							"type":"object",
 							"required":true,
@@ -34,11 +34,11 @@
 							"items": {
 								"type":"object",
 								"properties": {
-									"TIDB_ID": {"type":"string","required":true,"minLength":36},
-									"TIDB_NAME": {"type":"string","required":true},
-									"IP": {"type":"string","required":true},
-									"PORT": {"type":"string","required":true},
-									"STAT_PORT": {"type":"string","required":true}
+									"TIDB_ID": {"type":"string","required":true,"minLength":36,"description":"TIDB ID"},
+									"TIDB_NAME": {"type":"string","required":true,"description":"TIDB Name"},
+									"IP": {"type":"string","required":true,"description":"IP"},
+									"PORT": {"type":"string","required":true,"description":"服务端口"},
+									"STAT_PORT": {"type":"string","required":true,"description":"统计数据端口"}
 								},
 								"minItems":2
 							}
@@ -50,8 +50,8 @@
 					"type":"object",
 					"required":true,
 					"properties": {
-						"TIKV_CONTAINER_ID": {"type":"string","required":true,"minLength":36},
-						"TIKV_CONTAINER_NAME": {"type":"string","required":true},
+						"TIKV_CONTAINER_ID": {"type":"string","required":true,"minLength":36,"description":"TIKV容器ID"},
+						"TIKV_CONTAINER_NAME": {"type":"string","required":true,"description":"TIKV容器名字"},
 						"POS": {
 							"type":"object",
 							"required":true,
@@ -71,10 +71,10 @@
 							"items": {
 								"type":"object",
 								"properties": {
-									"TIKV_ID": {"type":"string","required":true,"minLength":36},
-									"TIKV_NAME": {"type":"string","required":true},
-									"IP": {"type":"string","required":true},
-									"PORT": {"type":"string","required":true}
+									"TIKV_ID": {"type":"string","required":true,"minLength":36,"description":"TIKV ID"},
+									"TIKV_NAME": {"type":"string","required":true,"description":"TIKV Name"},
+									"IP": {"type":"string","required":true,"description":"IP"},
+									"PORT": {"type":"string","required":true,"description":"服务端口"}
 								},
 								"minItems":3
 							}
@@ -86,8 +86,8 @@
 					"type":"object",
 					"required":true,
 					"properties": {
-						"PD_CONTAINER_ID": {"type":"string","required":true,"minLength":36},
-						"PD_CONTAINER_NAME": {"type":"string","required":true},
+						"PD_CONTAINER_ID": {"type":"string","required":true,"minLength":36,"description":"PD容器ID"},
+						"PD_CONTAINER_NAME": {"type":"string","required":true,"description":"PD容器名字"},
 						"POS": {
 							"type":"object",
 							"required":true,
@@ -107,10 +107,11 @@
 							"items": {
 								"type":"object",
 								"properties": {
-									"PD_ID": {"type":"string","required":true,"minLength":36},
-									"PD_NAME": {"type":"string","required":true},
-									"IP": {"type":"string","required":true},
-									"PORT": {"type":"string","required":true}
+									"PD_ID": {"type":"string","required":true,"minLength":36,"description":"PD ID"},
+									"PD_NAME": {"type":"string","required":true,"description":"PD Name"},
+									"IP": {"type":"string","required":true,"description":"IP"},
+									"PORT": {"type":"string","required":true,"description":"服务端口"},
+									"CLUSTER_PORT": {"type":"string","required":true,"description":"集群端口"},
 								},
 								"minItems":3
 							}
@@ -122,10 +123,10 @@
 					"type":"object",
 					"required":true,
 					"properties": {
-						"COLLECTD_ID": {"type":"string","required":true,"minLength":36},
-						"COLLECTD_NAME": {"type":"string","required":true},
-						"IP": {"type":"string","required":true},
-						"PORT": {"type":"string","required":true},
+						"COLLECTD_ID": {"type":"string","required":true,"minLength":36,"description":"COLLECTD ID"},
+						"COLLECTD_NAME": {"type":"string","required":true,"description":"COLLECTD NAME"},
+						"IP": {"type":"string","required":true,"description":"IP"},
+						"PORT": {"type":"string","required":true,"description":"服务端口"},
 						"POS": {
 							"type":"object",
 							"required":true,
@@ -139,7 +140,7 @@
 							}
 						}
 					}
-				}			
+				}
 			}
 		}
 	}
