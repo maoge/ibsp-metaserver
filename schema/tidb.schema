@@ -111,7 +111,7 @@
 									"PD_NAME": {"type":"string","required":true,"description":"PD Name"},
 									"IP": {"type":"string","required":true,"description":"IP"},
 									"PORT": {"type":"string","required":true,"description":"服务端口"},
-									"CLUSTER_PORT": {"type":"string","required":true,"description":"集群端口"},
+									"CLUSTER_PORT": {"type":"string","required":true,"description":"集群端口"}
 								},
 								"minItems":3
 							}
