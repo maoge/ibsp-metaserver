@@ -1,10 +1,10 @@
 package ibsp.metaserver.bean;
 
-import java.util.HashMap;
+import java.util.Map;
 
 public abstract class BeanMapper {
 	
-	public static Object getFixDataAsObject(HashMap<String, Object> mapper, String fixHeader) {
+	public static Object getFixDataAsObject(Map<String, Object> mapper, String fixHeader) {
 		if (mapper == null)
 			return null;
 		
@@ -15,7 +15,7 @@ public abstract class BeanMapper {
 		return o;
 	}
 
-	public static String getFixDataAsString(HashMap<String, Object> mapper, String fixHeader) {
+	public static String getFixDataAsString(Map<String, Object> mapper, String fixHeader) {
 		if (mapper == null)
 			return "";
 		
@@ -27,7 +27,7 @@ public abstract class BeanMapper {
 		return value != null ? value : "";
 	}
 	
-	public static int getFixDataAsInt(HashMap<String, Object> mapper, String fixHeader) {
+	public static int getFixDataAsInt(Map<String, Object> mapper, String fixHeader) {
 		if (mapper == null)
 			return 0;
 		
@@ -39,7 +39,7 @@ public abstract class BeanMapper {
 		return value != null ? value.intValue() : 0;
 	}
 	
-	public static long getFixDataAsLong(HashMap<String, Object> mapper, String fixHeader) {
+	public static long getFixDataAsLong(Map<String, Object> mapper, String fixHeader) {
 		if (mapper == null)
 			return 0L;
 		
@@ -51,7 +51,7 @@ public abstract class BeanMapper {
 		return value != null ? value.longValue() : 0L;
 	}
 	
-	public static float getFixDataAsFloat(HashMap<String, Object> mapper, String fixHeader) {
+	public static float getFixDataAsFloat(Map<String, Object> mapper, String fixHeader) {
 		if (mapper == null)
 			return 0;
 		
@@ -63,7 +63,7 @@ public abstract class BeanMapper {
 		return value != null ? value.floatValue() : 0;
 	}
 	
-	public static double getFixDataAsDouble(HashMap<String, Object> mapper, String fixHeader) {
+	public static double getFixDataAsDouble(Map<String, Object> mapper, String fixHeader) {
 		if (mapper == null)
 			return 0;
 		

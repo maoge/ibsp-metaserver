@@ -41,6 +41,9 @@ public class CONSTS {
 	public static final String SERV_TYPE_CACHE     = "CACHE";
 	public static final String SERV_TYPE_DB        = "DB";
 	
+	public static final String SCHEMA_OBJECT       = "\"object\"";
+	public static final String SCHEMA_ARRAY        = "\"array\"";
+	
 	public static final String ERR_PARAM_INCOMPLETE     = "parameter incomplete ......";
 	public static final String ERR_TIDB_CONTAINER_META  = "tidb container component meta error ......";
 	public static final String ERR_JSON_SCHEME_VALI_ERR = "json schema validation fail ......";

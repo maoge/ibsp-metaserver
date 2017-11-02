@@ -159,12 +159,14 @@ public class FixHeader {
 	public static final String HEADER_ATTR_NAME_CN             = "ATTR_NAME_CN";
 	public static final String HEADER_AUTO_GEN                 = "AUTO_GEN";
 	
+	public static final String HEADER_INSTANCE_ID              = "INST_ID";
 	public static final String HEADER_CMPT_TYPE                = "CMPT_TYPE";
 	public static final String HEADER_CMPT_ID                  = "CMPT_ID";
 	public static final String HEADER_CMPT_NAME                = "CMPT_NAME";
 	public static final String HEADER_CMPT_NAME_CN             = "CMPT_NAME_CN";
 	public static final String HEADER_SERV_CLAZZ               = "SERV_CLAZZ";
 	public static final String HEADER_SERV_TYPE                = "SERV_TYPE";
+	public static final String HEADER_SERV_ID                  = "SERV_ID";
 	public static final String HEADER_SUB_SERV_TYPE            = "SUB_SERV_TYPE";
 	
 	public static final String HEADER_TIDB_JSON                = "TIDB_JSON";

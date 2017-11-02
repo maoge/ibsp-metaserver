@@ -2,7 +2,7 @@ package ibsp.metaserver.bean;
 
 import ibsp.metaserver.utils.FixHeader;
 
-import java.util.HashMap;
+import java.util.Map;
 
 public class RelationBean extends BeanMapper {
 
@@ -20,8 +20,8 @@ public class RelationBean extends BeanMapper {
 		this.slaveID = slaveID;
 	}
 	
-	public static RelationBean convert(HashMap<String, Object> mapper) {
-		if (mapper == null)
+	public static RelationBean convert(Map<String, Object> mapper) {
+		if (mapper == null || mapper.isEmpty())
 			return null;
 		
 		Object master = getFixDataAsObject(mapper, FixHeader.HEADER_MASTER_ID);
@@ -44,6 +44,10 @@ public class RelationBean extends BeanMapper {
 
 	public void setSlaveID(Object slaveID) {
 		this.slaveID = slaveID;
+	}
+	
+	public Object getTOE(Object id) {
+		return masterID.equals(id) ? slaveID : masterID;
 	}
 	
 }

@@ -276,6 +276,7 @@ public class CRUD {
 		return resultList;
 	}
 	
+	@SuppressWarnings("unused")
 	private void mapping(HashMap<String, Object> resultMap, int column, ResultSet rs, ResultSetMetaData metaData) throws SQLException {
 		String columnName = metaData.getColumnLabel(column).toUpperCase();
 		int columnType = metaData.getColumnType(column);
@@ -499,7 +500,7 @@ public class CRUD {
 
 	public Map<String, Object> queryForMap(Connection conn, String sql,
 			Object[] params) throws CRUDException {
-		Map<String, Object> map = new HashMap<String, Object>();
+		Map<String, Object> map = null;
 		if (conn != null) {
 			PreparedStatement ps = null;
 			ResultSet rs = null;
@@ -519,6 +520,7 @@ public class CRUD {
 				rs = ps.executeQuery();
 				ResultSetMetaData metaData = rs.getMetaData();
 				int colnum = metaData.getColumnCount();
+				map = new HashMap<String, Object>();
 				while (rs.next()) {
 					for (int i = 1; i <= colnum; i++) {
 						String listName = metaData.getColumnLabel(i)

@@ -1,6 +1,6 @@
 package ibsp.metaserver.bean;
 
-import java.util.HashMap;
+import java.util.Map;
 
 import ibsp.metaserver.utils.FixHeader;
 import ibsp.metaserver.utils.HttpUtils;
@@ -102,8 +102,8 @@ public class MetaComponentBean extends BeanMapper {
 		return new MetaComponentBean(cmptID, cmptName, cmptNameCn, servClazz, servType, subServType);
 	}
 	
-	public static MetaComponentBean convert(HashMap<String, Object> mapper) {
-		if (mapper == null)
+	public static MetaComponentBean convert(Map<String, Object> mapper) {
+		if (mapper == null || mapper.isEmpty())
 			return null;
 		
 		int    cmptID      = getFixDataAsInt(mapper, FixHeader.HEADER_CMPT_ID);

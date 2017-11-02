@@ -5,7 +5,7 @@ import ibsp.metaserver.utils.FixHeader;
 import ibsp.metaserver.utils.HttpUtils;
 import io.vertx.core.json.JsonObject;
 
-import java.util.HashMap;
+import java.util.Map;
 
 public class MetaAttributeBean extends BeanMapper {
 
@@ -79,8 +79,8 @@ public class MetaAttributeBean extends BeanMapper {
 		return new MetaAttributeBean(attrID, attrName, attrNameCN, autoGen);
 	}
 	
-	public static MetaAttributeBean convert(HashMap<String, Object> mapper) {
-		if (mapper == null)
+	public static MetaAttributeBean convert(Map<String, Object> mapper) {
+		if (mapper == null || mapper.isEmpty())
 			return null;
 		
 		int     attrID     = getFixDataAsInt(mapper, FixHeader.HEADER_ATTR_ID);

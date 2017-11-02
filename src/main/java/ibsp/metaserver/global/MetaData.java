@@ -58,7 +58,7 @@ public class MetaData {
 	private void initData() {
 		LoadMetaAttr();
 		LoadMetaCmpt();
-		LoadMetaAttr2Cmpt();
+		LoadMetaCmpt2Attr();
 	}
 	
 	private void LoadMetaAttr() {
@@ -111,7 +111,7 @@ public class MetaData {
 		}
 	}
 	
-	private void LoadMetaAttr2Cmpt() {
+	private void LoadMetaCmpt2Attr() {
 		try {
 			intanceLock.lock();
 			
@@ -126,8 +126,8 @@ public class MetaData {
 				if (relationBean == null)
 					continue;
 				
-				Integer masterID = Integer.valueOf((String) relationBean.getMasterID());
-				Integer slaveID = Integer.valueOf((String) relationBean.getSlaveID());
+				Integer masterID = (Integer) relationBean.getMasterID();
+				Integer slaveID = (Integer) relationBean.getSlaveID();
 				
 				IdSetBean<Integer> idSet = metaCmpt2AttrMap.get(masterID);
 				if (idSet == null) {
@@ -151,6 +151,10 @@ public class MetaData {
 		if (cmptID == null)
 			return null;
 		
+		return metaCmptMap.get(cmptID);
+	}
+	
+	public MetaComponentBean getComponentByID(int cmptID) {
 		return metaCmptMap.get(cmptID);
 	}
 	

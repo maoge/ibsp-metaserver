@@ -15,10 +15,10 @@ import ibsp.metaserver.bean.PosBean;
 import ibsp.metaserver.bean.ResultBean;
 import ibsp.metaserver.bean.SqlBean;
 import ibsp.metaserver.global.MetaData;
+import ibsp.metaserver.schema.Validator;
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.CRUD;
 import ibsp.metaserver.utils.FixHeader;
-import ibsp.metaserver.utils.JsonSchemaValidator;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
@@ -56,8 +56,18 @@ public class TiDBService {
 		
 		CRUD curd = new CRUD();
 		
+		MetaComponentBean dbServContainerComponent = MetaData.get().getComponentByName(FixHeader.HEADER_DB_SERV_CONTAINER);
+		Integer dbServContainerCmptID = dbServContainerComponent.getCmptID();
+		
 		// add db service container
 		addService(curd, dbServContainerID, dbServContainerName, CONSTS.SERV_TYPE_DB);
+		
+		// insert db service container instance
+		PosBean posDBContainer = new PosBean();
+		addComponentInstance(curd, dbServContainerID, dbServContainerCmptID, posDBContainer);
+					
+		// insert db service container attribute
+		addComponentAttrbute(curd, dbServContainerID, dbServContainer, FixHeader.HEADER_DB_SERV_CONTAINER);
 		
 		// tidb container
 		if (tidbContainer != null) {
@@ -223,17 +233,24 @@ public class TiDBService {
 		MetaComponentBean component = MetaData.get().getComponentByName(cmptName);
 		Integer cmptID = component.getCmptID();
 		
-		IdSetBean<Integer> attrIdSet = MetaData.get().getAttrIdSet(cmptID);
-		Iterator<Integer> it = attrIdSet.iterator();
-		while (it.hasNext()) {
-			Integer attrID = it.next();
-			MetaAttributeBean metaAttr = MetaData.get().getAttributeByID(attrID);
-			String attrName = metaAttr.getAttrName();
-			String attrValue = cmptJson.getString(attrName);
-			
-			SqlBean sqlAttr = new SqlBean(INS_INSTANCE_ATTR);
-			sqlAttr.addParams(new Object[]{instanceID, attrID, attrName, attrValue});
-			curd.putSqlBean(sqlAttr);
+		try {
+			IdSetBean<Integer> attrIdSet = MetaData.get().getAttrIdSet(cmptID);
+			Iterator<Integer> it = attrIdSet.iterator();
+			while (it.hasNext()) {
+				
+				Integer attrID = it.next();
+				MetaAttributeBean metaAttr = MetaData.get().getAttributeByID(attrID);
+				String attrName = metaAttr.getAttrName();
+				String attrValue = cmptJson.getString(attrName);
+				
+				SqlBean sqlAttr = new SqlBean(INS_INSTANCE_ATTR);
+				sqlAttr.addParams(new Object[]{instanceID, attrID, attrName, attrValue});
+				curd.putSqlBean(sqlAttr);
+				
+			}
+		
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 	}
 	
@@ -265,7 +282,7 @@ public class TiDBService {
 	private static boolean checkTiDBJson(String sTiDBJson, ResultBean result) {
 		boolean ret = false;
 		try {
-			ret = JsonSchemaValidator.validateTiDBJson(sTiDBJson);
+			ret = Validator.validateTiDBJson(sTiDBJson);
 		} catch (IOException | ProcessingException e) {
 			result.setRetCode(CONSTS.REVOKE_NOK);
 			result.setRetInfo(CONSTS.ERR_JSON_SCHEME_VALI_ERR);
