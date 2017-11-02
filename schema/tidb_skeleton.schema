@@ -1,0 +1,77 @@
+{
+	"$schema": "http://json-schema.org/draft-03/schema#",
+	"type":"object",
+	"properties": {
+		"DB_SERV_CONTAINER":{
+			"type":"object",
+			"required":true,
+			"properties": {
+				"DB_SVC_CONTAINER_ID": {"type":"string","required":true,"minLength":36,"description":"DB服务容器ID"},
+				"DB_SVC_CONTAINER_NAME": {"type":"string","required":true,"description":"DB服务容器名字"},
+				
+				"DB_TIDB_CONTAINER": {
+					"type":"object",
+					"required":true,
+					"properties": {
+						"TIDB_CONTAINER_ID": {"type":"string","required":true,"minLength":36,"description":"TIDB容器ID"},
+						"TIDB_CONTAINER_NAME": {"type":"string","required":true,"description":"TIDB容器名字"},
+						"POS": {
+							"type":"object",
+							"required":true,
+							"properties": {
+								"x": {"type":"integer","required":true},
+								"y": {"type":"integer","required":true},
+								"width": {"type":"integer"},
+								"height":{"type":"integer"},
+								"row":{"type":"integer"},
+								"col":{"type":"integer"}
+							}
+						}
+					}
+				},
+				
+				"DB_TIKV_CONTAINER": {
+					"type":"object",
+					"required":true,
+					"properties": {
+						"TIKV_CONTAINER_ID": {"type":"string","required":true,"minLength":36,"description":"TIKV容器ID"},
+						"TIKV_CONTAINER_NAME": {"type":"string","required":true,"description":"TIKV容器名字"},
+						"POS": {
+							"type":"object",
+							"required":true,
+							"properties": {
+								"x": {"type":"integer","required":true},
+								"y": {"type":"integer","required":true},
+								"width": {"type":"integer"},
+								"height":{"type":"integer"},
+								"row":{"type":"integer"},
+								"col":{"type":"integer"}
+							}
+						}
+					}
+				},
+				
+				"DB_PD_CONTAINER": {
+					"type":"object",
+					"required":true,
+					"properties": {
+						"PD_CONTAINER_ID": {"type":"string","required":true,"minLength":36,"description":"PD容器ID"},
+						"PD_CONTAINER_NAME": {"type":"string","required":true,"description":"PD容器名字"},
+						"POS": {
+							"type":"object",
+							"required":true,
+							"properties": {
+								"x": {"type":"integer","required":true},
+								"y": {"type":"integer","required":true},
+								"width": {"type":"integer"},
+								"height":{"type":"integer"},
+								"row":{"type":"integer"},
+								"col":{"type":"integer"}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
