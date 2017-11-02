@@ -1,6 +1,7 @@
 package ibsp.metaserver.utils;
 
 import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonArray;
@@ -55,33 +56,18 @@ public class HttpUtils {
 	public static Map<String, String> getParamForMap(HttpServerRequest request) {
 		Map<String, String> paramMap = null;
 		MultiMap map = null;
-		MultiMap map2 = null;
 		if (request != null) {
-			/*HttpMethod method = request.method();
+			HttpMethod method = request.method();
 			if (method.equals(HttpMethod.POST)) {
+				map = request.params();
 			} else if (method.equals(HttpMethod.GET)) {
-			}*/
-			map = request.formAttributes();
-			map2 = request.params();
-
+				map = request.formAttributes();
+			}
+			
 			if (map != null) {
 				int i = 0;
 
 				Iterator<Entry<String, String>> it = map.iterator();
-				while (it.hasNext()) {
-					if (i == 0) {
-						paramMap = new HashMap<String, String>();
-						i++;
-					}
-
-					Entry<String, String> e = it.next();
-					paramMap.put(e.getKey(), e.getValue());
-				}
-			}
-			if (map2 != null) {
-				int i = 0;
-
-				Iterator<Entry<String, String>> it = map2.iterator();
 				while (it.hasNext()) {
 					if (i == 0) {
 						paramMap = new HashMap<String, String>();
