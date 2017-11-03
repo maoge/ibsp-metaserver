@@ -170,6 +170,8 @@ public class FixHeader {
 	public static final String HEADER_SUB_SERV_TYPE            = "SUB_SERV_TYPE";
 	
 	public static final String HEADER_TIDB_JSON                = "TIDB_JSON";
+	public static final String HEADER_TOPO_JSON                = "TOPO_JSON";
+	public static final String HEADER_NODE_JSON                = "NODE_JSON";
 	public static final String HEADER_DB_SERV_CONTAINER        = "DB_SERV_CONTAINER";
 	public static final String HEADER_DB_SVC_CONTAINER_ID      = "DB_SVC_CONTAINER_ID";
 	public static final String HEADER_DB_SVC_CONTAINER_NAME    = "DB_SVC_CONTAINER_NAME";

@@ -5,6 +5,7 @@ import ibsp.metaserver.annotation.Service;
 import ibsp.metaserver.dbpool.DbSource;
 import ibsp.metaserver.eventbus.SysEventHandler;
 import ibsp.metaserver.global.ServiceData;
+import ibsp.metaserver.microservice.handler.ConfigServerHandler;
 import ibsp.metaserver.microservice.handler.MetaServerHandler;
 import ibsp.metaserver.microservice.handler.TiDBServerHanlder;
 import ibsp.metaserver.singleton.AllServiceMap;
@@ -62,6 +63,7 @@ public class Server extends AbstractVerticle {
 		
 		Vector<Class<?>> clazzToReg = new Vector<Class<?>>();
 		clazzToReg.add(MetaServerHandler.class);
+		clazzToReg.add(ConfigServerHandler.class);
 		clazzToReg.add(TiDBServerHanlder.class);
 		
 		registerRoute(router, clazzToReg);

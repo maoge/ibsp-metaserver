@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory;
 import ibsp.metaserver.annotation.App;
 import ibsp.metaserver.annotation.Service;
 import ibsp.metaserver.bean.MetaAttributeBean;
-import ibsp.metaserver.bean.ResultBean;
 import ibsp.metaserver.dbservice.MetaDataService;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.utils.CONSTS;
@@ -129,40 +128,6 @@ public class MetaServerHandler {
 						arr.add(attr.asJson());
 					}
 					json.put(FixHeader.HEADER_RET_INFO, arr);
-				}
-			}
-		}
-		
-		HttpUtils.outJsonObject(routeContext, json);
-	}
-	
-	@Service(id = "loadServiceTopoByInstID", name = "loadServiceTopoByInstID", auth = true, bwswitch = true)
-	public static void loadServiceTopoByInstID(RoutingContext routeContext) {
-		JsonObject json = new JsonObject();
-		
-		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
-		if(params == null) {
-			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
-			json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
-		} else {
-			String instID  = params != null ? params.get(FixHeader.HEADER_INSTANCE_ID) : null;
-			if (!HttpUtils.isNotNull(instID)) {
-				json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
-				json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
-			} else {
-				ResultBean result = new ResultBean();
-				try {
-					JsonObject topoJson = MetaDataService.loadServiceTopoByInstID(instID, result);
-				
-				if (topoJson != null) {
-					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
-					json.put(FixHeader.HEADER_RET_INFO, topoJson);
-				} else {
-					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
-					json.put(FixHeader.HEADER_RET_INFO, result.getRetInfo());
-				}
-				} catch (Exception e) {
-					e.printStackTrace();
 				}
 			}
 		}

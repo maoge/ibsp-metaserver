@@ -47,6 +47,9 @@ public class CONSTS {
 	public static final String ERR_PARAM_INCOMPLETE     = "parameter incomplete ......";
 	public static final String ERR_TIDB_CONTAINER_META  = "tidb container component meta error ......";
 	public static final String ERR_JSON_SCHEME_VALI_ERR = "json schema validation fail ......";
+	public static final String ERR_SCHEMA_FILE_NOT_EXIST= "schema file not exist ......";
 	public static final String ERR_METADATA_NOT_FOUND   = "meta data not found ......";
+	public static final String ERR_JSONNODE_NOT_COMPLETE= "json node not complete ......";
+	public static final String ERR_SERV_TYPE_NOT_FOUND  = "service type not found ......";
 	
 }

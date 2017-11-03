@@ -330,19 +330,20 @@ public class MetaDataService {
 		String servType = serviceBean.getServType();
 		String name = SERVICE_TYPE_MAPPER.get(servType);
 		Map<String, String> skeleton = null;
+		JsonObject topoJson = null;
 		try {
 			skeleton = Validator.getSkeleton(name);
+			
+			topoJson = new JsonObject();
+			if (!addInstanceAttribute(instID, topoJson, skeleton)) {
+				result.setRetCode(CONSTS.REVOKE_NOK);
+				result.setRetInfo(CONSTS.ERR_METADATA_NOT_FOUND);
+				return null;
+			}
 		} catch (IOException e) {
 			logger.error(e.getMessage(), e);
 			result.setRetCode(CONSTS.REVOKE_NOK);
 			result.setRetInfo(e.getMessage());
-			return null;
-		}
-		
-		JsonObject topoJson = new JsonObject();
-		if (!addInstanceAttribute(instID, topoJson, skeleton)) {
-			result.setRetCode(CONSTS.REVOKE_NOK);
-			result.setRetInfo(CONSTS.ERR_METADATA_NOT_FOUND);
 			return null;
 		}
 		

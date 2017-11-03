@@ -20,6 +20,8 @@ public class MetaData {
 	
 	private static Logger logger = LoggerFactory.getLogger(MetaData.class);
 	
+	private static String ID_INDEX = "_ID";
+	
 	private Map<Integer, MetaAttributeBean> metaAttrMap;
 	private Map<Integer, MetaComponentBean> metaCmptMap;
 	private Map<String,  Integer> metaCmptName2IDMap;
@@ -192,6 +194,38 @@ public class MetaData {
 		}
 		
 		return attrs;
+	}
+	
+	public String getCmptIDAttrNameByID(Integer cmptID) {
+		IdSetBean<Integer> idSet = metaCmpt2AttrMap.get(cmptID);
+		if (idSet == null)
+			return null;
+		
+		String idAttrName = null;
+		Iterator<Integer> it = idSet.iterator();
+		while (it.hasNext()) {
+			Integer attrID = it.next();
+			
+			MetaAttributeBean attribute = metaAttrMap.get(attrID);
+			if (attribute.getAttrName().indexOf(ID_INDEX) != -1) {
+				idAttrName = attribute.getAttrName();
+				break;
+			}
+		}
+		
+		return idAttrName;
+	}
+	
+	public String getCmptIDAttrNameByName(String cmptName) {
+		Integer cmptID = metaCmptName2IDMap.get(cmptName);
+		if (cmptID == null)
+			return null;
+		
+		return getCmptIDAttrNameByID(cmptID);
+	}
+	
+	public Integer getComponentID(String cmptName) {
+		return metaCmptName2IDMap.get(cmptName);
 	}
 	
 	public IdSetBean<Integer> getAttrIdSet(Integer cmptID) {

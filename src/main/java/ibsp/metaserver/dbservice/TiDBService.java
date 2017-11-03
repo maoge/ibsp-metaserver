@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.fge.jsonschema.core.exceptions.ProcessingException;
+import com.github.fge.jsonschema.core.report.ProcessingReport;
 
 import ibsp.metaserver.bean.IdSetBean;
 import ibsp.metaserver.bean.MetaAttributeBean;
@@ -233,24 +234,17 @@ public class TiDBService {
 		MetaComponentBean component = MetaData.get().getComponentByName(cmptName);
 		Integer cmptID = component.getCmptID();
 		
-		try {
-			IdSetBean<Integer> attrIdSet = MetaData.get().getAttrIdSet(cmptID);
-			Iterator<Integer> it = attrIdSet.iterator();
-			while (it.hasNext()) {
-				
-				Integer attrID = it.next();
-				MetaAttributeBean metaAttr = MetaData.get().getAttributeByID(attrID);
-				String attrName = metaAttr.getAttrName();
-				String attrValue = cmptJson.getString(attrName);
-				
-				SqlBean sqlAttr = new SqlBean(INS_INSTANCE_ATTR);
-				sqlAttr.addParams(new Object[]{instanceID, attrID, attrName, attrValue});
-				curd.putSqlBean(sqlAttr);
-				
-			}
-		
-		} catch (Exception e) {
-			e.printStackTrace();
+		IdSetBean<Integer> attrIdSet = MetaData.get().getAttrIdSet(cmptID);
+		Iterator<Integer> it = attrIdSet.iterator();
+		while (it.hasNext()) {
+			Integer attrID = it.next();
+			MetaAttributeBean metaAttr = MetaData.get().getAttributeByID(attrID);
+			String attrName = metaAttr.getAttrName();
+			String attrValue = cmptJson.getString(attrName);
+			
+			SqlBean sqlAttr = new SqlBean(INS_INSTANCE_ATTR);
+			sqlAttr.addParams(new Object[]{instanceID, attrID, attrName, attrValue});
+			curd.putSqlBean(sqlAttr);
 		}
 	}
 	
@@ -279,14 +273,15 @@ public class TiDBService {
 		pos.setCol(col != null ? col : CONSTS.POS_DEFAULT_VALUE);
 	}
 	
-	private static boolean checkTiDBJson(String sTiDBJson, ResultBean result) {
+	private static boolean checkTiDBJson(String sTiDBJson, ResultBean result) {		
 		boolean ret = false;
 		try {
-			ret = Validator.validateTiDBJson(sTiDBJson);
+			ProcessingReport report = Validator.validator("tidb", sTiDBJson);
+			ret = report.isSuccess();
 		} catch (IOException | ProcessingException e) {
+			logger.error(e.getMessage(), e);
 			result.setRetCode(CONSTS.REVOKE_NOK);
 			result.setRetInfo(CONSTS.ERR_JSON_SCHEME_VALI_ERR);
-			logger.error(e.getMessage(), e);
 		}
 		
 		return ret;
