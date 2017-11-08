@@ -34,7 +34,7 @@
 							"items": {
 								"type":"object",
 								"properties": {
-									"TIDB_ID": {"type":"string","required":true,"minLength":36,"description":"TIDB ID"},
+									"TIDB_ID": {"type":"string","required":true,"minLength":36,"description":"TIDB ID","inputDisabled":true},
 									"TIDB_NAME": {"type":"string","required":true,"description":"TIDB Name"},
 									"IP": {"type":"string","required":true,"description":"IP"},
 									"PORT": {"type":"string","required":true,"description":"服务端口"},
@@ -71,7 +71,7 @@
 							"items": {
 								"type":"object",
 								"properties": {
-									"TIKV_ID": {"type":"string","required":true,"minLength":36,"description":"TIKV ID"},
+									"TIKV_ID": {"type":"string","required":true,"minLength":36,"description":"TIKV ID","inputDisabled":true},
 									"TIKV_NAME": {"type":"string","required":true,"description":"TIKV Name"},
 									"IP": {"type":"string","required":true,"description":"IP"},
 									"PORT": {"type":"string","required":true,"description":"服务端口"}
@@ -107,7 +107,7 @@
 							"items": {
 								"type":"object",
 								"properties": {
-									"PD_ID": {"type":"string","required":true,"minLength":36,"description":"PD ID"},
+									"PD_ID": {"type":"string","required":true,"minLength":36,"description":"PD ID","inputDisabled":true},
 									"PD_NAME": {"type":"string","required":true,"description":"PD Name"},
 									"IP": {"type":"string","required":true,"description":"IP"},
 									"PORT": {"type":"string","required":true,"description":"服务端口"},
@@ -123,7 +123,7 @@
 					"type":"object",
 					"required":true,
 					"properties": {
-						"COLLECTD_ID": {"type":"string","required":true,"minLength":36,"description":"COLLECTD ID"},
+						"COLLECTD_ID": {"type":"string","required":true,"minLength":36,"description":"COLLECTD ID","inputDisabled":true},
 						"COLLECTD_NAME": {"type":"string","required":true,"description":"COLLECTD NAME"},
 						"IP": {"type":"string","required":true,"description":"IP"},
 						"PORT": {"type":"string","required":true,"description":"服务端口"},
