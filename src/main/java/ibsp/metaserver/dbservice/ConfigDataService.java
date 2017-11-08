@@ -17,6 +17,7 @@ import ibsp.metaserver.bean.MetaAttributeBean;
 import ibsp.metaserver.bean.PosBean;
 import ibsp.metaserver.bean.ResultBean;
 import ibsp.metaserver.bean.SqlBean;
+import ibsp.metaserver.exception.CRUDException;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.schema.Validator;
 import ibsp.metaserver.utils.CONSTS;
@@ -49,6 +50,10 @@ public class ConfigDataService {
 	private static final String INS_TOPOLOGY      = "insert into t_topology(INST_ID1,INST_ID2,TOPO_TYPE) "
 	                                              + "values(?,?,?)";
 	
+	private static final String CNT_SERVICE       = "SELECT COUNT(INST_ID) AS CNT FROM t_service where INST_ID=?";
+	private static final String UPDATE_POS        = "update t_instance set POS_X=?,POS_Y=?, WIDTH=?, HEIGHT=?,ROW=?,COL=? "
+	                                              + "where INST_ID = ?";
+	
 	static {
 		SKELETON_SCHEMA_MAPPER = new HashMap<String, String>();
 		SKELETON_SCHEMA_MAPPER.put(CONSTS.SERV_TYPE_MQ,    "mq_skeleton");
@@ -68,11 +73,27 @@ public class ConfigDataService {
 		CRUD curd = new CRUD();
 		JsonObject topoJson = new JsonObject(sTopoJson);
 		
-		if (!addService(topoJson, curd, sServType, result))
+		ResultBean servIDBean = new ResultBean();
+		ResultBean servNameBean = new ResultBean();
+		if (!getServiceIdAndName(topoJson, sServType, servIDBean, servNameBean, result))
 			return false;
 		
-		if (!enumJson(topoJson, curd, result))
-			return false;
+		String serviceID = servIDBean.getRetInfo();
+		String serviceName = servNameBean.getRetInfo();
+		
+		boolean exist = isServiceExist(serviceID, result);
+		if (exist) {
+			// do move container operation after save service topo
+			if (!enumJsonPos(topoJson, curd, result))
+				return false;
+		} else {
+			// first save service topo
+			if (!addService(serviceID, serviceName, curd, sServType, result))
+				return false;
+			
+			if (!enumJson(topoJson, curd, result))
+				return false;
+		}
 		
 		return curd.executeUpdate(true, result);
 	}
@@ -139,7 +160,9 @@ public class ConfigDataService {
 			CRUD curd, JsonObject nodeJson, ResultBean result) {
 		
 		PosBean pos = new PosBean();
-		getPos(nodeJson, pos);
+		JsonObject jsonPos = nodeJson.getJsonObject(FixHeader.HEADER_POS);
+		if (jsonPos != null)
+			getPos(jsonPos, pos);
 		
 		// add instance
 		SqlBean sqlInst = new SqlBean(INS_INSTANCE);
@@ -184,6 +207,44 @@ public class ConfigDataService {
 		return true;
 	}
 	
+	private static boolean enumJsonPos(JsonObject json, CRUD curd, ResultBean result) {
+		Iterator<Entry<String, Object>> it = json.iterator();
+		while (it.hasNext()) {
+			Entry<String, Object> entry = it.next();
+			String cmptName = entry.getKey();
+			Object val = entry.getValue();
+			
+			if (val instanceof JsonObject) {
+				JsonObject subJson = (JsonObject) val;
+				JsonObject posJson = subJson.getJsonObject(FixHeader.HEADER_POS);
+				if (posJson != null) {
+					PosBean pos = new PosBean();
+					getPos(posJson, pos);
+					
+					String idAttrName = MetaData.get().getCmptIDAttrNameByName(cmptName);
+					if (HttpUtils.isNull(idAttrName)) {
+						String info = String.format("compoent:%s ID attribute not found ......", cmptName);
+						result.setRetCode(CONSTS.REVOKE_NOK);
+						result.setRetInfo(info);
+						return false;
+					}
+					
+					String instID = subJson.getString(idAttrName);
+					SqlBean sqlPos = new SqlBean(UPDATE_POS);
+					sqlPos.addParams(new Object[] { pos.getX(), pos.getY(),
+							pos.getWidth(), pos.getHeight(), pos.getRow(),
+							pos.getCol(), instID });
+					curd.putSqlBean(sqlPos);
+				}
+				
+				if (!enumJsonPos(subJson, curd, result))
+					return false;
+			}
+		}
+		
+		return true;
+	}
+	
 	private static boolean enumJson(Object json, CRUD curd, ResultBean result) {
 		if (json instanceof JsonObject) {
 			Iterator<Entry<String, Object>> it = ((JsonObject) json).iterator();
@@ -198,6 +259,9 @@ public class ConfigDataService {
 					return false;
 				 
 				if (val instanceof JsonObject && !key.equals(FixHeader.HEADER_POS)) {
+					if (((JsonObject) val).fieldNames().size() == 0)
+						return true;
+					
 					if (!addComponentAttrbuteAndRelation((JsonObject) val, curd, key, result)) {
 						return false;
 					}
@@ -242,8 +306,14 @@ public class ConfigDataService {
 		}
 		
 		String instID = json.getString(idAttrName);
+		if (HttpUtils.isNull(instID)) {
+			// json {}
+			return true;
+		}
 		PosBean pos = new PosBean();
-		getPos(json, pos);
+		JsonObject posJson = json.getJsonObject(FixHeader.HEADER_POS);
+		if (posJson != null)
+			getPos(posJson, pos);
 		
 		// add instance
 		SqlBean sqlInst = new SqlBean(INS_INSTANCE);
@@ -287,8 +357,10 @@ public class ConfigDataService {
 		return true;
 	}
 	
-	private static boolean addService(JsonObject json, CRUD curd, String sServType, ResultBean result) {
-		long dt = System.currentTimeMillis();
+	private static boolean getServiceIdAndName(JsonObject json,
+			String sServType, ResultBean servIDBean, ResultBean servNameBean,
+			ResultBean result) {
+		
 		String sServTypeName = SERV_TYPE_NAME_MAPPER.get(sServType);
 		if (HttpUtils.isNull(sServTypeName)) {
 			result.setRetCode(CONSTS.REVOKE_NOK);
@@ -307,14 +379,29 @@ public class ConfigDataService {
 			
 			if (key.indexOf(ID_INDEX) != -1) {
 				serviceID = (String) entry.getValue();
+				servIDBean.setRetInfo(serviceID);
 				continue;
 			}
 			
 			if (key.indexOf(NAME_INDEX) != -1) {
 				serviceName = (String) entry.getValue();
+				servNameBean.setRetInfo(serviceName);
 				continue;
 			}
 		}
+		
+		if (serviceID == null || serviceName == null) {
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo("service id or name is null ......");
+			return false;
+		}
+		
+		return true;
+	}
+	
+	private static boolean addService(String serviceID, String serviceName,
+			CRUD curd, String sServType, ResultBean result) {
+		long dt = System.currentTimeMillis();
 		
 		SqlBean sqlServBean = new SqlBean(INS_SERVICE);
 		sqlServBean.addParams(new Object[] { serviceID, serviceName, sServType, dt });
@@ -360,6 +447,23 @@ public class ConfigDataService {
 		}
 		
 		return ret;
+	}
+	
+	private static boolean isServiceExist(String serviceID, ResultBean result) {
+		int cnt = 0;
+		CRUD curd = new CRUD();
+		
+		SqlBean sql = new SqlBean(CNT_SERVICE);
+		sql.addParams(new Object[] { serviceID });
+		curd.putSqlBean(sql);
+		try {
+			cnt = curd.queryForCount();
+		} catch (CRUDException e) {
+			result.setRetCode(CONSTS.REVOKE_OK);
+			result.setRetInfo(e.getMessage());
+		}
+		
+		return cnt > 0;
 	}
 
 }

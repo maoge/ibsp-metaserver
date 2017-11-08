@@ -214,8 +214,32 @@ public class CRUD {
 			}
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
-			throw new CRUDException("sql:" + sb.getSql(), e,
-					CRUDERRINFO.e3);
+			throw new CRUDException(e.getMessage(), e, CRUDERRINFO.e3);
+		} finally {
+			if (null != conn)
+				pool.recycle(conn);
+		}
+		return res;
+	}
+	
+	public int queryForCount() throws CRUDException {
+		if (conn == null) {
+			getConn();
+		}
+
+		int res = 0;
+		SqlBean sb = null;
+		try {
+			sb = queue.poll();
+			if (sb != null) {
+				String sql = sb.getSql();
+				
+				List<Object> objs = sb.getParams();
+				res = queryForCount(conn, sql, objs != null ? objs.toArray() : null);
+			}
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+			throw new CRUDException(e.getMessage(), e, CRUDERRINFO.e3);
 		} finally {
 			if (null != conn)
 				pool.recycle(conn);
@@ -231,8 +255,8 @@ public class CRUD {
 	 * @return
 	 * @throws CRUDException
 	 */
-	public List<HashMap<String, Object>> queryForList(Connection conn, String sql,
-			Object[] params) throws CRUDException {
+	public List<HashMap<String, Object>> queryForList(Connection conn,
+			String sql, Object[] params) throws CRUDException {
 		List<HashMap<String, Object>> resultList = new LinkedList<HashMap<String, Object>>();
 		if (conn != null) {
 			PreparedStatement ps = null;
@@ -270,10 +294,48 @@ public class CRUD {
 				
 			} catch (Exception e) {
 				logger.error(e.getMessage(), e);
-				throw new CRUDException("sql:" + sql, e, CRUDERRINFO.e3);
+				throw new CRUDException(e.getMessage(), e, CRUDERRINFO.e3);
 			} 
 		}
 		return resultList;
+	}
+	
+	public int queryForCount(Connection conn, String sql, Object[] params)
+			throws CRUDException {
+		int count = 0;
+		if (conn != null) {
+			PreparedStatement ps = null;
+			ResultSet rs = null;
+			try {
+				if (logger.isDebugEnabled())
+					logger.debug("executeSql:[" + sql + "]");
+
+				ps = conn.prepareStatement(sql);
+				if (params != null && params.length > 0) {
+					for (int i = 0; i < params.length; i++) {
+						ps.setObject(i + 1, params[i]);
+
+						if (logger.isDebugEnabled())
+							logger.debug("executeSql-params:" + params[i]);
+					}
+				}
+				rs = ps.executeQuery();
+				while (rs.next()) {
+					count = rs.getInt(1);
+				}
+				
+				if (rs != null)
+					rs.close();
+				
+				if (ps != null)
+					ps.close();
+				
+			} catch (Exception e) {
+				logger.error(e.getMessage(), e);
+				throw new CRUDException(e.getMessage(), e, CRUDERRINFO.e3);
+			} 
+		}
+		return count;
 	}
 	
 	@SuppressWarnings("unused")
