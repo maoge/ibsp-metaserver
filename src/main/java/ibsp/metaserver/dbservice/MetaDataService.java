@@ -14,6 +14,7 @@ import ibsp.metaserver.schema.Validator;
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.CRUD;
 import ibsp.metaserver.utils.FixHeader;
+import ibsp.metaserver.utils.HttpUtils;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
@@ -284,8 +285,12 @@ public class MetaDataService {
 		}
 		
 		List<InstanceRelationBean> relations = getInstRelations(instID);
-		if (relations == null || relations.size() == 0)
+		if (relations == null || relations.size() == 0) {
+			String subServType = component.getSubServType();
+			if (HttpUtils.isNotNull(subServType))
+				((JsonObject) innerJson).put(subServType, new JsonArray());
 			return true;
+		}
 		
 		// then add attribute of it related nodes by recursively traversal
 		for (InstanceRelationBean relation : relations) {
