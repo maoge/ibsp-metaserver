@@ -40,15 +40,20 @@ public class ConfigDataService {
 	
 	private static final String INS_INSTANCE      = "insert into t_instance(INST_ID,CMPT_ID,POS_X,POS_Y,WIDTH,HEIGHT,ROW,COL) "
 	                                              + "values(?,?,?,?,?,?,?,?)";
+	private static final String DEL_INSTANCE      = "delete from t_instance where INST_ID = ?";
 
 	private static final String INS_INSTANCE_ATTR = "insert into t_instance_attr(INST_ID,ATTR_ID,ATTR_NAME,ATTR_VALUE) "
 	                                              + "values(?,?,?,?)";
+	private static final String DEL_INSTANCE_ATTR = "delete from t_instance_attr where INST_ID = ?";
+	private static final String MOD_INSTANCE_ATTR = "update t_instance_attr set ATTR_VALUE = ? "
+	                                              + "where INST_ID = ? and ATTR_ID = ?";
 	
 	private static final String INS_SERVICE       = "insert into t_service(INST_ID,SERV_NAME,SERV_TYPE,CREATE_TIME) "
 	                                              + "values(?,?,?,?)";
 	
 	private static final String INS_TOPOLOGY      = "insert into t_topology(INST_ID1,INST_ID2,TOPO_TYPE) "
 	                                              + "values(?,?,?)";
+	private static final String DEL_TOPOLOGY      = "delete from t_topology where INST_ID1 = ? and INST_ID2 = ?";
 	
 	private static final String CNT_SERVICE       = "SELECT COUNT(INST_ID) AS CNT FROM t_service where INST_ID=?";
 	private static final String UPDATE_POS        = "update t_instance set POS_X=?,POS_Y=?, WIDTH=?, HEIGHT=?,ROW=?,COL=? "
@@ -98,7 +103,7 @@ public class ConfigDataService {
 		return curd.executeUpdate(true, result);
 	}
 	
-	public static boolean saveServiceNode(String sParentID, String sNodeJson, ResultBean result) {
+	public static boolean saveServiceNode(String sParentID, String sOperType, String sNodeJson, ResultBean result) {
 		JsonObject nodeJson = new JsonObject(sNodeJson);
 		
 		CRUD curd = new CRUD();
@@ -142,18 +147,92 @@ public class ConfigDataService {
 				
 				String instID = instanceNode.getString(idAttrName);
 				
-				// add instance
-				addInstance(instID, cmptID, curd, instanceNode, result);
-				
-				// add component attrbute
-				addComponentAttribute(instID, cmptID, curd, instanceNode, result);
-				
-				// add relation
-				addRelation(sParentID, cmptID, curd, instanceNode, result);
+				if (sOperType.equals(CONSTS.OP_TYPE_ADD)) {
+					// add instance
+					addInstance(instID, cmptID, curd, instanceNode, result);
+					
+					// add component attribute
+					addComponentAttribute(instID, cmptID, curd, instanceNode, result);
+					
+					// add relation
+					addRelation(sParentID, cmptID, curd, instanceNode, result);
+				} else if (sOperType.equals(CONSTS.OP_TYPE_MOD)) {
+					// mod component attribute
+					modComponentAttribute(instID, cmptID, curd, instanceNode, result);
+				} else {
+					String err = String.format("OP_TYPE:%s error ......", sOperType);
+					result.setRetCode(CONSTS.REVOKE_NOK);
+					result.setRetInfo(err);
+					return false;
+				}
 			}
 		}
 		
 		return curd.executeUpdate(true, result);
+	}
+	
+	public static boolean delServiceNode(String sParentID, String sInstID, ResultBean result) {
+		CRUD curd = new CRUD();
+		
+		// delete instance
+		delInstance(sInstID, curd, result);
+		
+		// delete component attribute
+		delComponentAttribute(sInstID, curd, result);
+		
+		// delete relation
+		delRelation(sParentID, sInstID, curd, result);
+		
+		return curd.executeUpdate(true, result);
+	}
+	
+	private static boolean modComponentAttribute(String instID, Integer cmptID,
+			CRUD curd, JsonObject nodeJson, ResultBean result) {
+		
+		IdSetBean<Integer> attrIdSet = MetaData.get().getAttrIdSet(cmptID);
+		Iterator<Integer> it = attrIdSet.iterator();
+		while (it.hasNext()) {
+			Integer attrID = it.next();
+			MetaAttributeBean metaAttr = MetaData.get().getAttributeByID(attrID);
+			String attrName = metaAttr.getAttrName();
+			String attrValue = nodeJson.getString(attrName);
+			
+			SqlBean sqlAttr = new SqlBean(MOD_INSTANCE_ATTR);
+			sqlAttr.addParams(new Object[]{attrValue, instID, attrID});
+			curd.putSqlBean(sqlAttr);
+		}
+		
+		return true;
+	}
+	
+	private static boolean delInstance(String sInstID, CRUD curd,
+			ResultBean result) {
+		
+		SqlBean sqlInst = new SqlBean(DEL_INSTANCE);
+		sqlInst.addParams(new Object[] { sInstID });
+		curd.putSqlBean(sqlInst);
+		
+		return true;
+	}
+	
+	private static boolean delComponentAttribute(String sInstID, CRUD curd,
+			ResultBean result) {
+		
+		SqlBean sqlCmptAttr = new SqlBean(DEL_INSTANCE_ATTR);
+		sqlCmptAttr.addParams(new Object[] { sInstID });
+		curd.putSqlBean(sqlCmptAttr);
+		
+		return true;
+	}
+	
+	private static boolean delRelation(String sParentID, String sInstID,
+			CRUD curd, ResultBean result) {
+		
+		SqlBean sqlTopo = new SqlBean(DEL_TOPOLOGY);
+		sqlTopo.addParams(new Object[] { sParentID, sInstID });
+		curd.putSqlBean(sqlTopo);
+		
+		return true;
 	}
 	
 	private static boolean addInstance(String instID, Integer cmptID,

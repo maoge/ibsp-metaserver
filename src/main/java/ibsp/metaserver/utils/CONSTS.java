@@ -34,6 +34,10 @@ public class CONSTS {
 	public static final int FIX_PREHEAD_LEN        = 6;
 	public static final byte[] PRE_HEAD            = {'$','H','E','A','D',':'};
 	
+	public static final String OP_TYPE_ADD         = "1";
+	public static final String OP_TYPE_MOD         = "2";
+	public static final String OP_TYPE_DEL         = "3";
+	
 	public static final int TOPO_TYPE_LINK         = 1;
 	public static final int TOPO_TYPE_CONTAIN      = 2;
 	

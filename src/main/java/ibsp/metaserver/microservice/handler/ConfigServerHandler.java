@@ -85,12 +85,44 @@ public class ConfigServerHandler {
 		} else {
 			String sNodeJson = params.get(FixHeader.HEADER_NODE_JSON);
 			String sParentID = params.get(FixHeader.HEADER_PARENT_ID);
-			if (!HttpUtils.isNotNull(sNodeJson) || !HttpUtils.isNotNull(sParentID)) {
+			String sOperType = params.get(FixHeader.HEADER_OP_TYPE);
+			if (!HttpUtils.isNotNull(sNodeJson)
+					|| !HttpUtils.isNotNull(sParentID)
+					|| !HttpUtils.isNotNull(sOperType)) {
 				json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
 				json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
 			} else {
 				ResultBean result = new ResultBean();
-				if (ConfigDataService.saveServiceNode(sParentID, sNodeJson, result)) {
+				if (ConfigDataService.saveServiceNode(sParentID, sOperType, sNodeJson, result)) {
+					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+					json.put(FixHeader.HEADER_RET_INFO, "");
+				} else {
+					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+					json.put(FixHeader.HEADER_RET_INFO, result.getRetInfo());
+				}
+			}
+		}
+		
+		HttpUtils.outJsonObject(routeContext, json);
+	}
+	
+	@Service(id = "delServiceNode", name = "delServiceNode", auth = true, bwswitch = true)
+	public static void delServiceNode(RoutingContext routeContext) {
+		JsonObject json = new JsonObject();
+		
+		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
+		if(params == null) {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+			json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+		} else {
+			String sParentID = params.get(FixHeader.HEADER_PARENT_ID);
+			String sInstID = params.get(FixHeader.HEADER_INSTANCE_ID);
+			if (!HttpUtils.isNotNull(sParentID) || !HttpUtils.isNotNull(sInstID)) {
+				json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+				json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+			} else {
+				ResultBean result = new ResultBean();
+				if (ConfigDataService.delServiceNode(sParentID, sInstID, result)) {
 					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
 					json.put(FixHeader.HEADER_RET_INFO, "");
 				} else {
