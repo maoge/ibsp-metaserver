@@ -38,6 +38,12 @@ public class CONSTS {
 	public static final String OP_TYPE_MOD         = "2";
 	public static final String OP_TYPE_DEL         = "3";
 	
+	public static final String NOT_DEPLOYED        = "0";
+	public static final String DEPLOYED            = "1";
+	
+	public static final String NOT_NEED_DEPLOY     = "0";
+	public static final String NEED_DEPLOY         = "1";
+	
 	public static final int TOPO_TYPE_LINK         = 1;
 	public static final int TOPO_TYPE_CONTAIN      = 2;
 	

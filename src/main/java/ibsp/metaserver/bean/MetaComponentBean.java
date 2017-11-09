@@ -8,19 +8,21 @@ import io.vertx.core.json.JsonObject;
 
 public class MetaComponentBean extends BeanMapper {
 	
-	private int    cmptID;      // t_meta_cmpt.CMPT_ID
-	private String cmptName;    // t_meta_cmpt.CMPT_NAME
-	private String cmptNameCn;  // t_meta_cmpt.CMPT_NAME_CN
-	private String servClazz;   // t_meta_cmpt.SERV_CLAZZ
-	private String servType;    // t_meta_cmpt.SERV_TYPE
-	private String subServType; // t_meta_cmpt.SUB_SERV_TYPE
+	private int    cmptID;       // t_meta_cmpt.CMPT_ID
+	private String cmptName;     // t_meta_cmpt.CMPT_NAME
+	private String cmptNameCn;   // t_meta_cmpt.CMPT_NAME_CN
+	private String isNeedDeploy; // t_meta_cmpt.IS_NEED_DEPLOY
+	private String servClazz;    // t_meta_cmpt.SERV_CLAZZ
+	private String servType;     // t_meta_cmpt.SERV_TYPE
+	private String subServType;  // t_meta_cmpt.SUB_SERV_TYPE
 	
 	public MetaComponentBean(int cmptID, String cmptName, String cmptNameCn,
-			String servClazz, String servType, String subServType) {
+			String isNeedDeploy, String servClazz, String servType, String subServType) {
 		super();
 		this.cmptID = cmptID;
 		this.cmptName = cmptName;
 		this.cmptNameCn = cmptNameCn;
+		this.isNeedDeploy = isNeedDeploy;
 		this.servClazz = servClazz;
 		this.servType = servType;
 		this.subServType = subServType;
@@ -48,6 +50,14 @@ public class MetaComponentBean extends BeanMapper {
 
 	public void setCmptNameCn(String cmptNameCn) {
 		this.cmptNameCn = cmptNameCn;
+	}
+	
+	public String getIsNeedDeploy() {
+		return isNeedDeploy;
+	}
+
+	public void setIsNeedDeploy(String isNeedDeploy) {
+		this.isNeedDeploy = isNeedDeploy;
 	}
 
 	public String getServClazz() {
@@ -91,29 +101,33 @@ public class MetaComponentBean extends BeanMapper {
 		if (HttpUtils.isNull(json) || !HttpUtils.isJson(json))
 			return null;
 		
-		JsonObject jsonObj = new JsonObject(json);
-		int    cmptID      = jsonObj.getInteger(FixHeader.HEADER_CMPT_ID);
-		String cmptName    = jsonObj.getString(FixHeader.HEADER_CMPT_NAME);
-		String cmptNameCn  = jsonObj.getString(FixHeader.HEADER_CMPT_NAME_CN);
-		String servClazz   = jsonObj.getString(FixHeader.HEADER_SERV_CLAZZ);
-		String servType    = jsonObj.getString(FixHeader.HEADER_SERV_TYPE);
-		String subServType = jsonObj.getString(FixHeader.HEADER_SUB_SERV_TYPE);
+		JsonObject jsonObj  = new JsonObject(json);
+		int    cmptID       = jsonObj.getInteger(FixHeader.HEADER_CMPT_ID);
+		String cmptName     = jsonObj.getString(FixHeader.HEADER_CMPT_NAME);
+		String cmptNameCn   = jsonObj.getString(FixHeader.HEADER_CMPT_NAME_CN);
+		String isNeedDeploy = jsonObj.getString(FixHeader.HEADER_IS_NEED_DEPLOY);
+		String servClazz    = jsonObj.getString(FixHeader.HEADER_SERV_CLAZZ);
+		String servType     = jsonObj.getString(FixHeader.HEADER_SERV_TYPE);
+		String subServType  = jsonObj.getString(FixHeader.HEADER_SUB_SERV_TYPE);
 		
-		return new MetaComponentBean(cmptID, cmptName, cmptNameCn, servClazz, servType, subServType);
+		return new MetaComponentBean(cmptID, cmptName, cmptNameCn,
+				isNeedDeploy, servClazz, servType, subServType);
 	}
 	
 	public static MetaComponentBean convert(Map<String, Object> mapper) {
 		if (mapper == null || mapper.isEmpty())
 			return null;
 		
-		int    cmptID      = getFixDataAsInt(mapper, FixHeader.HEADER_CMPT_ID);
-		String cmptName    = getFixDataAsString(mapper, FixHeader.HEADER_CMPT_NAME);
-		String cmptNameCn  = getFixDataAsString(mapper, FixHeader.HEADER_CMPT_NAME_CN);
-		String servClazz   = getFixDataAsString(mapper, FixHeader.HEADER_SERV_CLAZZ);
-		String servType    = getFixDataAsString(mapper, FixHeader.HEADER_SERV_TYPE);
-		String subServType = getFixDataAsString(mapper, FixHeader.HEADER_SUB_SERV_TYPE);
+		int    cmptID       = getFixDataAsInt(mapper, FixHeader.HEADER_CMPT_ID);
+		String cmptName     = getFixDataAsString(mapper, FixHeader.HEADER_CMPT_NAME);
+		String cmptNameCn   = getFixDataAsString(mapper, FixHeader.HEADER_CMPT_NAME_CN);
+		String isNeedDeploy = getFixDataAsString(mapper, FixHeader.HEADER_IS_NEED_DEPLOY);
+		String servClazz    = getFixDataAsString(mapper, FixHeader.HEADER_SERV_CLAZZ);
+		String servType     = getFixDataAsString(mapper, FixHeader.HEADER_SERV_TYPE);
+		String subServType  = getFixDataAsString(mapper, FixHeader.HEADER_SUB_SERV_TYPE);
 		
-		return new MetaComponentBean(cmptID, cmptName, cmptNameCn, servClazz, servType, subServType);
+		return new MetaComponentBean(cmptID, cmptName, cmptNameCn,
+				isNeedDeploy, servClazz, servType, subServType);
 	}
 
 }

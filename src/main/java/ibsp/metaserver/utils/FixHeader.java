@@ -165,6 +165,7 @@ public class FixHeader {
 	public static final String HEADER_CMPT_ID                  = "CMPT_ID";
 	public static final String HEADER_CMPT_NAME                = "CMPT_NAME";
 	public static final String HEADER_CMPT_NAME_CN             = "CMPT_NAME_CN";
+	public static final String HEADER_IS_NEED_DEPLOY           = "IS_NEED_DEPLOY";
 	public static final String HEADER_SERV_CLAZZ               = "SERV_CLAZZ";
 	public static final String HEADER_SERV_TYPE                = "SERV_TYPE";
 	public static final String HEADER_SERV_ID                  = "SERV_ID";

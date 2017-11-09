@@ -14,6 +14,7 @@ import com.github.fge.jsonschema.core.report.ProcessingReport;
 
 import ibsp.metaserver.bean.IdSetBean;
 import ibsp.metaserver.bean.MetaAttributeBean;
+import ibsp.metaserver.bean.MetaComponentBean;
 import ibsp.metaserver.bean.PosBean;
 import ibsp.metaserver.bean.ResultBean;
 import ibsp.metaserver.bean.SqlBean;
@@ -38,7 +39,7 @@ public class ConfigDataService {
 	private static final String ID_INDEX          = "_ID";
 	private static final String CONTAINER_INDEX   = "_CONTAINER";
 	
-	private static final String INS_INSTANCE      = "insert into t_instance(INST_ID,CMPT_ID,POS_X,POS_Y,WIDTH,HEIGHT,ROW,COL) "
+	private static final String INS_INSTANCE      = "insert into t_instance(INST_ID,CMPT_ID,IS_DEPLOYED,POS_X,POS_Y,WIDTH,HEIGHT,ROW,COL) "
 	                                              + "values(?,?,?,?,?,?,?,?)";
 	private static final String DEL_INSTANCE      = "delete from t_instance where INST_ID = ?";
 
@@ -48,8 +49,8 @@ public class ConfigDataService {
 	private static final String MOD_INSTANCE_ATTR = "update t_instance_attr set ATTR_VALUE = ? "
 	                                              + "where INST_ID = ? and ATTR_ID = ?";
 	
-	private static final String INS_SERVICE       = "insert into t_service(INST_ID,SERV_NAME,SERV_TYPE,CREATE_TIME) "
-	                                              + "values(?,?,?,?)";
+	private static final String INS_SERVICE       = "insert into t_service(INST_ID,SERV_NAME,SERV_TYPE,IS_DEPLOYED,CREATE_TIME) "
+	                                              + "values(?,?,?,?,?)";
 	
 	private static final String INS_TOPOLOGY      = "insert into t_topology(INST_ID1,INST_ID2,TOPO_TYPE) "
 	                                              + "values(?,?,?)";
@@ -243,9 +244,13 @@ public class ConfigDataService {
 		if (jsonPos != null)
 			getPos(jsonPos, pos);
 		
+		MetaComponentBean component = MetaData.get().getComponentByID(cmptID);
+		String isNeedDeploy = component.getIsNeedDeploy();
+		String deployed = isNeedDeploy.equals(CONSTS.NOT_NEED_DEPLOY) ? CONSTS.DEPLOYED : CONSTS.NOT_DEPLOYED;
+		
 		// add instance
 		SqlBean sqlInst = new SqlBean(INS_INSTANCE);
-		sqlInst.addParams(new Object[]{instID, cmptID, pos.getX(), pos.getY(),
+		sqlInst.addParams(new Object[]{instID, cmptID, deployed, pos.getX(), pos.getY(),
 				pos.getWidth(), pos.getHeight(), pos.getRow(), pos.getCol()});
 		curd.putSqlBean(sqlInst);
 		
@@ -368,13 +373,14 @@ public class ConfigDataService {
 	}
 	
 	private static boolean addComponentAttrbuteAndRelation(JsonObject json, CRUD curd, String cmptName, ResultBean result) {
-		Integer cmptID = MetaData.get().getComponentID(cmptName);
-		if (cmptID == null) {
-			String info = String.format("compoent:%s ID not found ......", cmptName);
+		MetaComponentBean component = MetaData.get().getComponentByName(cmptName);
+		if (component == null) {
+			String info = String.format("compoent:%s not found ......", cmptName);
 			result.setRetCode(CONSTS.REVOKE_NOK);
 			result.setRetInfo(info);
 			return false;
 		}
+		int cmptID = component.getCmptID();
 		
 		String idAttrName = MetaData.get().getCmptIDAttrNameByName(cmptName);
 		if (HttpUtils.isNull(idAttrName)) {
@@ -394,10 +400,14 @@ public class ConfigDataService {
 		if (posJson != null)
 			getPos(posJson, pos);
 		
+		String isNeedDeploy = component.getIsNeedDeploy();
+		String deployed = isNeedDeploy.equals(CONSTS.NOT_NEED_DEPLOY) ? CONSTS.DEPLOYED : CONSTS.NOT_DEPLOYED;
+		
 		// add instance
 		SqlBean sqlInst = new SqlBean(INS_INSTANCE);
-		sqlInst.addParams(new Object[]{instID, cmptID, pos.getX(), pos.getY(),
-				pos.getWidth(), pos.getHeight(), pos.getRow(), pos.getCol()});
+		sqlInst.addParams(new Object[] { instID, cmptID, deployed, pos.getX(),
+				pos.getY(), pos.getWidth(), pos.getHeight(), pos.getRow(),
+				pos.getCol() });
 		curd.putSqlBean(sqlInst);
 		
 		// add component attrbute
@@ -483,7 +493,7 @@ public class ConfigDataService {
 		long dt = System.currentTimeMillis();
 		
 		SqlBean sqlServBean = new SqlBean(INS_SERVICE);
-		sqlServBean.addParams(new Object[] { serviceID, serviceName, sServType, dt });
+		sqlServBean.addParams(new Object[] { serviceID, serviceName, sServType, CONSTS.NOT_DEPLOYED, dt });
 		curd.putSqlBean(sqlServBean);
 		
 		return true;

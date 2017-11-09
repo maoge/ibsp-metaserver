@@ -7,20 +7,22 @@ import io.vertx.core.json.JsonObject;
 import java.util.Map;
 
 public class InstanceBean extends BeanMapper {
-	private String instID;  // t_instance.INST_ID
-	private int cmptID;     // t_instance.CMPT_ID
-	private int x;          // t_instance.POS_X
-	private int y;          // t_instance.POS_Y
-	private int width;      // t_instance.WIDTH
-	private int height;     // t_instance.HEIGHT
-	private int row;        // t_instance.ROW
-	private int col;        // t_instance.COL
+	private String instID;      // t_instance.INST_ID
+	private int cmptID;         // t_instance.CMPT_ID
+	private String isDeployed;  // t_instance.IS_DEPLOYED
+	private int x;              // t_instance.POS_X
+	private int y;              // t_instance.POS_Y
+	private int width;          // t_instance.WIDTH
+	private int height;         // t_instance.HEIGHT
+	private int row;            // t_instance.ROW
+	private int col;            // t_instance.COL
 	
-	public InstanceBean(String instID, int cmptID, int x, int y, int width,
-			int height, int row, int col) {
+	public InstanceBean(String instID, int cmptID, String isDeployed, int x,
+			int y, int width, int height, int row, int col) {
 		super();
 		this.instID = instID;
 		this.cmptID = cmptID;
+		this.isDeployed = isDeployed;
 		this.x = x;
 		this.y = y;
 		this.width = width;
@@ -43,6 +45,14 @@ public class InstanceBean extends BeanMapper {
 
 	public void setCmptID(int cmptID) {
 		this.cmptID = cmptID;
+	}
+	
+	public String getIsDeployed() {
+		return isDeployed;
+	}
+
+	public void setIsDeployed(String isDeployed) {
+		this.isDeployed = isDeployed;
 	}
 
 	public int getX() {
@@ -127,16 +137,17 @@ public class InstanceBean extends BeanMapper {
 		if (mapper == null || mapper.isEmpty())
 			return null;
 		
-		String instID = getFixDataAsString(mapper, "INST_ID");
-		int cmptID    = getFixDataAsInt(mapper, "CMPT_ID");
-		int x         = getFixDataAsInt(mapper, "POS_X");
-		int y         = getFixDataAsInt(mapper, "POS_Y");
-		int width     = getFixDataAsInt(mapper, "WIDTH");
-		int height    = getFixDataAsInt(mapper, "HEIGHT");
-		int row       = getFixDataAsInt(mapper, "ROW");
-		int col       = getFixDataAsInt(mapper, "COL");
+		String instID     = getFixDataAsString(mapper, "INST_ID");
+		int cmptID        = getFixDataAsInt(mapper, "CMPT_ID");
+		String isDeployed = getFixDataAsString(mapper, "IS_DEPLOYED");
+		int x             = getFixDataAsInt(mapper, "POS_X");
+		int y             = getFixDataAsInt(mapper, "POS_Y");
+		int width         = getFixDataAsInt(mapper, "WIDTH");
+		int height        = getFixDataAsInt(mapper, "HEIGHT");
+		int row           = getFixDataAsInt(mapper, "ROW");
+		int col           = getFixDataAsInt(mapper, "COL");
 		
-		return new InstanceBean(instID, cmptID, x, y, width, height, row, col);
+		return new InstanceBean(instID, cmptID, isDeployed, x, y, width, height, row, col);
 	}
 
 }

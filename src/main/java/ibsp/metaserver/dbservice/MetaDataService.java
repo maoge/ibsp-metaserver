@@ -88,7 +88,7 @@ public class MetaDataService {
 	}
 	
 	public static List<MetaComponentBean> getAllMetaComponent() {
-		String sql = "select CMPT_ID,CMPT_NAME,CMPT_NAME_CN,SERV_CLAZZ,SERV_TYPE,SUB_SERV_TYPE from t_meta_cmpt";
+		String sql = "select CMPT_ID,CMPT_NAME,CMPT_NAME_CN,IS_NEED_DEPLOY,SERV_CLAZZ,SERV_TYPE,SUB_SERV_TYPE from t_meta_cmpt";
 		List<MetaComponentBean> metaCmptList = null;
 		
 		try {
@@ -141,7 +141,7 @@ public class MetaDataService {
 	}
 	
 	public static InstanceBean getInstance(String instID) {
-		String sql = "select INST_ID, CMPT_ID, POS_X, POS_Y, WIDTH, HEIGHT, ROW, COL from t_instance where INST_ID=?";
+		String sql = "select INST_ID, CMPT_ID, IS_DEPLOYED, POS_X, POS_Y, WIDTH, HEIGHT, ROW, COL from t_instance where INST_ID=?";
 		InstanceBean instance = null;
 		
 		try {
@@ -164,8 +164,8 @@ public class MetaDataService {
 		return instance;
 	}
 	
-	private static ServiceBean getService(String instID) {
-		String sql = "select INST_ID, SERV_NAME, SERV_TYPE, CREATE_TIME from t_service where INST_ID = ?";
+	public static ServiceBean getService(String instID) {
+		String sql = "select INST_ID, SERV_NAME, SERV_TYPE, IS_DEPLOYED, CREATE_TIME from t_service where INST_ID = ?";
 		ServiceBean serviceBean = null;
 		
 		try {
