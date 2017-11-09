@@ -59,9 +59,9 @@ public class HttpUtils {
 		if (request != null) {
 			HttpMethod method = request.method();
 			if (method.equals(HttpMethod.POST)) {
-				map = request.params();
-			} else if (method.equals(HttpMethod.GET)) {
 				map = request.formAttributes();
+			} else if (method.equals(HttpMethod.GET)) {
+				map = request.params();
 			}
 			
 			if (map != null) {
