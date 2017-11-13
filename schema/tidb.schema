@@ -40,7 +40,7 @@
 									"PORT": {"type":"string","required":true,"description":"服务端口"},
 									"STAT_PORT": {"type":"string","required":true,"description":"统计数据端口"},
 									"OS_USER": {"type":"string","required":true,"description":"系统账户"},
-									"OS_PWD": {"type":"string","required":true,"description":"系统密码"},
+									"OS_PWD": {"type":"string","required":true,"description":"系统密码"}
 								},
 								"minItems":2
 							}
@@ -78,7 +78,7 @@
 									"IP": {"type":"string","required":true,"description":"IP"},
 									"PORT": {"type":"string","required":true,"description":"服务端口"},
 									"OS_USER": {"type":"string","required":true,"description":"系统账户"},
-									"OS_PWD": {"type":"string","required":true,"description":"系统密码"},
+									"OS_PWD": {"type":"string","required":true,"description":"系统密码"}
 								},
 								"minItems":3
 							}
@@ -117,7 +117,7 @@
 									"PORT": {"type":"string","required":true,"description":"服务端口"},
 									"CLUSTER_PORT": {"type":"string","required":true,"description":"集群端口"},
 									"OS_USER": {"type":"string","required":true,"description":"系统账户"},
-									"OS_PWD": {"type":"string","required":true,"description":"系统密码"},
+									"OS_PWD": {"type":"string","required":true,"description":"系统密码"}
 								},
 								"minItems":3
 							}
