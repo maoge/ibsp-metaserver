@@ -38,7 +38,9 @@
 									"TIDB_NAME": {"type":"string","required":true,"description":"TIDB Name"},
 									"IP": {"type":"string","required":true,"description":"IP"},
 									"PORT": {"type":"string","required":true,"description":"服务端口"},
-									"STAT_PORT": {"type":"string","required":true,"description":"统计数据端口"}
+									"STAT_PORT": {"type":"string","required":true,"description":"统计数据端口"},
+									"OS_USER": {"type":"string","required":true,"description":"系统账户"},
+									"OS_PWD": {"type":"string","required":true,"description":"系统密码"},
 								},
 								"minItems":2
 							}
@@ -74,7 +76,9 @@
 									"TIKV_ID": {"type":"string","required":true,"minLength":36,"description":"TIKV ID","inputDisabled":true},
 									"TIKV_NAME": {"type":"string","required":true,"description":"TIKV Name"},
 									"IP": {"type":"string","required":true,"description":"IP"},
-									"PORT": {"type":"string","required":true,"description":"服务端口"}
+									"PORT": {"type":"string","required":true,"description":"服务端口"},
+									"OS_USER": {"type":"string","required":true,"description":"系统账户"},
+									"OS_PWD": {"type":"string","required":true,"description":"系统密码"},
 								},
 								"minItems":3
 							}
@@ -111,7 +115,9 @@
 									"PD_NAME": {"type":"string","required":true,"description":"PD Name"},
 									"IP": {"type":"string","required":true,"description":"IP"},
 									"PORT": {"type":"string","required":true,"description":"服务端口"},
-									"CLUSTER_PORT": {"type":"string","required":true,"description":"集群端口"}
+									"CLUSTER_PORT": {"type":"string","required":true,"description":"集群端口"},
+									"OS_USER": {"type":"string","required":true,"description":"系统账户"},
+									"OS_PWD": {"type":"string","required":true,"description":"系统密码"},
 								},
 								"minItems":3
 							}
@@ -127,6 +133,8 @@
 						"COLLECTD_NAME": {"type":"string","required":true,"description":"COLLECTD NAME"},
 						"IP": {"type":"string","required":true,"description":"IP"},
 						"PORT": {"type":"string","required":true,"description":"服务端口"},
+						"OS_USER": {"type":"string","required":true,"description":"系统账户"},
+						"OS_PWD": {"type":"string","required":true,"description":"系统密码"},
 						"POS": {
 							"type":"object",
 							"required":true,
