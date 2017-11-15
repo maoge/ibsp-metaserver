@@ -152,6 +152,10 @@ public class CRUD {
 		return res;
 	}
 	
+	public boolean executeUpdate(ResultBean result) {
+		return executeUpdate(true, result);
+	}
+	
 	public boolean executeUpdate(boolean recycle, ResultBean result) {
 		if (conn == null) {
 			try {

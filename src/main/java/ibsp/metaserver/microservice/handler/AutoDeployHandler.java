@@ -25,12 +25,13 @@ public class AutoDeployHandler {
 			json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
 		} else {
 			String sServID = params.get(FixHeader.HEADER_SERV_ID);
+			String sSessionKey = params.get(FixHeader.HEADER_SESSION_KEY);
 			if (!HttpUtils.isNotNull(sServID)) {
 				json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
 				json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
 			} else {
 				ResultBean result = new ResultBean();
-				if (DeployServiceFactory.deploy(sServID, result)) {
+				if (DeployServiceFactory.deploy(sServID, sSessionKey, result)) {
 					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
 					json.put(FixHeader.HEADER_RET_INFO, "");
 				} else {

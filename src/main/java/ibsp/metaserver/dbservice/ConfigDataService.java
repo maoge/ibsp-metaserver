@@ -3,6 +3,7 @@ package ibsp.metaserver.dbservice;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -12,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import com.github.fge.jsonschema.core.exceptions.ProcessingException;
 import com.github.fge.jsonschema.core.report.ProcessingReport;
 
+import ibsp.metaserver.bean.DeployFileBean;
 import ibsp.metaserver.bean.IdSetBean;
 import ibsp.metaserver.bean.MetaAttributeBean;
 import ibsp.metaserver.bean.MetaComponentBean;
@@ -40,7 +42,7 @@ public class ConfigDataService {
 	private static final String CONTAINER_INDEX   = "_CONTAINER";
 	
 	private static final String INS_INSTANCE      = "insert into t_instance(INST_ID,CMPT_ID,IS_DEPLOYED,POS_X,POS_Y,WIDTH,HEIGHT,ROW,COL) "
-	                                              + "values(?,?,?,?,?,?,?,?)";
+	                                              + "values(?,?,?,?,?,?,?,?,?)";
 	private static final String DEL_INSTANCE      = "delete from t_instance where INST_ID = ?";
 
 	private static final String INS_INSTANCE_ATTR = "insert into t_instance_attr(INST_ID,ATTR_ID,ATTR_NAME,ATTR_VALUE) "
@@ -59,6 +61,12 @@ public class ConfigDataService {
 	private static final String CNT_SERVICE       = "SELECT COUNT(INST_ID) AS CNT FROM t_service where INST_ID=?";
 	private static final String UPDATE_POS        = "update t_instance set POS_X=?,POS_Y=?, WIDTH=?, HEIGHT=?,ROW=?,COL=? "
 	                                              + "where INST_ID = ?";
+	
+	private static final String SEL_DEPLOY_FILE   = "SELECT FILE_TYPE,FILE_NAME,FILE_DIR,IP_ADDRESS,USER_NAME,USER_PWD,FTP_PORT "
+	                                              + "FROM t_file_deploy t1, t_ftp_host t2 "
+	                                              + "WHERE t1.SERV_CLAZZ = ? AND t1.HOST_ID = t2.HOST_ID";
+	
+	private static final String MOD_INSTANCE_DEP  = "UPDATE t_instance SET IS_DEPLOYED = ? WHERE INST_ID = ?";
 	
 	static {
 		SKELETON_SCHEMA_MAPPER = new HashMap<String, String>();
@@ -548,11 +556,48 @@ public class ConfigDataService {
 		try {
 			cnt = curd.queryForCount();
 		} catch (CRUDException e) {
-			result.setRetCode(CONSTS.REVOKE_OK);
+			result.setRetCode(CONSTS.REVOKE_NOK);
 			result.setRetInfo(e.getMessage());
 		}
 		
 		return cnt > 0;
+	}
+	
+	public static boolean loadDeployFile(String servClazz, Map<String, DeployFileBean> deployFileMap, ResultBean result) {
+		SqlBean sqlInst = new SqlBean(SEL_DEPLOY_FILE);
+		sqlInst.addParams(new Object[] { servClazz });
+		
+		CRUD curd = new CRUD();
+		curd.putSqlBean(sqlInst);
+		
+		try {
+			List<HashMap<String, Object>> queryList = curd.queryForList();
+			if (queryList == null || queryList.isEmpty())
+				return false;
+			
+			Iterator<HashMap<String, Object>> it = queryList.iterator();
+			while (it.hasNext()) {
+				HashMap<String, Object> mapper = it.next();
+				DeployFileBean deployFile = DeployFileBean.convert(mapper);
+				deployFileMap.put(deployFile.getFileType(), deployFile);
+			}
+		} catch (CRUDException e) {
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(e.getMessage());
+			return false;
+		}
+		
+		return true;
+	}
+	
+	public static boolean modInstanceDeployFlag(String instID, String deployFlag, ResultBean result) {
+		SqlBean sqlInst = new SqlBean(MOD_INSTANCE_DEP);
+		sqlInst.addParams(new Object[] { deployFlag, instID });
+		
+		CRUD curd = new CRUD();
+		curd.putSqlBean(sqlInst);
+		
+		return curd.executeUpdate(result);
 	}
 
 }

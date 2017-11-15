@@ -4,6 +4,7 @@ public class FixHeader {
 	
 	public static final String HEADER_UUID                     = "UUID";
 	public static final String HEADER_OP_TYPE                  = "OP_TYPE";
+	public static final String HEADER_SESSION_KEY              = "SESSION_KEY";
 	
 	public static final String HEADER_VBROKER_ID               = "VBROKER_ID";
 	public static final String HEADER_VBROKER_IDS              = "VBROKER_IDS";

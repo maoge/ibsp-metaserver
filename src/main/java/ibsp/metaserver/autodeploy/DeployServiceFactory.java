@@ -24,10 +24,17 @@ public class DeployServiceFactory {
 		DEPLOY_FACTORY.put(CONSTS.SERV_TYPE_DB,    TiDBDeployer.class);
 	}
 	
-	public static boolean deploy(String serviceID, ResultBean result) {
+	public static boolean deploy(String serviceID, String sessionKey, ResultBean result) {
 		ServiceBean service = MetaDataService.getService(serviceID);
 		if (service == null) {
 			String err = String.format("service not found, id:%s", serviceID);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(err);
+			return false;
+		}
+		
+		if (service.getDeployed().equals(CONSTS.DEPLOYED)) {
+			String err = String.format("service is deployed, id:%s", serviceID);
 			result.setRetCode(CONSTS.REVOKE_NOK);
 			result.setRetInfo(err);
 			return false;
@@ -45,7 +52,7 @@ public class DeployServiceFactory {
 		boolean res = false;
 		try {
 			Deployer o = (Deployer) clazz.newInstance();
-			res = o.deployService(serviceID, result);
+			res = o.deployService(serviceID, sessionKey, result);
 		} catch (InstantiationException | IllegalAccessException e) {
 			logger.error(e.getMessage(), e);
 			result.setRetCode(CONSTS.REVOKE_NOK);
