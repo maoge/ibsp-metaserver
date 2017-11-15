@@ -205,6 +205,7 @@ public class FixHeader {
 	public static final String HEADER_COLLECTD_NAME            = "COLLECTD_NAME";
 	
 	public static final String HEADER_ATTRIBUTES               = "ATTRS";
+	public static final String HEADER_DEPLOY_FLAG              = "DEPLOY_FLAG";
 	
 	
 }

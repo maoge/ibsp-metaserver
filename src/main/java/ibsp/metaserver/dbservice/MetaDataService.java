@@ -248,7 +248,7 @@ public class MetaDataService {
 		return result;
 	}
 	
-	private static boolean addInstanceAttribute(String instID, Object json, Map<String, String> skeleton) {
+	private static boolean addInstanceAttribute(String instID, Object json, Map<String, String> skeleton, JsonArray deployFlagArr) {
 		InstanceBean instBean = getInstance(instID);
 		if (instBean == null)
 			return false;
@@ -280,7 +280,7 @@ public class MetaDataService {
 			((JsonObject) json).put(component.getCmptName(), innerJson);
 		}
 		
-		if (!addCurrAttr(instID, instBean, innerJson)) {
+		if (!addCurrAttr(instID, instBean, innerJson, deployFlagArr)) {
 			return false;
 		}
 		
@@ -295,7 +295,7 @@ public class MetaDataService {
 		// then add attribute of it related nodes by recursively traversal
 		for (InstanceRelationBean relation : relations) {
 			String toeID = (String) relation.getTOE(instID);
-			if (!addInstanceAttribute(toeID, innerJson, skeleton)) {
+			if (!addInstanceAttribute(toeID, innerJson, skeleton, deployFlagArr)) {
 				return false;
 			}
 		}
@@ -303,7 +303,9 @@ public class MetaDataService {
 		return true;
 	}
 	
-	private static boolean addCurrAttr(String instID, InstanceBean instBean, Object json) {
+	private static boolean addCurrAttr(String instID, InstanceBean instBean,
+			Object json, JsonArray deployFlagArr) {
+		
 		JsonObject tmpJson = json instanceof JsonObject ? (JsonObject) json : new JsonObject();
 		
 		// instance component attributes
@@ -324,6 +326,10 @@ public class MetaDataService {
 		if (json instanceof JsonArray)
 			((JsonArray) json).add(tmpJson);
 		
+		JsonObject deployJson = new JsonObject();
+		deployJson.put(instID, instBean.getIsDeployed());
+		deployFlagArr.add(deployJson);
+		
 		return true;
 	}
 	
@@ -340,11 +346,13 @@ public class MetaDataService {
 			skeleton = Validator.getSkeleton(name);
 			
 			topoJson = new JsonObject();
-			if (!addInstanceAttribute(instID, topoJson, skeleton)) {
+			JsonArray deployFlagArr = new JsonArray();
+			if (!addInstanceAttribute(instID, topoJson, skeleton, deployFlagArr)) {
 				result.setRetCode(CONSTS.REVOKE_NOK);
 				result.setRetInfo(CONSTS.ERR_METADATA_NOT_FOUND);
 				return null;
 			}
+			topoJson.put(FixHeader.HEADER_DEPLOY_FLAG, deployFlagArr);
 		} catch (IOException e) {
 			logger.error(e.getMessage(), e);
 			result.setRetCode(CONSTS.REVOKE_NOK);
