@@ -109,19 +109,19 @@ public class TiDBDeployer implements Deployer {
 			String dataDir   = "data";
 			String logFile   = "log/pd.log";
 			
-			String startContext = String.format("\"bin/pd-server --name=%s \\\\\n"
-					+ "\t--client-urls=%s --peer-urls=%s \\\\\n"
-					+ "\t--data-dir=%s --initial-cluster=%s \\\\\n\""
-					+ "\t-L info --log-file=%s &\"",
+			String startContext = String.format("bin/pd-server --name=%s \\\\\n"
+					+ "--client-urls=%s --peer-urls=%s \\\\\n"
+					+ "--data-dir=%s --initial-cluster=%s \\\\\n"
+					+ "-L info --log-file=%s &",
 					id, clientUrl, peerUrl, dataDir, initCluster, logFile);
 			
-			String stopContext = String.format("\"var=%s\n"
-					+ "\"pid=`ps -ef | grep ${var} | awk '{print $1, $2, $8}' | grep pd-server | awk '{print $2}'`\n"
-					+ "if [ \"${pid}\" != \"\" ]\n"
-					+ "then\n"
-					+ "    kill -9  $pid\n"
-					+ "fi\n"
-					+ "echo stop $var\"",
+			String stopContext = String.format("var=%s\\n"
+					+ "pid=\\`ps -ef | grep \\${var} | awk '{print \\$1, \\$2, \\$8}' | grep pd-server | awk '{print \\$2}'\\`\\n"
+					+ "if [ \\\"\\${pid}\\\" != \\\"\\\" ]\\n"
+					+ "then\\n"
+					+ "    kill -9 \\$pid\\n"
+					+ "fi\\n"
+					+ "echo stop $var",
 					id);
 
 			if (pdInstance.getIsDeployed().equals(CONSTS.DEPLOYED)) {
@@ -266,12 +266,12 @@ public class TiDBDeployer implements Deployer {
 					+ "-L info --log-file %s &",
 					ip, port, pdList, dataDir, logFile);
 			
-			String stopContext = String.format("var=%s%s\n"
-					+ "pid=`ps -ef | grep ${var} | awk '{print $1, $2, $8}' | grep tikv-server | awk '{print $2}'`\n"
-					+ "if [ \"${pid}\" != \"\" ]\n"
-					+ "then\n"
-					+ "  kill -9  $pid\n"
-					+ "fi\n"
+			String stopContext = String.format("var=%s\\n"
+					+ "pid=\\`ps -ef | grep \\${var} | awk '{print \\$1, \\$2, \\$8}' | grep pd-server | awk '{print \\$2}'\\`\\n"
+					+ "if [ \\\"\\${pid}\\\" != \\\"\\\" ]\\n"
+					+ "then\\n"
+					+ "    kill -9 \\$pid\\n"
+					+ "fi\\n"
 					+ "echo stop $var",
 					id);
 			
@@ -409,12 +409,12 @@ public class TiDBDeployer implements Deployer {
 					+ "--status=%s &",
 					ip, port, logFile, pdList, statPort);
 			
-			String stopContext = String.format("var=%s\n"
-					+ "pid=`ps -ef | grep ${var} | awk '{print $1, $2, $8}' | grep tidb-server | awk '{print $2}'`\n"
-					+ "if [ \"${pid}\" != \"\" ]\n"
-					+ "then\n"
-					+ "  kill -9  $pid\n"
-					+ "fi\n"
+			String stopContext = String.format("var=%s\\n"
+					+ "pid=\\`ps -ef | grep \\${var} | awk '{print \\$1, \\$2, \\$8}' | grep pd-server | awk '{print \\$2}'\\`\\n"
+					+ "if [ \\\"\\${pid}\\\" != \\\"\\\" ]\\n"
+					+ "then\\n"
+					+ "    kill -9 \\$pid\\n"
+					+ "fi\\n"
 					+ "echo stop $var",
 					id);
 			

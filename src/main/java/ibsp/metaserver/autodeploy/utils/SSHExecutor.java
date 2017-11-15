@@ -477,7 +477,7 @@ public class SSHExecutor {
 			}
 		} while (!bout.sshEof());
 		
-		cmd = String.format("%s -e %s>>%s\n\n", CMD_ECHO, CONSTS.SHELL_MACRO, shell);
+		cmd = String.format("%s -e \"%s\">>%s\n", CMD_ECHO, CONSTS.SHELL_MACRO, shell);
 		commander.print(cmd);
 		start = System.currentTimeMillis();
 		do {
@@ -489,7 +489,7 @@ public class SSHExecutor {
 			}
 		} while (!bout.sshEof());
 		
-		cmd = String.format("%s -e %s>>%s\n\n", CMD_ECHO, shellContext, shell);
+		cmd = String.format("%s -e \"%s\">>%s\n", CMD_ECHO, shellContext, shell);
 		commander.print(cmd);
 		start = System.currentTimeMillis();
 		do {

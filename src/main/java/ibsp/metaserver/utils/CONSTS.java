@@ -23,7 +23,7 @@ public class CONSTS {
 	public static final String NO_MAPPING_IN_HOSTS   = "gethostbyname error!";
 	public static final String START_SHELL           = "start.sh";
 	public static final String STOP_SHELL            = "stop.sh";
-	public static final String SHELL_MACRO           = "\"#!/bin/sh\"";
+	public static final String SHELL_MACRO           = "#!/bin/sh";
 	public static final String SQUARE_BRACKET_LEFT   = "[";
 	public static final String SQUARE_BRACKET_RIGHT  = "]";
 	
