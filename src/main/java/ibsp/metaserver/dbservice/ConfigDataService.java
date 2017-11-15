@@ -67,6 +67,7 @@ public class ConfigDataService {
 	                                              + "WHERE t1.SERV_CLAZZ = ? AND t1.HOST_ID = t2.HOST_ID";
 	
 	private static final String MOD_INSTANCE_DEP  = "UPDATE t_instance SET IS_DEPLOYED = ? WHERE INST_ID = ?";
+	private static final String MOD_SERVICE_DEP   = "UPDATE t_service SET IS_DEPLOYED = ? WHERE INST_ID = ?";
 	
 	static {
 		SKELETON_SCHEMA_MAPPER = new HashMap<String, String>();
@@ -592,6 +593,16 @@ public class ConfigDataService {
 	
 	public static boolean modInstanceDeployFlag(String instID, String deployFlag, ResultBean result) {
 		SqlBean sqlInst = new SqlBean(MOD_INSTANCE_DEP);
+		sqlInst.addParams(new Object[] { deployFlag, instID });
+		
+		CRUD curd = new CRUD();
+		curd.putSqlBean(sqlInst);
+		
+		return curd.executeUpdate(result);
+	}
+	
+	public static boolean modServiceDeployFlag(String instID, String deployFlag, ResultBean result) {
+		SqlBean sqlInst = new SqlBean(MOD_SERVICE_DEP);
 		sqlInst.addParams(new Object[] { deployFlag, instID });
 		
 		CRUD curd = new CRUD();

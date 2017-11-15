@@ -55,7 +55,11 @@ public class TiDBDeployer implements Deployer {
 		// deploy collectd
 		if (!deployCollectd(collectd, deployFileMap, sessionKey, result))
 			return false;
-
+		
+		// mod t_service.IS_DEPLOYED = 1
+		if (!ConfigDataService.modServiceDeployFlag(serviceID, CONSTS.DEPLOYED, result))
+			return false;
+		
 		return true;
 	}
 
