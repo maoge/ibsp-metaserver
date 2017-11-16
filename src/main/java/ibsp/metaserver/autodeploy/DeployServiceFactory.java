@@ -62,5 +62,44 @@ public class DeployServiceFactory {
 		
 		return res;
 	}
+	
+	public static boolean undeploy(String serviceID, String sessionKey, ResultBean result) {
+		ServiceBean service = MetaDataService.getService(serviceID);
+		if (service == null) {
+			String err = String.format("service not found, id:%s", serviceID);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(err);
+			return false;
+		}
+		
+		if (service.getDeployed().equals(CONSTS.NOT_DEPLOYED)) {
+			String err = String.format("service is not deployed, id:%s", serviceID);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(err);
+			return false;
+		}
+		
+		String servType = service.getServType();
+		Class<?> clazz = DEPLOY_FACTORY.get(servType);
+		if (clazz == null) {
+			String err = String.format("service type not found, id:%s", serviceID);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(err);
+			return false;
+		}
+		
+		boolean res = false;
+		try {
+			Deployer o = (Deployer) clazz.newInstance();
+			res = o.undeployService(serviceID, sessionKey, result);
+		} catch (InstantiationException | IllegalAccessException e) {
+			logger.error(e.getMessage(), e);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(e.getMessage());
+			return false;
+		}
+		
+		return res;
+	}
 
 }

@@ -66,8 +66,37 @@ public class TiDBDeployer implements Deployer {
 	@Override
 	public boolean undeployService(String serviceID, String sessionKey,
 			ResultBean result) {
-		// TODO Auto-generated method stub
-		return false;
+		
+		List<InstanceDtlBean> pdServerList = new LinkedList<InstanceDtlBean>();
+		List<InstanceDtlBean> tidbServerList = new LinkedList<InstanceDtlBean>();
+		List<InstanceDtlBean> tikvServerList = new LinkedList<InstanceDtlBean>();
+		InstanceDtlBean collectd = new InstanceDtlBean();
+		if (!TiDBService.loadServiceInfo(serviceID, pdServerList,
+				tidbServerList, tikvServerList, collectd, result))
+			return false;
+		
+		// undeploy collectd
+		// undeployCollectd(InstanceDtlBean collectd, String sessionKey, ResultBean result)
+		if (!undeployCollectd(collectd, sessionKey, result))
+			return false;
+		
+		// undeploy tidb-server
+		if (!undeployTiDBServerList(tidbServerList, sessionKey, result))
+			return false;
+		
+		// undeploy tikv-server
+		if (!undeployTiKVServerList(tikvServerList, sessionKey, result))
+			return false;
+		
+		// undeploy pd-server
+		if (!undeployPDServerList(pdServerList, sessionKey, result))
+			return false;
+		
+		// mod t_service.IS_DEPLOYED = 0
+		if (!ConfigDataService.modServiceDeployFlag(serviceID, CONSTS.NOT_DEPLOYED, result))
+			return false;
+		
+		return true;
 	}
 
 	@Override
@@ -536,6 +565,283 @@ public class TiDBDeployer implements Deployer {
 		return true;
 	}
 	
+	private boolean undeployPDServerList(List<InstanceDtlBean> pdServerList,
+			String sessionKey, ResultBean result) {
+
+		for (int i = 0; i < pdServerList.size(); i++) {
+			InstanceDtlBean pdInfo = pdServerList.get(i);
+			InstanceBean pdInstance = pdInfo.getInstance();
+
+			String id    = pdInfo.getAttribute("PD_ID").getAttrValue();
+			String ip    = pdInfo.getAttribute("IP").getAttrValue();
+			String port  = pdInfo.getAttribute("PORT").getAttrValue();
+			String cPort = pdInfo.getAttribute("CLUSTER_PORT").getAttrValue();
+			String user  = pdInfo.getAttribute("OS_USER").getAttrValue();
+			String pwd   = pdInfo.getAttribute("OS_PWD").getAttrValue();
+			
+			if (pdInstance.getIsDeployed().equals(CONSTS.NOT_DEPLOYED)) {
+				String info = String.format("pd id:%s %s:%s is not deployed ......", id, ip, port);
+				StringBuffer deploySuccessLog = new StringBuffer();
+				deploySuccessLog.append(CONSTS.DEPLOY_SINGLE_SUCCESS_BEGIN_STYLE);
+				deploySuccessLog.append(info);
+				deploySuccessLog.append(CONSTS.END_STYLE);
+				DeployLog.pubLog(sessionKey, deploySuccessLog.toString());
+
+				continue;
+			}
+
+			String deployRootPath = String.format("pd_deploy/%s", port);
+			JschUserInfo ui = null;
+			SSHExecutor executor = null;
+			boolean connected = false;
+
+			try {
+				String infoBegin = String.format("undeploy pd id:%s %s:%s begin ......", id, ip, port);
+				StringBuffer deployBeginLog = new StringBuffer();
+				deployBeginLog.append(CONSTS.DEPLOY_SINGLE_SUCCESS_BEGIN_STYLE);
+				deployBeginLog.append(infoBegin);
+				deployBeginLog.append(CONSTS.END_STYLE);
+				DeployLog.pubLog(sessionKey, deployBeginLog.toString());
+				
+				ui = new JschUserInfo(user, pwd, ip, CONSTS.SSH_PORT_DEFAULT);
+				executor = new SSHExecutor(ui);
+				executor.connect();
+				connected = true;
+				
+				// cd deploy dir, exec stop shell, rm deploy dir
+				if (executor.isDirExistInCurrPath(deployRootPath, sessionKey)) {
+					executor.cd("$HOME/" + deployRootPath, sessionKey);
+					
+					// stop pd-server
+					if (executor.isPortUsed(port, sessionKey)) {
+						if (!execStopShell(executor, port, sessionKey)) {
+							DeployLog.pubLog(sessionKey, "exec pd stop shell fail ......");
+							return false;
+						}
+					}
+					
+					executor.cd("$HOME", sessionKey);
+					executor.rm(deployRootPath, true, sessionKey);
+				}
+
+				// mod t_instance.IS_DEPLOYED = 0
+				if (!ConfigDataService.modInstanceDeployFlag(id, CONSTS.NOT_DEPLOYED, result))
+					return false;
+				
+				String info = String.format("undeploy pd id:%s %s:%s success ......", id, ip, port);
+				StringBuffer deploySuccessLog = new StringBuffer();
+				deploySuccessLog.append(CONSTS.DEPLOY_SINGLE_SUCCESS_BEGIN_STYLE);
+				deploySuccessLog.append(info);
+				deploySuccessLog.append(CONSTS.END_STYLE);
+				DeployLog.pubLog(sessionKey, deploySuccessLog.toString());
+
+			} catch (Exception e) {
+				logger.error(e.getMessage(), e);
+
+				String error = String.format("undeploy pd id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
+				StringBuffer deploySuccessLog = new StringBuffer();
+				deploySuccessLog.append(CONSTS.DEPLOY_SINGLE_FAIL_BEGIN_STYLE);
+				deploySuccessLog.append(error);
+				deploySuccessLog.append(CONSTS.END_STYLE);
+				DeployLog.pubLog(sessionKey, deploySuccessLog.toString());
+
+				return false;
+			} finally {
+				if (connected) {
+					executor.close();
+				}
+			}
+		}
+		
+		return true;
+	}
+	
+	private boolean undeployTiKVServerList(List<InstanceDtlBean> tikvServerList,
+			String sessionKey, ResultBean result) {
+		
+		for (int i = 0; i < tikvServerList.size(); i++) {
+			InstanceDtlBean tikvInfo = tikvServerList.get(i);
+			InstanceBean tikvInstance = tikvInfo.getInstance();
+			
+			String id   = tikvInfo.getAttribute("TIKV_ID").getAttrValue();
+			String ip   = tikvInfo.getAttribute("IP").getAttrValue();
+			String port = tikvInfo.getAttribute("PORT").getAttrValue();
+			String user = tikvInfo.getAttribute("OS_USER").getAttrValue();
+			String pwd  = tikvInfo.getAttribute("OS_PWD").getAttrValue();
+			
+			if (tikvInstance.getIsDeployed().equals(CONSTS.NOT_DEPLOYED)) {
+				String info = String.format("tikv id:%s %s:%s is not deployed ......", id, ip, port);
+				StringBuffer deploySuccessLog = new StringBuffer();
+				deploySuccessLog.append(CONSTS.DEPLOY_SINGLE_SUCCESS_BEGIN_STYLE);
+				deploySuccessLog.append(info);
+				deploySuccessLog.append(CONSTS.END_STYLE);
+				DeployLog.pubLog(sessionKey, deploySuccessLog.toString());
+
+				continue;
+			}
+			
+			String deployRootPath = String.format("tikv_deploy/%s", port);
+			JschUserInfo ui = null;
+			SSHExecutor executor = null;
+			boolean connected = false;
+			
+			try {
+				String startInfo = String.format("undeploy tikv id:%s %s:%s begin ......", id, ip, port);
+				StringBuffer deployBeginLog = new StringBuffer();
+				deployBeginLog.append(CONSTS.DEPLOY_SINGLE_SUCCESS_BEGIN_STYLE);
+				deployBeginLog.append(startInfo);
+				deployBeginLog.append(CONSTS.END_STYLE);
+				DeployLog.pubLog(sessionKey, deployBeginLog.toString());
+				
+				ui = new JschUserInfo(user, pwd, ip, CONSTS.SSH_PORT_DEFAULT);
+				executor = new SSHExecutor(ui);
+				executor.connect();
+				connected = true;
+				
+				// cd deploy dir, exec stop shell, rm deploy dir
+				if (executor.isDirExistInCurrPath(deployRootPath, sessionKey)) {
+					executor.cd("$HOME/" + deployRootPath, sessionKey);
+					
+					// stop tikv-server
+					if (executor.isPortUsed(port, sessionKey)) {
+						if (!execStopShell(executor, port, sessionKey)) {
+							DeployLog.pubLog(sessionKey, "exec tikv stop shell fail ......");
+							return false;
+						}
+					}
+					
+					executor.cd("$HOME", sessionKey);
+					executor.rm(deployRootPath, true, sessionKey);
+				}
+				
+				// mod t_instance.IS_DEPLOYED = 0
+				if (!ConfigDataService.modInstanceDeployFlag(id, CONSTS.NOT_DEPLOYED, result))
+					return false;
+				
+				String info = String.format("undeploy tikv id:%s %s:%s success ......", id, ip, port);
+				StringBuffer deploySuccessLog = new StringBuffer();
+				deploySuccessLog.append(CONSTS.DEPLOY_SINGLE_SUCCESS_BEGIN_STYLE);
+				deploySuccessLog.append(info);
+				deploySuccessLog.append(CONSTS.END_STYLE);
+				DeployLog.pubLog(sessionKey, deploySuccessLog.toString());
+				
+			} catch (Exception e) {
+				logger.error(e.getMessage(), e);
+
+				String error = String.format("undeploy tikv id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
+				StringBuffer deploySuccessLog = new StringBuffer();
+				deploySuccessLog.append(CONSTS.DEPLOY_SINGLE_FAIL_BEGIN_STYLE);
+				deploySuccessLog.append(error);
+				deploySuccessLog.append(CONSTS.END_STYLE);
+				DeployLog.pubLog(sessionKey, deploySuccessLog.toString());
+
+				return false;
+			} finally {
+				if (connected) {
+					executor.close();
+				}
+			}
+		}
+		
+		return true;
+	}
+	
+	private boolean undeployTiDBServerList(List<InstanceDtlBean> tidbServerList,
+			String sessionKey, ResultBean result) {
+		
+		for (int i = 0; i < tidbServerList.size(); i++) {
+			
+			InstanceDtlBean tidbInfo = tidbServerList.get(i);
+			InstanceBean tidbInstance = tidbInfo.getInstance();
+			
+			String id   = tidbInfo.getAttribute("TIDB_ID").getAttrValue();
+			String ip   = tidbInfo.getAttribute("IP").getAttrValue();
+			String port = tidbInfo.getAttribute("PORT").getAttrValue();
+			String user = tidbInfo.getAttribute("OS_USER").getAttrValue();
+			String pwd  = tidbInfo.getAttribute("OS_PWD").getAttrValue();
+			
+			if (tidbInstance.getIsDeployed().equals(CONSTS.NOT_DEPLOYED)) {
+				String info = String.format("tidb id:%s %s:%s is not deployed ......", id, ip, port);
+				StringBuffer deploySuccessLog = new StringBuffer();
+				deploySuccessLog.append(CONSTS.DEPLOY_SINGLE_SUCCESS_BEGIN_STYLE);
+				deploySuccessLog.append(info);
+				deploySuccessLog.append(CONSTS.END_STYLE);
+				DeployLog.pubLog(sessionKey, deploySuccessLog.toString());
+
+				continue;
+			}
+			
+			String deployRootPath = String.format("tidb_deploy/%s", port);
+			JschUserInfo ui = null;
+			SSHExecutor executor = null;
+			boolean connected = false;
+			
+			try {
+				String startInfo = String.format("undeploy tidb id:%s %s:%s begin ......", id, ip, port);
+				StringBuffer deployBeginLog = new StringBuffer();
+				deployBeginLog.append(CONSTS.DEPLOY_SINGLE_SUCCESS_BEGIN_STYLE);
+				deployBeginLog.append(startInfo);
+				deployBeginLog.append(CONSTS.END_STYLE);
+				DeployLog.pubLog(sessionKey, deployBeginLog.toString());
+				
+				ui = new JschUserInfo(user, pwd, ip, CONSTS.SSH_PORT_DEFAULT);
+				executor = new SSHExecutor(ui);
+				executor.connect();
+				connected = true;
+				
+				// cd deploy dir, exec stop shell, rm deploy dir
+				if (executor.isDirExistInCurrPath(deployRootPath, sessionKey)) {
+					executor.cd("$HOME/" + deployRootPath, sessionKey);
+					
+					// stop tidb-server
+					if (executor.isPortUsed(port, sessionKey)) {
+						if (!execStopShell(executor, port, sessionKey)) {
+							DeployLog.pubLog(sessionKey, "exec tidb stop shell fail ......");
+							return false;
+						}
+					}
+					
+					executor.cd("$HOME", sessionKey);
+					executor.rm(deployRootPath, true, sessionKey);
+				}
+				
+				// mod t_instance.IS_DEPLOYED = 0
+				if (!ConfigDataService.modInstanceDeployFlag(id, CONSTS.NOT_DEPLOYED, result))
+					return false;
+				
+				String info = String.format("undeploy tidb id:%s %s:%s success ......", id, ip, port);
+				StringBuffer deploySuccessLog = new StringBuffer();
+				deploySuccessLog.append(CONSTS.DEPLOY_SINGLE_SUCCESS_BEGIN_STYLE);
+				deploySuccessLog.append(info);
+				deploySuccessLog.append(CONSTS.END_STYLE);
+				DeployLog.pubLog(sessionKey, deploySuccessLog.toString());
+				
+			} catch (Exception e) {
+				logger.error(e.getMessage(), e);
+
+				String info = String.format("undeploy tidb id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
+				StringBuffer deploySuccessLog = new StringBuffer();
+				deploySuccessLog.append(CONSTS.DEPLOY_SINGLE_FAIL_BEGIN_STYLE);
+				deploySuccessLog.append(info);
+				deploySuccessLog.append(CONSTS.END_STYLE);
+				DeployLog.pubLog(sessionKey, deploySuccessLog.toString());
+
+				return false;
+			} finally {
+				if (connected) {
+					executor.close();
+				}
+			}
+		}
+		
+		return true;
+	}
+	
+	private boolean undeployCollectd(InstanceDtlBean collectd, String sessionKey, ResultBean result) {
+		// TODO
+		return true;
+	}
+	
 	private String getClusterString(InstanceDtlBean pdInstance) {
 		String ip = pdInstance.getAttribute("IP").getAttrValue();
 		String cPort = pdInstance.getAttribute("CLUSTER_PORT").getAttrValue();
@@ -588,7 +894,7 @@ public class TiDBDeployer implements Deployer {
 			long maxTs = 60000L;
 			
 			do {
-				Thread.sleep(100L);
+				Thread.sleep(3L);
 	
 				currTs = System.currentTimeMillis();
 				if ((currTs - beginTs) > maxTs) {
@@ -598,7 +904,37 @@ public class TiDBDeployer implements Deployer {
 	
 				executor.echo("......");
 			} while (!executor.isPortUsed(port, sessionKey));
-			Thread.sleep(100L);
+			Thread.sleep(3L);
+			
+		} catch (Exception e) {
+			ret = false;
+		}
+		
+		return ret;
+	}
+	
+	private boolean execStopShell(SSHExecutor executor, String port, String sessionKey) {
+		boolean ret = true;
+		try {
+			executor.execStopShell(sessionKey);
+			
+			// start may take some time
+			long beginTs = System.currentTimeMillis();
+			long currTs = beginTs;
+			long maxTs = 60000L;
+			
+			do {
+				Thread.sleep(3L);
+	
+				currTs = System.currentTimeMillis();
+				if ((currTs - beginTs) > maxTs) {
+					ret = false;
+					break;
+				}
+	
+				executor.echo("......");
+			} while (executor.isPortUsed(port, sessionKey));
+			Thread.sleep(3L);
 			
 		} catch (Exception e) {
 			ret = false;
