@@ -18,7 +18,7 @@ public class SSHExecutor {
 	private static Logger logger = LoggerFactory.getLogger(SSHExecutor.class);
 
 	private static int CONN_TIMEOUT = 3000;
-	private static long WAIT_TIMEOUT = 10L;
+	private static long WAIT_TIMEOUT = 1L;
 
 	private static final String CMD_SETH_PLUS= "set +H";
 	private static final String CMD_CD       = "cd";
@@ -478,6 +478,19 @@ public class SSHExecutor {
 		} while (!bout.sshEof());
 		
 		cmd = String.format("%s -e \"%s\">>%s\n", CMD_ECHO, CONSTS.SHELL_MACRO, shell);
+		commander.print(cmd);
+		start = System.currentTimeMillis();
+		do {
+			Thread.sleep(WAIT_TIMEOUT);
+
+			long curr = System.currentTimeMillis();
+			if ((curr - start) > CONSTS.SSH_CMD_TIMEOUT) {
+				throw new InterruptedException(CONSTS.SSH_TIMEOUT_INFO);
+			}
+		} while (!bout.sshEof());
+		
+		// new line
+		cmd = String.format("%s -e \"\\\n\">>%s\n", CMD_ECHO, shell);
 		commander.print(cmd);
 		start = System.currentTimeMillis();
 		do {

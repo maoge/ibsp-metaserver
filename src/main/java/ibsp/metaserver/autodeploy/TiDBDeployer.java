@@ -114,18 +114,20 @@ public class TiDBDeployer implements Deployer {
 			String logFile   = "log/pd.log";
 			
 			String startContext = String.format("bin/pd-server --name=%s \\\\\n"
-					+ "--client-urls=%s --peer-urls=%s \\\\\n"
-					+ "--data-dir=%s --initial-cluster=%s \\\\\n"
-					+ "-L info --log-file=%s &",
+					+ "    --client-urls=%s --peer-urls=%s \\\\\n"
+					+ "    --data-dir=%s --initial-cluster=%s \\\\\n"
+					+ "    -L info --log-file=%s &",
 					id, clientUrl, peerUrl, dataDir, initCluster, logFile);
 			
 			String stopContext = String.format("var=%s\\n"
-					+ "pid=\\`ps -ef | grep \\${var} | awk '{print \\$1, \\$2, \\$8}' | grep pd-server | awk '{print \\$2}'\\`\\n"
+					+ "pid=\\`ps -ef | grep \\\"\\${var}\\\" | awk '{print \\$1, \\$2, \\$8}' | grep pd-server | awk '{print \\$2}'\\`\\n"
 					+ "if [ \\\"\\${pid}\\\" != \\\"\\\" ]\\n"
 					+ "then\\n"
 					+ "    kill -9 \\$pid\\n"
-					+ "fi\\n"
-					+ "echo stop $var",
+					+ "    echo stop pd-server pid:\\$pid\\n"
+					+ "else\\n"
+					+ "    echo stop pd-server not running\\n"
+					+ "fi\\n",
 					id);
 
 			if (pdInstance.getIsDeployed().equals(CONSTS.DEPLOYED)) {
@@ -265,19 +267,23 @@ public class TiDBDeployer implements Deployer {
 			String logFile = "log/tikv.log";
 			
 			String startContext = String.format("bin/tikv-server --addr %s:%s \\\\\n"
-					+ "--pd %s \\\\\n"
-					+ "--data-dir %s \\\\\n"
-					+ "-L info --log-file %s &",
+					+ "    --pd %s \\\\\n"
+					+ "    --data-dir %s \\\\\n"
+					+ "    -L info --log-file %s &",
 					ip, port, pdList, dataDir, logFile);
 			
-			String stopContext = String.format("var=%s\\n"
-					+ "pid=\\`ps -ef | grep \\${var} | awk '{print \\$1, \\$2, \\$8}' | grep pd-server | awk '{print \\$2}'\\`\\n"
+			
+			String stopUniqueFlag = String.format("\\\\--addr %s:%s", ip, port);
+			String stopContext = String.format("var=\\\"%s\\\"\\n"
+					+ "pid=\\`ps -ef | grep \\\"\\${var}\\\" | awk '{print \\$1, \\$2, \\$8}' | grep tikv-server | awk '{print \\$2}'\\`\\n"
 					+ "if [ \\\"\\${pid}\\\" != \\\"\\\" ]\\n"
 					+ "then\\n"
 					+ "    kill -9 \\$pid\\n"
-					+ "fi\\n"
-					+ "echo stop $var",
-					id);
+					+ "    echo stop tikv-server pid:\\$pid\\n"
+					+ "else\\n"
+					+ "    echo stop tikv-server not running\\n"
+					+ "fi\\n",
+					stopUniqueFlag);
 			
 			if (tikvInstance.getIsDeployed().equals(CONSTS.DEPLOYED)) {
 				String info = String.format("tikv id:%s %s:%s is deployed ......", id, ip, port);
@@ -407,20 +413,23 @@ public class TiDBDeployer implements Deployer {
 			String logFile = "log/tidb.log";
 			
 			String startContext = String.format("bin/tidb-server -host %s -P %s \\\\\n"
-					+ "--store=tikv \\\\\n"
-					+ "--log-file=%s \\\\\n"
-					+ "--path=%s \\\\\n"
-					+ "--status=%s &",
+					+ "    --store=tikv \\\\\n"
+					+ "    --log-file=%s \\\\\n"
+					+ "    --path=%s \\\\\n"
+					+ "    --status=%s &",
 					ip, port, logFile, pdList, statPort);
 			
-			String stopContext = String.format("var=%s\\n"
-					+ "pid=\\`ps -ef | grep \\${var} | awk '{print \\$1, \\$2, \\$8}' | grep pd-server | awk '{print \\$2}'\\`\\n"
+			String stopUniqueFlag = String.format("\\\\-host %s \\\\-P %s", ip, port);
+			String stopContext = String.format("var=\\\"%s\\\"\\n"
+					+ "pid=\\`ps -ef | grep \\\"\\${var}\\\" | awk '{print \\$1, \\$2, \\$8}' | grep tidb-server | awk '{print \\$2}'\\`\\n"
 					+ "if [ \\\"\\${pid}\\\" != \\\"\\\" ]\\n"
 					+ "then\\n"
 					+ "    kill -9 \\$pid\\n"
-					+ "fi\\n"
-					+ "echo stop $var",
-					id);
+					+ "    echo stop tidb-server pid:\\$pid\\n"
+					+ "else\\n"
+					+ "    echo stop tidb-server not running\\n"
+					+ "fi\\n",
+					stopUniqueFlag);
 			
 			if (tidbInstance.getIsDeployed().equals(CONSTS.DEPLOYED)) {
 				String info = String.format("tidb id:%s %s:%s is deployed ......", id, ip, port);
