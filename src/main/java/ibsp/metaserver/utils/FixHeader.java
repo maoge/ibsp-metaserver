@@ -207,5 +207,6 @@ public class FixHeader {
 	public static final String HEADER_ATTRIBUTES               = "ATTRS";
 	public static final String HEADER_DEPLOY_FLAG              = "DEPLOY_FLAG";
 	
-	
+	public static final String HEADER_SQL_STR                  = "SQL_STR";
+	public static final String HEADER_SCHEMA_NAME              = "SCHEMA_NAME";
 }
