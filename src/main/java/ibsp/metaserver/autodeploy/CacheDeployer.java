@@ -1,8 +1,5 @@
 package ibsp.metaserver.autodeploy;
 
-import java.util.Map;
-
-import ibsp.metaserver.bean.DeployFileBean;
 import ibsp.metaserver.bean.ResultBean;
 
 public class CacheDeployer implements Deployer {
@@ -20,7 +17,15 @@ public class CacheDeployer implements Deployer {
 	}
 
 	@Override
-	public boolean loadDeployFileInfo(Map<String, DeployFileBean> deployFileMap, ResultBean result) {
+	public boolean deployInstance(String serviceID, String instID,
+			String sessionKey, ResultBean result) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean undeployInstance(String serviceID, String instID,
+			String sessionKey, ResultBean result) {
 		// TODO Auto-generated method stub
 		return false;
 	}
