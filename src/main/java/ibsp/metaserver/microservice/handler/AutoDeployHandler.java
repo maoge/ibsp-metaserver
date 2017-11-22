@@ -31,7 +31,7 @@ public class AutoDeployHandler {
 				json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
 			} else {
 				ResultBean result = new ResultBean();
-				if (DeployServiceFactory.deploy(sServID, sSessionKey, result)) {
+				if (DeployServiceFactory.deployService(sServID, sSessionKey, result)) {
 					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
 					json.put(FixHeader.HEADER_RET_INFO, "");
 				} else {
@@ -60,7 +60,67 @@ public class AutoDeployHandler {
 				json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
 			} else {
 				ResultBean result = new ResultBean();
-				if (DeployServiceFactory.undeploy(sServID, sSessionKey, result)) {
+				if (DeployServiceFactory.undeployService(sServID, sSessionKey, result)) {
+					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+					json.put(FixHeader.HEADER_RET_INFO, "");
+				} else {
+					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+					json.put(FixHeader.HEADER_RET_INFO, result.getRetInfo());
+				}
+			}
+		}
+		
+		HttpUtils.outJsonObject(routeContext, json);
+	}
+	
+	@Service(id = "deployInstance", name = "deployInstance", auth = true, bwswitch = true)
+	public static void deployInstance(RoutingContext routeContext) {
+		JsonObject json = new JsonObject();
+		
+		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
+		if(params == null) {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+			json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+		} else {
+			String sServID = params.get(FixHeader.HEADER_SERV_ID);
+			String sInstID = params.get(FixHeader.HEADER_SERV_ID);
+			String sSessionKey = params.get(FixHeader.HEADER_SESSION_KEY);
+			if (!HttpUtils.isNotNull(sServID)) {
+				json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+				json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+			} else {
+				ResultBean result = new ResultBean();
+				if (DeployServiceFactory.deployInstance(sServID, sInstID, sSessionKey, result)) {
+					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+					json.put(FixHeader.HEADER_RET_INFO, "");
+				} else {
+					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+					json.put(FixHeader.HEADER_RET_INFO, result.getRetInfo());
+				}
+			}
+		}
+		
+		HttpUtils.outJsonObject(routeContext, json);
+	}
+	
+	@Service(id = "undeployInstance", name = "undeployInstance", auth = true, bwswitch = true)
+	public static void undeployInstance(RoutingContext routeContext) {
+		JsonObject json = new JsonObject();
+		
+		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
+		if(params == null) {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+			json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+		} else {
+			String sServID = params.get(FixHeader.HEADER_SERV_ID);
+			String sInstID = params.get(FixHeader.HEADER_SERV_ID);
+			String sSessionKey = params.get(FixHeader.HEADER_SESSION_KEY);
+			if (!HttpUtils.isNotNull(sServID)) {
+				json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+				json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+			} else {
+				ResultBean result = new ResultBean();
+				if (DeployServiceFactory.undeployInstance(sServID, sInstID, sSessionKey, result)) {
 					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
 					json.put(FixHeader.HEADER_RET_INFO, "");
 				} else {

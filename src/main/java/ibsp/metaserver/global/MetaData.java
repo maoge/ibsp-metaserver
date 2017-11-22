@@ -1,5 +1,6 @@
 package ibsp.metaserver.global;
 
+import ibsp.metaserver.bean.DeployFileBean;
 import ibsp.metaserver.bean.IdSetBean;
 import ibsp.metaserver.bean.MetaAttributeBean;
 import ibsp.metaserver.bean.MetaComponentBean;
@@ -26,6 +27,7 @@ public class MetaData {
 	private Map<Integer, MetaComponentBean> metaCmptMap;
 	private Map<String,  Integer> metaCmptName2IDMap;
 	private Map<Integer, IdSetBean<Integer>> metaCmpt2AttrMap;
+	private Map<String, DeployFileBean> deployFileMap;
 	
 	private static MetaData theInstance = null;
 	private static ReentrantLock intanceLock = null;
@@ -39,6 +41,7 @@ public class MetaData {
 		metaCmptMap = new ConcurrentHashMap<Integer, MetaComponentBean>();
 		metaCmptName2IDMap = new ConcurrentHashMap<String,  Integer>();
 		metaCmpt2AttrMap = new ConcurrentHashMap<Integer, IdSetBean<Integer>>();
+		deployFileMap = new ConcurrentHashMap<String, DeployFileBean>();
 	}
 	
 	public static MetaData get() {
@@ -61,6 +64,7 @@ public class MetaData {
 		LoadMetaAttr();
 		LoadMetaCmpt();
 		LoadMetaCmpt2Attr();
+		LoadDeployFile();
 	}
 	
 	private void LoadMetaAttr() {
@@ -146,6 +150,35 @@ public class MetaData {
 		} finally {
 			intanceLock.unlock();
 		}
+	}
+	
+	private void LoadDeployFile() {
+		try {
+			intanceLock.lock();
+			
+			List<DeployFileBean> deployFileList = MetaDataService.loadDeployFile();
+			if (deployFileList == null) {
+				return;
+			}
+			
+			deployFileMap.clear();
+			
+			for (DeployFileBean deployFile : deployFileList) {
+				deployFileMap.put(deployFile.getFileType(), deployFile);
+			}
+			
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+		} finally {
+			intanceLock.unlock();
+		}
+	}
+	
+	public DeployFileBean getDeployFile(String type) {
+		if (deployFileMap == null)
+			return null;
+		
+		return deployFileMap.get(type);
 	}
 	
 	public MetaComponentBean getComponentByName(String cmptName) {

@@ -18,7 +18,7 @@ public class SSHExecutor {
 	private static Logger logger = LoggerFactory.getLogger(SSHExecutor.class);
 
 	private static int CONN_TIMEOUT = 3000;
-	private static long WAIT_TIMEOUT = 1L;
+	private static long WAIT_TIMEOUT = 10L;
 
 	private static final String CMD_SETH_PLUS= "set +H";
 	private static final String CMD_CD       = "cd";
@@ -604,7 +604,7 @@ public class SSHExecutor {
 		int end = context.indexOf(CONSTS.SQUARE_BRACKET_LEFT, begin + CONSTS.LINE_SEP.length());
 		String lines = context.substring(begin + CONSTS.LINE_SEP.length(), end);
 
-		return lines.startsWith("0") ? false : true;
+		return !lines.startsWith("0");
 	}
 
 	public String getHostname() throws InterruptedException {
