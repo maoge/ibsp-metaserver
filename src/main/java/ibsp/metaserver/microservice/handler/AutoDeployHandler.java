@@ -3,6 +3,7 @@ package ibsp.metaserver.microservice.handler;
 import ibsp.metaserver.annotation.App;
 import ibsp.metaserver.annotation.Service;
 import ibsp.metaserver.autodeploy.DeployServiceFactory;
+import ibsp.metaserver.autodeploy.utils.DeployLog;
 import ibsp.metaserver.bean.ResultBean;
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.FixHeader;
@@ -130,6 +131,23 @@ public class AutoDeployHandler {
 			}
 		}
 		
+		HttpUtils.outJsonObject(routeContext, json);
+	}
+	
+	@Service(id = "getDeployLog", name = "getDeployLog")
+	public static void getDeployLog(RoutingContext routeContext) {
+		JsonObject json = new JsonObject();
+		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
+		if(params == null) {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+			json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+		} else {
+			String sessionKey = params.get("key");
+			String log = DeployLog.getLog(sessionKey);
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+			json.put(FixHeader.HEADER_RET_INFO, log);
+		}
+
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 	
