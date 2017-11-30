@@ -34,6 +34,10 @@ public class SqlExplainService {
 				"cmpt.CMPT_NAME=? AND top2.INST_ID1=?";
 		sql = "EXPLAIN " + sql;
 		
+		Connection conn = null;
+		Statement stmt = null;
+		ResultSet rs = null;
+		
 		try {
 			SqlBean sqlBean = new SqlBean(addressSql);
 			sqlBean.addParams(new Object[] { CONSTS.SERV_DB_TIDB, servID });
@@ -54,34 +58,33 @@ public class SqlExplainService {
 				return null;
 			}
 			
-			Connection conn = null;
-			Statement stmt = null;
-			ResultSet rs = null;
 			JsonArray plan = null;
 			try {
 				DBAddress = "jdbc:mysql://"+DBAddress+"/"+schema+"?"+
 						"user="+user+"&password="+pwd+
 						"&useUnicode=true&characterEncoding=UTF8&useSSL=true";
 				conn = DriverManager.getConnection(DBAddress);
-				stmt = conn.createStatement();
-				rs = stmt.executeQuery(sql);
-				plan = resultSetToJson(rs);
 			} catch (Exception e) {
 				logger.error(e.getMessage(), e);
 				bean.setRetCode(CONSTS.REVOKE_NOK);
 				bean.setRetInfo(CONSTS.ERR_CONNECT_TIDB_SERVER_ERROR+e.getMessage());
 				return null;
-			} finally {
-				if (rs != null) rs.close();
-				if (stmt != null) stmt.close();
-				if (conn != null) conn.close();
 			}
-			
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(sql);
+			plan = resultSetToJson(rs);
 			return explainPlanToTree(plan);
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 			bean.setRetCode(CONSTS.REVOKE_NOK);
 			bean.setRetInfo(e.getMessage());
+		} finally {
+			try {
+				if (rs != null) rs.close();
+				if (stmt != null) stmt.close();
+				if (conn != null) conn.close();
+			} catch (Exception e) {
+			}
 		}
 		
 		return null;
