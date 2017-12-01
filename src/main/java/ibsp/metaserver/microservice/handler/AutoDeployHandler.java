@@ -84,7 +84,7 @@ public class AutoDeployHandler {
 			json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
 		} else {
 			String sServID = params.get(FixHeader.HEADER_SERV_ID);
-			String sInstID = params.get(FixHeader.HEADER_SERV_ID);
+			String sInstID = params.get(FixHeader.HEADER_INSTANCE_ID);
 			String sSessionKey = params.get(FixHeader.HEADER_SESSION_KEY);
 			if (!HttpUtils.isNotNull(sServID)) {
 				json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
@@ -114,7 +114,7 @@ public class AutoDeployHandler {
 			json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
 		} else {
 			String sServID = params.get(FixHeader.HEADER_SERV_ID);
-			String sInstID = params.get(FixHeader.HEADER_SERV_ID);
+			String sInstID = params.get(FixHeader.HEADER_INSTANCE_ID);
 			String sSessionKey = params.get(FixHeader.HEADER_SESSION_KEY);
 			if (!HttpUtils.isNotNull(sServID)) {
 				json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
