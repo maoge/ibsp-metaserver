@@ -1048,7 +1048,7 @@ public class TiDBDeployer implements Deployer {
 			long maxTs = 60000L;
 			
 			do {
-				Thread.sleep(1L);
+				Thread.sleep(CONSTS.DEPLOY_CHECK_INTERVAL);
 	
 				currTs = System.currentTimeMillis();
 				if ((currTs - beginTs) > maxTs) {
@@ -1058,7 +1058,7 @@ public class TiDBDeployer implements Deployer {
 	
 				executor.echo("......");
 			} while (!executor.isPortUsed(port, sessionKey));
-			Thread.sleep(1L);
+//			Thread.sleep(1L);
 			
 		} catch (Exception e) {
 			ret = false;
@@ -1078,7 +1078,7 @@ public class TiDBDeployer implements Deployer {
 			long maxTs = 60000L;
 			
 			do {
-				Thread.sleep(1L);
+				Thread.sleep(CONSTS.DEPLOY_CHECK_INTERVAL);
 	
 				currTs = System.currentTimeMillis();
 				if ((currTs - beginTs) > maxTs) {
@@ -1088,7 +1088,7 @@ public class TiDBDeployer implements Deployer {
 	
 				executor.echo("......");
 			} while (executor.isPortUsed(port, sessionKey));
-			Thread.sleep(1L);
+//			Thread.sleep(1L);
 			
 		} catch (Exception e) {
 			ret = false;
