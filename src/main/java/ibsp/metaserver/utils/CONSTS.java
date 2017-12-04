@@ -3,10 +3,10 @@ package ibsp.metaserver.utils;
 public class CONSTS {
 	
 	public static final String CONF_PATH             = "conf";
-	public static final String INIT_PROP_FILE        = "init";
-	public static final String LOG4J_CONF            = "log4j";
-	public static final String C3P0_PROP_FILE        = "c3p0";
-	public static final String HAZELCAST_CONF_FILE   = "hazelcast.xml";
+	public static final String INIT_PROP_FILE        = "conf/init";
+	public static final String LOG4J_CONF            = "conf/log4j";
+	public static final String C3P0_PROP_FILE        = "conf/c3p0";
+	public static final String HAZELCAST_CONF_FILE   = "conf/hazelcast.xml";
 	
 	public static final String SYS_EVENT_QUEUE       = "sys.event";
 	
@@ -41,7 +41,6 @@ public class CONSTS {
 	
 	public static final long STAT_COMPTE_INTERVAL    = 1000L;
 	public static final long DBPOOL_CHECK_INTERVAL   = 6000L;
-	public static final long DEPLOY_CHECK_INTERVAL   = 500L;
 	
 	public static final String HTTP_METHOD_GET       = "GET";
 	public static final String HTTP_METHOD_POST      = "POST";

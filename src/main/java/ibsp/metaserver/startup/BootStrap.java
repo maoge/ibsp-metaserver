@@ -1,7 +1,5 @@
 package ibsp.metaserver.startup;
 
-import java.io.FileNotFoundException;
-
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.PropertiesUtils;
 import ibsp.metaserver.utils.SysConfig;
@@ -64,16 +62,12 @@ public class BootStrap {
 			vertxOptions.setClustered(true);
 			vertxOptions.setClusterHost(SysConfig.get().getVertxClusterHost());
 			vertxOptions.setClusterPort(SysConfig.get().getVertxClusterPort());
-			
-			String confPath = PropertiesUtils.getConfFilePath(CONSTS.HAZELCAST_CONF_FILE);
-			
+						
 			Config cfg = null;
-			try {
-				cfg = new XmlConfigBuilder(confPath).build();
-			} catch (FileNotFoundException e) {
-				logger.error(e.getMessage(), e);
-			}
 			
+			cfg = new XmlConfigBuilder(Thread.currentThread().getContextClassLoader()
+					.getResourceAsStream(CONSTS.HAZELCAST_CONF_FILE)).build();
+
 			ClusterManager mgr = new HazelcastClusterManager(cfg);
 			vertxOptions.setClusterManager(mgr);
 			

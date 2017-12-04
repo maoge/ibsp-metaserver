@@ -6,7 +6,6 @@
 	<property file="version.properties" />
 	<property environment="env" />
 	<property name="src.dir" value="${basedir}/src/main/java" />
-	<property name="schema.dir" value="${basedir}/schema" />
 	<property name="build.dir" value="${basedir}/build" />
 	<property name="output.dir" value="${basedir}/output" />
 
@@ -14,7 +13,6 @@
 		<antcall target="clean" />
 		<antcall target="init" />
 		<antcall target="build" />
-		<antcall target="copy" />
 		<antcall target="makejar" />
 	</target>
 
@@ -38,21 +36,12 @@
 		</javac>
 	</target>
 
-	<target name="copy">
-		<copy todir="${build.dir}/schema" overwrite="true">
-			<fileset dir="${schema.dir}">
-				<include name="**/*.schema" />
-			</fileset>
-		</copy>
-	</target>
-
 	<target name="makejar" depends="build">		
 		
 		<jar jarfile="${output.dir}/${projectname}-${version}.jar">
 			<fileset dir="${build.dir}">
 				<include name="*"/>
 				<include name="ibsp/metaserver/**"/>
-				<include name="/schema/**"/>
 			</fileset>
 			
 			<manifest>
