@@ -30,8 +30,8 @@ public class SqlExplainService {
 				"JOIN t_meta_cmpt cmpt ON ins.CMPT_ID=cmpt.CMPT_ID "+
 				"JOIN t_topology top1 ON ins.INST_ID=top1.INST_ID2 "+ 
 				"JOIN t_topology top2 ON top1.INST_ID1=top2.INST_ID2 "+
-				"WHERE (attr_name='IP' OR attr_name='PORT') AND "+
-				"cmpt.CMPT_NAME=? AND top2.INST_ID1=?";
+				"WHERE (attr_name='IP' OR attr_name='PORT') AND ins.IS_DEPLOYED=1 "+
+				"AND cmpt.CMPT_NAME=? AND top2.INST_ID1=?";
 		sql = "EXPLAIN " + sql;
 		
 		Connection conn = null;
