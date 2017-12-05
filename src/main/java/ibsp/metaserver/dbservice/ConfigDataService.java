@@ -44,6 +44,10 @@ public class ConfigDataService {
 	private static final String INS_INSTANCE      = "insert into t_instance(INST_ID,CMPT_ID,IS_DEPLOYED,POS_X,POS_Y,WIDTH,HEIGHT,ROW,COL) "
 	                                              + "values(?,?,?,?,?,?,?,?,?)";
 	private static final String DEL_INSTANCE      = "delete from t_instance where INST_ID = ?";
+	
+	private static final String PD_CLUSTER_PORT   = "SELECT attr.ATTR_VALUE FROM "
+			                                      + "t_instance_attr attr JOIN t_topology topo ON attr.INST_ID=topo.INST_ID2 "
+			                                      + "WHERE attr.ATTR_NAME='CLUSTER_PORT' AND topo.INST_ID1=? LIMIT 1";
 
 	private static final String INS_INSTANCE_ATTR = "insert into t_instance_attr(INST_ID,ATTR_ID,ATTR_NAME,ATTR_VALUE) "
 	                                              + "values(?,?,?,?)";
@@ -146,6 +150,9 @@ public class ConfigDataService {
 			int size = subJsonArr.size();
 			for (int i = 0; i < size; i++) {
 				JsonObject instanceNode = subJsonArr.getJsonObject(i);
+				if (!checkNodeInfo(cmptName, sParentID, instanceNode, result)) {
+					return false;
+				}
 				
 				String idAttrName = MetaData.get().getCmptIDAttrNameByName(cmptName);
 				if (HttpUtils.isNull(idAttrName)) {
@@ -179,6 +186,33 @@ public class ConfigDataService {
 		}
 		
 		return curd.executeUpdate(true, result);
+	}
+	
+	//If node info need to be checked, put it here
+	public static boolean checkNodeInfo(String cmptName, String sParentID, 
+			JsonObject instance, ResultBean result) {
+		
+		//check if cluster port of PD matches
+		if (cmptName.equals(CONSTS.SERV_DB_PD)) {
+			try {
+				CRUD curd = new CRUD();
+				SqlBean sqlAttr = new SqlBean(PD_CLUSTER_PORT);
+				sqlAttr.addParams(new Object[]{sParentID});
+				curd.putSqlBean(sqlAttr);
+				int port = curd.queryForCount();
+				
+				if (port != Integer.parseInt(instance.getString("CLUSTER_PORT"))) {
+					result.setRetCode(CONSTS.REVOKE_NOK);
+					result.setRetInfo(CONSTS.ERR_PD_CLUSTER_PORT_NOT_MATCH+port);
+					return false;
+				}
+			} catch (Exception e) {
+				result.setRetCode(CONSTS.REVOKE_NOK);
+				result.setRetInfo(e.getMessage());
+				return false;
+			}
+		}
+		return true;
 	}
 	
 	public static boolean delServiceNode(String sParentID, String sInstID, ResultBean result) {

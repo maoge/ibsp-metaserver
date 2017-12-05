@@ -120,7 +120,7 @@ public class TiDBDeployer implements Deployer {
 		
 		String initCluster = getPDInitCluster(pdServerList);
 		InstanceDtlBean firstPD = pdServerList.get(0);
-		String join = getClusterString(firstPD);
+		String join = getPDString(firstPD);
 		boolean needJoin = pdServerList.size() > 0;
 		
 		int cmptID = instDtl.getInstance().getCmptID();
@@ -205,14 +205,11 @@ public class TiDBDeployer implements Deployer {
 			String sessionKey, ResultBean result) {
 
 		String initCluster = getPDInitCluster(pdServerList);
-		InstanceDtlBean firstPD = pdServerList.get(0);
-		String join = getClusterString(firstPD);
 		
 		for (int i = 0; i < pdServerList.size(); i++) {
 			InstanceDtlBean pdInstDtl = pdServerList.get(i);
-			boolean needJoin = i > 0;
 			
-			if (!deployPDServer(serviceID, pdInstDtl, needJoin, join, initCluster, sessionKey, result))
+			if (!deployPDServer(serviceID, pdInstDtl, false, "", initCluster, sessionKey, result))
 				return false;
 		}
 		
@@ -316,9 +313,18 @@ public class TiDBDeployer implements Deployer {
 		
 		String startContext = String.format("bin/pd-server --name=%s \\\\\n"
 				+ "    --client-urls=%s --peer-urls=%s \\\\\n"
-				+ "    --data-dir=%s --initial-cluster=%s \\\\\n"
-				+ "    -L info --log-file=%s &",
-				id, clientUrl, peerUrl, dataDir, initCluster, logFile);
+				+ "    --advertise-client-urls=%s --advertise-peer-urls=%s \\\\\n"
+				+ "    --data-dir=%s -L info \\\\\n"
+				+ "    --log-file=%s",
+				id, clientUrl, peerUrl, clientUrl, peerUrl, dataDir, logFile);
+		
+		// subsequent pd node need join to the first start node
+		if (needJoin) {
+			startContext += " --join="+join;
+		} else {
+			startContext += " --initial-cluster="+initCluster;
+		}
+		startContext += " &";
 		
 		String stopContext = String.format("var=%s\\n"
 				+ "pid=\\`ps -ef | grep \\\"\\${var}\\\" | awk '{print \\$1, \\$2, \\$8}' | grep pd-server | awk '{print \\$2}'\\`\\n"
@@ -400,13 +406,13 @@ public class TiDBDeployer implements Deployer {
 				return false;
 			}
 			
-			// subsequent pd node need join to the first start node
+			//if needJoin, relace --join with --initial-cluster here
 			if (needJoin) {
-				String cmdJoin = String.format("bin/pd-server --join=%s", join);
-				if (!executor.execSingleLine(cmdJoin, sessionKey))
+				startContext = startContext.replace("--join="+join, "--initial-cluster="+initCluster);
+				if (!executor.createStartShell(startContext)) {
+					DeployLog.pubLog(sessionKey, "update pd start shell fail ......");
 					return false;
-				
-				// TODO check pd-ctl member
+				}
 			}
 			
 			// mod t_instance.IS_DEPLOYED = 1
@@ -996,10 +1002,10 @@ public class TiDBDeployer implements Deployer {
 		return true;
 	}
 	
-	private String getClusterString(InstanceDtlBean pdInstance) {
+	private String getPDString(InstanceDtlBean pdInstance) {
 		String ip = pdInstance.getAttribute("IP").getAttrValue();
-		String cPort = pdInstance.getAttribute("CLUSTER_PORT").getAttrValue();
-		return String.format("http://%s:%s", ip, cPort);
+		String port = pdInstance.getAttribute("PORT").getAttrValue();
+		return String.format("http://%s:%s", ip, port);
 	}
 
 	private String getPDInitCluster(List<InstanceDtlBean> pdServerList) {

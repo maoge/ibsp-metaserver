@@ -465,6 +465,12 @@ public class SSHExecutor {
 	}
 	
 	private boolean createShell(String shellContext, String shell) throws InterruptedException {
+		
+		//if shell exists, delete it
+		if (isFileExistInCurrPath(shell, "")) {
+			this.rm(shell, false, "");
+		}
+		
 		String cmd = String.format("%s\n", CMD_SETH_PLUS);
 		commander.print(cmd);
 		long start = System.currentTimeMillis();
