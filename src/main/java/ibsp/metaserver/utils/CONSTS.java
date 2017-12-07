@@ -98,4 +98,6 @@ public class CONSTS {
 	public static final String ERR_FIND_TIDB_SERVER_ERROR    = "no available tidb server for serv_id ";
 	public static final String ERR_CONNECT_TIDB_SERVER_ERROR = "connect to tidb server failed ......";
 	public static final String ERR_NO_PD_TO_JOIN             = "no available pd server to join ......";
+	
+	public static final String PD_DELETE_MEMBER_SUCC         = "Success!";
 }
