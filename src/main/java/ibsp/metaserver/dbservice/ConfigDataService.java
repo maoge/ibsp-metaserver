@@ -201,7 +201,7 @@ public class ConfigDataService {
 				curd.putSqlBean(sqlAttr);
 				int port = curd.queryForCount();
 				
-				if (port != Integer.parseInt(instance.getString("CLUSTER_PORT"))) {
+				if (port != 0 && port != Integer.parseInt(instance.getString("CLUSTER_PORT"))) {
 					result.setRetCode(CONSTS.REVOKE_NOK);
 					result.setRetInfo(CONSTS.ERR_PD_CLUSTER_PORT_NOT_MATCH+port);
 					return false;
