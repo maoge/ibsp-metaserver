@@ -18,8 +18,7 @@ import ibsp.metaserver.dbservice.MetaDataService;
 import ibsp.metaserver.dbservice.TiDBService;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.utils.CONSTS;
-
-// TODO PD changes need to modify the configuration of tikv-server and tidb-server
+import ibsp.metaserver.utils.HttpUtils;
 
 public class TiDBDeployer implements Deployer {
 
@@ -117,17 +116,24 @@ public class TiDBDeployer implements Deployer {
 		}
 		
 		String pdList = getPDList(pdServerList);
-		
-		String initCluster = getPDInitCluster(pdServerList);
-		InstanceDtlBean firstPD = pdServerList.get(0);
-		String join = getPDString(firstPD);
-		boolean needJoin = pdServerList.size() > 0;
-		
 		int cmptID = instDtl.getInstance().getCmptID();
 		boolean deployRet = false;
+		
 		switch (cmptID) {
 		case 118:    // DB_PD
-			deployRet = deployPDServer(serviceID, instDtl, needJoin, join, initCluster, sessionKey, result);
+			String initCluster = getPDInitCluster(pdServerList); //in --initial-cluster=xxx form
+			String join = getPDString(pdServerList); //in --join=xxx form
+			if (HttpUtils.isNull(join)) {
+				result.setRetCode(CONSTS.REVOKE_NOK);
+				result.setRetInfo(CONSTS.ERR_NO_PD_TO_JOIN);
+				return false;
+			}
+			//when deploying a new PD server, needJoin must be true
+			deployRet = deployPDServer(serviceID, instDtl, true, join, initCluster, sessionKey, result);
+			//updateStartShell doesn't interfere deploy result, the service is still available
+			if (deployRet) {
+				updateStartShell(initCluster, pdServerList, tidbServerList, tikvServerList, sessionKey);
+			}
 			break;
 		case 119:    // DB_TIDB
 			deployRet = deployTiDBServer(serviceID, instDtl, pdList, sessionKey, result);
@@ -445,6 +451,66 @@ public class TiDBDeployer implements Deployer {
 		
 		return true;
 	}
+	
+	private void updateStartShell(String PDCluster, List<InstanceDtlBean> pdServerList, 
+			List<InstanceDtlBean> tidbServerList, List<InstanceDtlBean> tikvServerList,
+			String sessionKey) {
+		
+		StringBuilder newCluster = new StringBuilder("");
+		for (InstanceDtlBean instance : pdServerList) {
+			updateStartShellForInstance(instance, "--initial-cluster=", PDCluster, "pd_deploy", sessionKey);
+			newCluster.append(instance.getAttribute("IP").getAttrValue());
+			newCluster.append(":");
+			newCluster.append(instance.getAttribute("PORT").getAttrValue());
+			newCluster.append(",");
+		}
+		newCluster.deleteCharAt(newCluster.length()-1);
+		
+		for (InstanceDtlBean instance : tikvServerList) {
+			updateStartShellForInstance(instance, "--pd ", newCluster.toString(), "tikv_deploy", sessionKey);
+		}
+		for (InstanceDtlBean instance : tidbServerList) {
+			updateStartShellForInstance(instance, "--path=", newCluster.toString(), "tidb_deploy", sessionKey);
+		}
+	}
+	
+	private void updateStartShellForInstance(
+			InstanceDtlBean instance, String argName, String PDCluster, String path, String sessionKey) {
+		String ip = instance.getAttribute("IP").getAttrValue();
+		String port = instance.getAttribute("PORT").getAttrValue();
+		SSHExecutor executor = null;
+		boolean connected = false;
+		
+		try {
+			String user  = instance.getAttribute("OS_USER").getAttrValue();
+			String pwd   = instance.getAttribute("OS_PWD").getAttrValue();
+			JschUserInfo ui = new JschUserInfo(user, pwd, ip, CONSTS.SSH_PORT_DEFAULT);
+			executor = new SSHExecutor(ui);
+			executor.connect();
+			connected = true;
+			
+			executor.cd("$HOME/"+path+"/"+port, sessionKey);
+			String startText = executor.readStartShell();
+			startText = startText.substring(startText.indexOf("\r\n\r\n")+4);
+			int start = startText.indexOf(argName);
+			int end = startText.indexOf(" ", start+argName.length());
+			startText = startText.substring(0, start)+argName+PDCluster+startText.substring(end);
+			executor.createStartShell(startText.replaceAll("\\\r\n", "\\\\\n"));
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+			String error = String.format("Instance %s:%s update start shell failed(PD dilatation): %s", ip, port, e.getMessage());
+			StringBuffer deploySuccessLog = new StringBuffer();
+			deploySuccessLog.append(CONSTS.DEPLOY_SINGLE_FAIL_BEGIN_STYLE);
+			deploySuccessLog.append(error);
+			deploySuccessLog.append(CONSTS.END_STYLE);
+			DeployLog.pubLog(sessionKey, deploySuccessLog.toString());
+		} finally {
+			if (connected) {
+				executor.close();
+			}
+		}
+	}
+	
 	
 	private boolean deployTiKVServer(String serviceID, InstanceDtlBean instanceDtl,
 			String pdList, String sessionKey, ResultBean result) {
@@ -1002,10 +1068,18 @@ public class TiDBDeployer implements Deployer {
 		return true;
 	}
 	
-	private String getPDString(InstanceDtlBean pdInstance) {
-		String ip = pdInstance.getAttribute("IP").getAttrValue();
-		String port = pdInstance.getAttribute("PORT").getAttrValue();
-		return String.format("http://%s:%s", ip, port);
+	private String getPDString(List<InstanceDtlBean> pdServerList) {
+		//TODO remove dead pd servers
+		StringBuilder result = new StringBuilder("");
+		for (InstanceDtlBean instance : pdServerList) {
+			if (instance.getInstance().getIsDeployed().equals("1")) {
+				String ip = instance.getAttribute("IP").getAttrValue();
+				String port = instance.getAttribute("PORT").getAttrValue();
+				result.append(ip+":"+port+",");
+			}
+		}
+		result.deleteCharAt(result.length()-1);
+		return result.toString();
 	}
 
 	private String getPDInitCluster(List<InstanceDtlBean> pdServerList) {

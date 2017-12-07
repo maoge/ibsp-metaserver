@@ -526,6 +526,35 @@ public class SSHExecutor {
 
 		return addExecMod(shell);
 	}
+	
+	public String readStartShell() throws InterruptedException {
+		return readShell(CONSTS.START_SHELL);
+	}
+
+	public String readStopShell(String shellContext) throws InterruptedException {
+		return readShell(CONSTS.STOP_SHELL);
+	}
+	
+	private String readShell(String shell) throws InterruptedException {
+		String cmd = String.format("%s %s\n", CMD_CAT, shell);
+		commander.print(cmd);
+		long start = System.currentTimeMillis();
+		do {
+			Thread.sleep(WAIT_TIMEOUT);
+
+			long curr = System.currentTimeMillis();
+			if ((curr - start) > CONSTS.SSH_CMD_TIMEOUT) {
+				throw new InterruptedException(CONSTS.SSH_TIMEOUT_INFO);
+			}
+		} while (!bout.sshEof());
+
+		if (logger.isTraceEnabled())
+			logger.trace(bout.toString());
+
+		String result = bout.toString();
+		bout.reset();
+		return result.substring(result.indexOf("\r\n")+2, result.lastIndexOf("\r\n"));
+	}
 
 	public boolean execStartShell(String sessionKey) throws InterruptedException {
 		return execShell(CONSTS.START_SHELL, sessionKey);

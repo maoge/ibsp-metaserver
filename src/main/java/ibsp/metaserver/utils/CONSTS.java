@@ -94,7 +94,9 @@ public class CONSTS {
 	public static final String ERR_SERV_TYPE_NOT_FOUND   = "service type not found ......";
 	public static final String ERR_HOSTINFO_NOT_COMPLETE = "host info not complete ......";
 	
-	public static final String ERR_FIND_TIDB_SERVER_ERROR = "no available tidb server for serv_id ";
+	//TIDB consts
+	public static final String ERR_FIND_TIDB_SERVER_ERROR    = "no available tidb server for serv_id ";
 	public static final String ERR_CONNECT_TIDB_SERVER_ERROR = "connect to tidb server failed ......";
 	public static final String ERR_PD_CLUSTER_PORT_NOT_MATCH = "PD cluster port not match, current PD cluster port is ";
+	public static final String ERR_NO_PD_TO_JOIN             = "no available pd server to join ......";
 }
