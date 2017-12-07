@@ -150,9 +150,6 @@ public class ConfigDataService {
 			int size = subJsonArr.size();
 			for (int i = 0; i < size; i++) {
 				JsonObject instanceNode = subJsonArr.getJsonObject(i);
-				if (!checkNodeInfo(cmptName, sParentID, instanceNode, result)) {
-					return false;
-				}
 				
 				String idAttrName = MetaData.get().getCmptIDAttrNameByName(cmptName);
 				if (HttpUtils.isNull(idAttrName)) {
@@ -186,33 +183,6 @@ public class ConfigDataService {
 		}
 		
 		return curd.executeUpdate(true, result);
-	}
-	
-	//If node info need to be checked, put it here
-	public static boolean checkNodeInfo(String cmptName, String sParentID, 
-			JsonObject instance, ResultBean result) {
-		
-		//check if cluster port of PD matches
-		if (cmptName.equals(CONSTS.SERV_DB_PD)) {
-			try {
-				CRUD curd = new CRUD();
-				SqlBean sqlAttr = new SqlBean(PD_CLUSTER_PORT);
-				sqlAttr.addParams(new Object[]{sParentID});
-				curd.putSqlBean(sqlAttr);
-				int port = curd.queryForCount();
-				
-				if (port != 0 && port != Integer.parseInt(instance.getString("CLUSTER_PORT"))) {
-					result.setRetCode(CONSTS.REVOKE_NOK);
-					result.setRetInfo(CONSTS.ERR_PD_CLUSTER_PORT_NOT_MATCH+port);
-					return false;
-				}
-			} catch (Exception e) {
-				result.setRetCode(CONSTS.REVOKE_NOK);
-				result.setRetInfo(e.getMessage());
-				return false;
-			}
-		}
-		return true;
 	}
 	
 	public static boolean delServiceNode(String sParentID, String sInstID, ResultBean result) {
