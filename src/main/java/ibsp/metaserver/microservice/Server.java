@@ -8,7 +8,7 @@ import ibsp.metaserver.global.ServiceData;
 import ibsp.metaserver.microservice.handler.AutoDeployHandler;
 import ibsp.metaserver.microservice.handler.ConfigServerHandler;
 import ibsp.metaserver.microservice.handler.MetaServerHandler;
-import ibsp.metaserver.microservice.handler.SqlExplainHandler;
+import ibsp.metaserver.microservice.handler.TiDBHandler;
 import ibsp.metaserver.singleton.AllServiceMap;
 import ibsp.metaserver.singleton.ServiceStatInfo;
 import ibsp.metaserver.utils.CONSTS;
@@ -66,7 +66,7 @@ public class Server extends AbstractVerticle {
 		clazzToReg.add(MetaServerHandler.class);
 		clazzToReg.add(ConfigServerHandler.class);
 		clazzToReg.add(AutoDeployHandler.class);
-		clazzToReg.add(SqlExplainHandler.class);
+		clazzToReg.add(TiDBHandler.class);
 		
 		registerRoute(router, clazzToReg);
 		

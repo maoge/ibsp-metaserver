@@ -96,8 +96,11 @@ public class CONSTS {
 	
 	//TIDB consts
 	public static final String ERR_FIND_TIDB_SERVER_ERROR    = "no available tidb server for serv_id ";
+	public static final String ERR_FIND_PD_SERVER_ERROR      = "no available pd server for serv_id ";
 	public static final String ERR_CONNECT_TIDB_SERVER_ERROR = "connect to tidb server failed ......";
 	public static final String ERR_NO_PD_TO_JOIN             = "no available pd server to join ......";
+	
+	public static final String PD_API_STORES                 = "/pd/api/v1/stores";
 	
 	public static final String PD_DELETE_MEMBER_SUCC         = "Success!";
 }

@@ -162,6 +162,7 @@ public class FixHeader {
 	public static final String HEADER_AUTO_GEN                 = "AUTO_GEN";
 	
 	public static final String HEADER_INSTANCE_ID              = "INST_ID";
+	public static final String HEADER_INSTANCE_ADDRESS         = "INST_ADD";
 	public static final String HEADER_CMPT_TYPE                = "CMPT_TYPE";
 	public static final String HEADER_CMPT_ID                  = "CMPT_ID";
 	public static final String HEADER_CMPT_NAME                = "CMPT_NAME";
