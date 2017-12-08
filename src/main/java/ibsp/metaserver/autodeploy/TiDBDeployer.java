@@ -374,6 +374,15 @@ public class TiDBDeployer implements Deployer {
 			executor.connect();
 			connected = true;
 			
+			if (executor.isPortUsed(Integer.parseInt(port))) {
+				DeployLog.pubLog(sessionKey, "port "+port+" is already in use......");
+				return false;
+			}
+			if (executor.isPortUsed(Integer.parseInt(cPort))) {
+				DeployLog.pubLog(sessionKey, "port "+cPort+" is already in use......");
+				return false;
+			}
+			
 			// make deploy dir
 			if (!executor.isDirExistInCurrPath(deployRootPath, sessionKey)) {
 				executor.mkdir(deployRootPath, sessionKey);
@@ -585,6 +594,11 @@ public class TiDBDeployer implements Deployer {
 			executor.connect();
 			connected = true;
 			
+			if (executor.isPortUsed(Integer.parseInt(port))) {
+				DeployLog.pubLog(sessionKey, "port "+port+" is already in use......");
+				return false;
+			}
+
 			// make deploy dir
 			if (!executor.isDirExistInCurrPath(deployRootPath, sessionKey)) {
 				executor.mkdir(deployRootPath, sessionKey);
@@ -725,6 +739,15 @@ public class TiDBDeployer implements Deployer {
 			executor = new SSHExecutor(ui);
 			executor.connect();
 			connected = true;
+			
+			if (executor.isPortUsed(Integer.parseInt(port))) {
+				DeployLog.pubLog(sessionKey, "port "+port+" is already in use......");
+				return false;
+			}
+			if (executor.isPortUsed(Integer.parseInt(statPort))) {
+				DeployLog.pubLog(sessionKey, "port "+statPort+" is already in use......");
+				return false;
+			}
 			
 			// make deploy dir
 			if (!executor.isDirExistInCurrPath(deployRootPath, sessionKey)) {

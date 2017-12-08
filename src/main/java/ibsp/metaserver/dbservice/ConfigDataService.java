@@ -13,6 +13,9 @@ import org.slf4j.LoggerFactory;
 import com.github.fge.jsonschema.core.exceptions.ProcessingException;
 import com.github.fge.jsonschema.core.report.ProcessingReport;
 
+import ibsp.metaserver.autodeploy.utils.DeployLog;
+import ibsp.metaserver.autodeploy.utils.JschUserInfo;
+import ibsp.metaserver.autodeploy.utils.SSHExecutor;
 import ibsp.metaserver.bean.DeployFileBean;
 import ibsp.metaserver.bean.IdSetBean;
 import ibsp.metaserver.bean.MetaAttributeBean;
@@ -158,8 +161,11 @@ public class ConfigDataService {
 					result.setRetInfo(info);
 					return false;
 				}
-				
 				String instID = instanceNode.getString(idAttrName);
+
+				if (isPortUsed(instanceNode, result)) {
+					return false;
+				}
 				
 				if (sOperType.equals(CONSTS.OP_TYPE_ADD)) {
 					// add instance
@@ -198,6 +204,44 @@ public class ConfigDataService {
 		delRelation(sParentID, sInstID, curd, result);
 		
 		return curd.executeUpdate(true, result);
+	}
+	
+	private static boolean isPortUsed(JsonObject instance, ResultBean result) {
+		
+		if (!instance.containsKey("IP") || !instance.containsKey("PORT")) return false;
+		SSHExecutor executor = null;
+		boolean connected = false;
+		
+		try {
+			String ip = instance.getString("IP");
+			String user  = instance.getString("OS_USER");
+			String pwd   = instance.getString("OS_PWD");
+			JschUserInfo ui = new JschUserInfo(user, pwd, ip, CONSTS.SSH_PORT_DEFAULT);
+			executor = new SSHExecutor(ui);
+			executor.connect();
+			connected = true;
+			
+			for (String name : instance.fieldNames()) {
+				String port = null;
+				if (name.equals("PORT") || name.indexOf("_PORT")!=-1) {
+					port = instance.getString(name);
+					if (executor.isPortUsed(Integer.parseInt(port))) {
+						result.setRetCode(CONSTS.REVOKE_NOK);
+						result.setRetInfo(name+" "+port+" is already in use......");
+						return true;
+					}
+				}
+			}
+		} catch (Exception e) {
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(e.getMessage());
+			return true;
+		} finally {
+			if (connected) {
+				executor.close();
+			}
+		}
+		return false;
 	}
 	
 	private static boolean modComponentAttribute(String instID, Integer cmptID,
