@@ -283,7 +283,7 @@ public class MetaDataService {
 	}
 	
 	public static ServiceBean getService(String instID) {
-		String sql = "select INST_ID, SERV_NAME, SERV_TYPE, IS_DEPLOYED, CREATE_TIME from t_service where INST_ID = ?";
+		String sql = "select INST_ID, SERV_NAME, SERV_TYPE, IS_DEPLOYED, CREATE_TIME, USER, PASSWORD from t_service where INST_ID = ?";
 		ServiceBean serviceBean = null;
 		
 		try {

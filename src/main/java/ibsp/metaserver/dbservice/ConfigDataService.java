@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 import com.github.fge.jsonschema.core.exceptions.ProcessingException;
 import com.github.fge.jsonschema.core.report.ProcessingReport;
 
-import ibsp.metaserver.autodeploy.utils.DeployLog;
 import ibsp.metaserver.autodeploy.utils.JschUserInfo;
 import ibsp.metaserver.autodeploy.utils.SSHExecutor;
 import ibsp.metaserver.bean.DeployFileBean;
@@ -28,8 +27,10 @@ import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.schema.Validator;
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.CRUD;
+import ibsp.metaserver.utils.DES3;
 import ibsp.metaserver.utils.FixHeader;
 import ibsp.metaserver.utils.HttpUtils;
+import ibsp.metaserver.utils.UUIDUtils;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
@@ -47,10 +48,6 @@ public class ConfigDataService {
 	private static final String INS_INSTANCE      = "insert into t_instance(INST_ID,CMPT_ID,IS_DEPLOYED,POS_X,POS_Y,WIDTH,HEIGHT,ROW,COL) "
 	                                              + "values(?,?,?,?,?,?,?,?,?)";
 	private static final String DEL_INSTANCE      = "delete from t_instance where INST_ID = ?";
-	
-	private static final String PD_CLUSTER_PORT   = "SELECT attr.ATTR_VALUE FROM "
-			                                      + "t_instance_attr attr JOIN t_topology topo ON attr.INST_ID=topo.INST_ID2 "
-			                                      + "WHERE attr.ATTR_NAME='CLUSTER_PORT' AND topo.INST_ID1=? LIMIT 1";
 
 	private static final String INS_INSTANCE_ATTR = "insert into t_instance_attr(INST_ID,ATTR_ID,ATTR_NAME,ATTR_VALUE) "
 	                                              + "values(?,?,?,?)";
@@ -548,9 +545,24 @@ public class ConfigDataService {
 	private static boolean addService(String serviceID, String serviceName,
 			CRUD curd, String sServType, ResultBean result) {
 		long dt = System.currentTimeMillis();
+		Object[] params = new Object[] { serviceID, serviceName, sServType, CONSTS.NOT_DEPLOYED, dt, null, null};
+		//set db root password
+		switch (sServType) {
+		case CONSTS.SERV_TYPE_DB:
+			String uuid = UUIDUtils.genUUID();
+			params[params.length-1] = DES3.encrypt(uuid.substring(uuid.lastIndexOf("-")+1));
+			params[params.length-2] = "root";
+			break;
+		case CONSTS.SERV_TYPE_MQ:
+			//TODO
+			break;
+		case CONSTS.SERV_TYPE_CACHE:
+			//TODO
+			break;
+		}
 		
 		SqlBean sqlServBean = new SqlBean(INS_SERVICE);
-		sqlServBean.addParams(new Object[] { serviceID, serviceName, sServType, CONSTS.NOT_DEPLOYED, dt });
+		sqlServBean.addParams(params);
 		curd.putSqlBean(sqlServBean);
 		
 		return true;

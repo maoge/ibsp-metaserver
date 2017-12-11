@@ -1,5 +1,8 @@
 package ibsp.metaserver.autodeploy;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -18,6 +21,7 @@ import ibsp.metaserver.dbservice.MetaDataService;
 import ibsp.metaserver.dbservice.TiDBService;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.utils.CONSTS;
+import ibsp.metaserver.utils.DES3;
 import ibsp.metaserver.utils.HttpUtils;
 
 public class TiDBDeployer implements Deployer {
@@ -25,7 +29,7 @@ public class TiDBDeployer implements Deployer {
 	private static Logger logger = LoggerFactory.getLogger(TiDBDeployer.class);
 
 	@Override
-	public boolean deployService(String serviceID, String sessionKey,
+	public boolean deployService(String serviceID, String user, String pwd, String sessionKey,
 			ResultBean result) {
 		
 		List<InstanceDtlBean> pdServerList = new LinkedList<InstanceDtlBean>();
@@ -48,6 +52,10 @@ public class TiDBDeployer implements Deployer {
 
 		// deploy tidb-server
 		if (!deployTiDBServerList(serviceID, tidbServerList, pdList, sessionKey, result))
+			return false;
+		
+		// deploy tidb root password
+		if (!setTiDBPassword(tidbServerList.get(0), pwd, sessionKey, result))
 			return false;
 
 		// deploy collectd
@@ -246,6 +254,36 @@ public class TiDBDeployer implements Deployer {
 		}
 		
 		return true;
+	}
+	
+	private boolean setTiDBPassword(InstanceDtlBean tidbServer, String pwd, 
+			String sessionKey, ResultBean result) {
+		
+		Connection conn = null;
+		PreparedStatement stmt = null;
+		
+		try {
+			String DBAddress = "jdbc:mysql://"+tidbServer.getAttribute("IP").getAttrValue()
+					+":"+tidbServer.getAttribute("PORT").getAttrValue()+"?"+
+					"user=root&useUnicode=true&characterEncoding=UTF8&useSSL=true";
+			conn = DriverManager.getConnection(DBAddress);
+			
+			stmt = conn.prepareStatement("SET PASSWORD FOR 'root'@'%' = ?");
+			stmt.setString(1, DES3.decrypt(pwd));
+			stmt.execute();
+			return true;
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(CONSTS.ERR_CONNECT_TIDB_SERVER_ERROR+e.getMessage());
+			return false;
+		} finally {
+			try {
+				if (stmt != null) stmt.close();
+				if (conn != null) conn.close();
+			} catch (Exception e) {
+			}
+		}
 	}
 	
 	private boolean undeployPDServerList(String serviceID, List<InstanceDtlBean> pdServerList,

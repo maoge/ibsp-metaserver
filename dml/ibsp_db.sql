@@ -248,6 +248,8 @@ CREATE TABLE `t_service` (
   `SERV_TYPE`     varchar(16) NOT NULL COMMENT '服务类型:MQ,CACHE,DB',
   `IS_DEPLOYED`   varchar(1)  NOT NULL COMMENT '0:未部署;1:已部署',
   `CREATE_TIME`   bigint(14)  NOT NULL COMMENT '创建时间',
+  `USER`          varchar(32) DEFAULT NULL COMMENT '服务默认用户',
+  `PASSWORD`      varchar(64) DEFAULT NULL COMMENT '服务默认密码',
   PRIMARY KEY (`INST_ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 

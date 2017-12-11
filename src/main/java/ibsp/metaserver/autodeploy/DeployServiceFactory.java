@@ -50,9 +50,12 @@ public class DeployServiceFactory {
 		}
 		
 		boolean res = false;
+		String user = service.getUser();
+		String pwd = service.getPassword();
+		
 		try {
 			Deployer o = (Deployer) clazz.newInstance();
-			res = o.deployService(serviceID, sessionKey, result);
+			res = o.deployService(serviceID, user, pwd, sessionKey, result);
 		} catch (InstantiationException | IllegalAccessException e) {
 			logger.error(e.getMessage(), e);
 			result.setRetCode(CONSTS.REVOKE_NOK);

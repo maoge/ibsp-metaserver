@@ -5,7 +5,7 @@ import ibsp.metaserver.bean.ResultBean;
 public class MQDeployer implements Deployer {
 
 	@Override
-	public boolean deployService(String serviceID, String sessionKey, ResultBean result) {
+	public boolean deployService(String serviceID, String user, String pwd, String sessionKey, ResultBean result) {
 		// TODO Auto-generated method stub
 		return false;
 	}

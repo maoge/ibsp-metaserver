@@ -211,11 +211,11 @@ public final class DES3 extends Cipher {
 	}
 
 	public static void main(String[] args) {
-		String str = "hjk_3gffcs";
-		String enStr = encrypt(str);
-		String deStr = decrypt(enStr);
-		System.out.println("************加密*************");
-		System.out.println(enStr);
+		String str = "91c4013f40bbd949308b2c76113eb8ec883df7ee0e0bdc18fb70f340d03c5fe3";
+//		String enStr = encrypt(str);
+		String deStr = decrypt(str);
+//		System.out.println("************加密*************");
+//		System.out.println(enStr);
 		System.out.println("************解密*************");
 		System.out.println(deStr);
 	}

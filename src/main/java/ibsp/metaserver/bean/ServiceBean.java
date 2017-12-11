@@ -9,15 +9,19 @@ public class ServiceBean extends BeanMapper {
 	private String servType;  // t_service.SERV_TYPE
 	private String deployed;  // t_service.IS_DEPLOYED
 	private long createTime;  // t_service.CREATE_TIME
+	private String user;      // t_service.USER
+	private String password;  // t_service.PASSWORD
 	
 	public ServiceBean(String instID, String servName, String servType,
-			String deployed, long createTime) {
+			String deployed, long createTime, String user, String password) {
 		super();
 		this.instID = instID;
 		this.servName = servName;
 		this.servType = servType;
 		this.deployed = deployed;
 		this.createTime = createTime;
+		this.user = user;
+		this.password = password;
 	}
 
 	public String getInstID() {
@@ -60,6 +64,22 @@ public class ServiceBean extends BeanMapper {
 		this.createTime = createTime;
 	}
 	
+	public String getUser() {
+		return user;
+	}
+
+	public void setUser(String user) {
+		this.user = user;
+	}
+
+	public String getPassword() {
+		return password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
 	public static ServiceBean convert(Map<String, Object> mapper) {
 		if (mapper == null || mapper.isEmpty())
 			return null;
@@ -69,8 +89,10 @@ public class ServiceBean extends BeanMapper {
 		String servType = getFixDataAsString(mapper, "SERV_TYPE");
 		String deployed = getFixDataAsString(mapper, "IS_DEPLOYED");
 		long createTime = getFixDataAsLong(mapper, "CREATE_TIME");
+		String user = getFixDataAsString(mapper, "USER");
+		String password = getFixDataAsString(mapper, "PASSWORD");
 		
-		return new ServiceBean(instID, servName, servType, deployed, createTime);
+		return new ServiceBean(instID, servName, servType, deployed, createTime, user, password);
 	}
 
 }
