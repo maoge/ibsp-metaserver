@@ -103,4 +103,7 @@ public class CONSTS {
 	public static final String PD_API_STORES                 = "/pd/api/v1/stores";
 	
 	public static final String PD_DELETE_MEMBER_SUCC         = "Success!";
+	public static final String PD_DELETE_STORE_SUCC          = "Success!";
+	public static final String TIKV_OFFLINE_STATUS           = "Offline";
+	public static final String TIKV_TOMBSTONE_STATUS         = "Tombstone";
 }

@@ -13,6 +13,8 @@ import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 
 import ibsp.metaserver.utils.CONSTS;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 
 public class SSHExecutor {
 	private static Logger logger = LoggerFactory.getLogger(SSHExecutor.class);
@@ -99,6 +101,8 @@ public class SSHExecutor {
 
 		String result = bout.toString();
 		bout.reset();
+		if (logger.isTraceEnabled())
+			logger.trace(result);
 
 		return result;
 	}
@@ -106,36 +110,27 @@ public class SSHExecutor {
 	public boolean execSingleLine(String command, String sessionKey) throws InterruptedException {
 		String cmd = String.format("%s\n", command);
 		String context = generalCommand(cmd);
-
-		if (logger.isTraceEnabled())
-			logger.trace(context);
-
 		DeployLog.pubLog(sessionKey, context);
-
 		return true;
 	}
 
 	public boolean cd(String path, String sessionKey) throws InterruptedException {
 		String cmd = String.format("%s %s\n", CMD_CD, path);
 		String context = generalCommand(cmd);
-
-		if (logger.isTraceEnabled())
-			logger.trace(context);
-
 		DeployLog.pubLog(sessionKey, context);
-
+		return true;
+	}
+	
+	public boolean cd(String path) throws InterruptedException {
+		String cmd = String.format("%s %s\n", CMD_CD, path);
+		generalCommand(cmd);
 		return true;
 	}
 
 	public boolean pwd(String sessionKey) throws InterruptedException {
 		String cmd = String.format("%s\n", CMD_PWD);
 		String context = generalCommand(cmd);
-
-		if (logger.isTraceEnabled())
-			logger.trace(context);
-
 		DeployLog.pubLog(sessionKey, context);
-
 		return true;
 	}
 
@@ -147,22 +142,13 @@ public class SSHExecutor {
 	public boolean cp(String srcFile, String destDir, String sessionKey) throws InterruptedException {
 		String cmd = String.format("%s %s %s\n", CMD_CP, srcFile, destDir);
 		String context = generalCommand(cmd);
-
-		if (logger.isTraceEnabled())
-			logger.trace(context);
-
 		DeployLog.pubLog(sessionKey, context);
-
 		return true;
 	}
 
 	public boolean mv(String oldFile, String newFile) throws InterruptedException {
 		String cmd = String.format("%s %s %s\n", CMD_MV, oldFile, newFile);
 		String context = generalCommand(cmd);
-
-		if (logger.isTraceEnabled())
-			logger.trace(context);
-
 		return context.indexOf(CONSTS.NO_SUCH_FILE) != -1 ? true : false;
 	}
 
@@ -170,24 +156,15 @@ public class SSHExecutor {
 		String extend = recursive ? "-rf" : "";
 		String cmd = String.format("%s %s %s\n", CMD_RM, extend, file);
 		String context = generalCommand(cmd);
-
-		if (logger.isTraceEnabled())
-			logger.trace(context);
-
 		DeployLog.pubLog(sessionKey, context);
-
 		return context.indexOf(CONSTS.NO_SUCH_FILE) != -1 ? true : false;
 	}
 
 	public boolean isDirExistInCurrPath(String fileDir, String sessionKey) throws InterruptedException {
 		String cmd = String.format("%s -d %s\n", CMD_FILE, fileDir);
 		String context = generalCommand(cmd);
-
-		if (logger.isTraceEnabled())
-			logger.trace(context);
-
 		DeployLog.pubLog(sessionKey, context);
-
+		
 		if (context.indexOf(CONSTS.COMMAND_NOT_FOUND) != -1) {
 			String errInfo = String.format(CONSTS.ERR_COMMAND_NOT_FOUND, CMD_FILE);
 			throw new InterruptedException(errInfo);
@@ -200,12 +177,7 @@ public class SSHExecutor {
 	public boolean mkdir(String fileDir, String sessionKey) throws InterruptedException {
 		String cmd = String.format("%s -p %s\n", CMD_MKDIR, fileDir);
 		String context = generalCommand(cmd);
-
-		if (logger.isTraceEnabled())
-			logger.trace(context);
-
 		DeployLog.pubLog(sessionKey, context);
-
 		return true;
 	}
 
@@ -216,6 +188,34 @@ public class SSHExecutor {
 		DeployLog.pubLog(sessionKey, context);
 
 		return context.indexOf(file) != -1 ? true : false;
+	}
+	
+	public boolean pdctlDeletePdMember(String ip, String port, String name, String sessionKey) throws InterruptedException {
+		String cmd = String.format("./bin/pd-ctl -u http://%s:%s -d member delete name %s \n", ip, port, name);
+		String context = generalCommand(cmd);
+		DeployLog.pubLog(sessionKey, context);
+		return context.indexOf(CONSTS.PD_DELETE_MEMBER_SUCC) != -1 ? Boolean.TRUE : Boolean.FALSE;
+	}
+	
+	public boolean pdctlDeleteTikvStore(String pdIp,String pdPort, String id,String sessionKey) throws InterruptedException {
+		String cmd = String.format("./bin/pd-ctl -u http://%s:%s -d store delete %s \n", pdIp, pdPort,id);
+		String context = generalCommand(cmd);
+		DeployLog.pubLog(sessionKey, context);
+		return context.indexOf(CONSTS.PD_DELETE_STORE_SUCC) != -1 ? Boolean.FALSE : Boolean.TRUE;
+	}
+	
+	public JsonArray pdctlGetStore(String ip, String port) throws InterruptedException {
+		String cmd = String.format("./bin/pd-ctl -u http://%s:%s -d store \n", ip, port);
+		String context = generalCommand(cmd);
+		int start = context.indexOf(cmd);
+		JsonObject stores = new JsonObject(context.substring(start+cmd.length()));
+		return stores.getJsonArray("stores");
+	}
+	
+	public boolean pdctlStoreState(String sessionKey) throws InterruptedException {
+		String cmd = String.format("");
+		String context = generalCommand(cmd);
+		return context.indexOf(CONSTS.PD_DELETE_MEMBER_SUCC) != -1 ? Boolean.FALSE : Boolean.TRUE;
 	}
 
 	public boolean scp(String user, String passwd, String srcHost, String src, String des, String sshPort , String sessionKey)
@@ -434,25 +434,19 @@ public class SSHExecutor {
 
 	public boolean validateEnv() throws InterruptedException {
 		String cmd = String.format("%s %s\n", CMD_SOURCE, "$HOME/" + CONSTS.BASH_PROFILE);
-		String context = generalCommand(cmd);
-		if (logger.isTraceEnabled())
-			logger.trace(context);
+		generalCommand(cmd);
 		return true;
 	}
 
 	public boolean addExecMod(String file) throws InterruptedException {
 		String cmd = String.format("%s +x %s\n", CMD_CHMOD, file);
-		String context = generalCommand(cmd);
-		if (logger.isTraceEnabled())
-			logger.trace(context);
+		generalCommand(cmd);
 		return true;
 	}
 
 	public boolean chmod(String file, String mode) throws InterruptedException {
 		String cmd = String.format("%s %s %s\n", CMD_CHMOD, mode, file);
-		String context = generalCommand(cmd);
-		if (logger.isTraceEnabled())
-			logger.trace(context);
+		generalCommand(cmd);
 		return true;
 	}
 
@@ -555,7 +549,7 @@ public class SSHExecutor {
 		bout.reset();
 		return result.substring(result.indexOf("\r\n")+2, result.lastIndexOf("\r\n"));
 	}
-
+	
 	public boolean execStartShell(String sessionKey) throws InterruptedException {
 		return execShell(CONSTS.START_SHELL, sessionKey);
 	}
@@ -618,11 +612,9 @@ public class SSHExecutor {
 
 	public void echo(String text) throws InterruptedException {
 		bout.reset();
-
+		
 		String cmd = String.format("%s %s \n", CMD_ECHO, text);
-		String context = generalCommand(cmd);
-		if (logger.isTraceEnabled())
-			logger.trace(context);
+		generalCommand(cmd);
 	}
 
 	public boolean isPortUsed(String port, String sessionKey) throws InterruptedException {
@@ -630,9 +622,7 @@ public class SSHExecutor {
 
 		String cmd = String.format("%s -an | awk '{print $4}' | grep :%s$ | wc -l\n", CMD_NETSTAT, port);
 		String context = generalCommand(cmd);
-		if (logger.isTraceEnabled())
-			logger.trace(context);
-
+		
 		DeployLog.pubLog(sessionKey, context);
 
 		int begin = context.indexOf(CONSTS.LINE_SEP);
