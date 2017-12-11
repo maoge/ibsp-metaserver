@@ -197,11 +197,11 @@ public class SSHExecutor {
 		return context.indexOf(CONSTS.PD_DELETE_MEMBER_SUCC) != -1 ? Boolean.TRUE : Boolean.FALSE;
 	}
 	
-	public boolean pdctlDeleteTikvStore(String pdIp,String pdPort, String id,String sessionKey) throws InterruptedException {
+	public boolean pdctlDeleteTikvStore(String pdIp,String pdPort, int id,String sessionKey) throws InterruptedException {
 		String cmd = String.format("./bin/pd-ctl -u http://%s:%s -d store delete %s \n", pdIp, pdPort,id);
 		String context = generalCommand(cmd);
 		DeployLog.pubLog(sessionKey, context);
-		return context.indexOf(CONSTS.PD_DELETE_STORE_SUCC) != -1 ? Boolean.FALSE : Boolean.TRUE;
+		return context.indexOf(CONSTS.PD_DELETE_STORE_SUCC) != -1 ? Boolean.TRUE : Boolean.FALSE;
 	}
 	
 	public JsonArray pdctlGetStore(String ip, String port) throws InterruptedException {
@@ -210,6 +210,20 @@ public class SSHExecutor {
 		int start = context.indexOf(cmd);
 		JsonObject stores = new JsonObject(context.substring(start+cmd.length()));
 		return stores.getJsonArray("stores");
+	}
+	
+	public Integer getStoreId(String pdIp,String pdPort ,String ip, String port) throws InterruptedException {
+		JsonArray arr = pdctlGetStore(pdIp,pdPort);
+		int res = 0;
+		for(Object obj : arr) {
+			JsonObject json = (JsonObject) obj;
+			JsonObject store = json.getJsonObject("store");
+			String address = store.getString("address");
+			if(address.equals(ip+":"+port)) {
+				return store.getInteger("id");
+			}
+		}
+		return res;
 	}
 	
 	public boolean pdctlStoreState(String sessionKey) throws InterruptedException {

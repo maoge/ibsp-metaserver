@@ -1,5 +1,6 @@
 package ibsp.metaserver.autodeploy;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -868,6 +869,27 @@ public class TiDBDeployer implements Deployer {
 			if (executor.isDirExistInCurrPath(deployRootPath, sessionKey)) {
 				executor.cd("$HOME/" + deployRootPath, sessionKey);
 				
+				//如果失败，可能是这个pd服务没有起来，尝试其它的pd节点进行pd缩容
+				boolean deletePdMember = executor.pdctlDeletePdMember(ip, port, id, sessionKey);
+				if(!deletePdMember) {
+					List<InstanceDtlBean> pdServerList = new ArrayList<InstanceDtlBean>();
+					TiDBService.getPDInfoByServIdOrServiceStub(serviceID, null, pdServerList, result);
+					for(InstanceDtlBean pd : pdServerList) {
+						String otherId    = pd.getAttribute("PD_ID").getAttrValue();
+						String otherIp    = pd.getAttribute("IP").getAttrValue();
+						String otherPort  = pd.getAttribute("PORT").getAttrValue();
+						if(executor.pdctlDeletePdMember(otherIp, otherPort, otherId, sessionKey)) {
+							deletePdMember = Boolean.TRUE;
+							break;
+						}
+					}
+				}
+				
+				if(!deletePdMember) {
+					DeployLog.pubLog(sessionKey, "exec pd delete memeber shell fail ......");
+					return false;
+				}
+				
 				// stop pd-server
 				if (executor.isPortUsed(port, sessionKey)) {
 					if (!execStopShell(executor, port, sessionKey)) {
@@ -947,6 +969,31 @@ public class TiDBDeployer implements Deployer {
 			deployBeginLog.append(CONSTS.END_STYLE);
 			DeployLog.pubLog(sessionKey, deployBeginLog.toString());
 			
+			/**get a pd server to remove tikv store*/
+			List<InstanceDtlBean> pdServerList = new ArrayList<InstanceDtlBean>();
+			TiDBService.getPDInfoByServIdOrServiceStub(serviceID, null, pdServerList, result);
+			if(pdServerList==null || pdServerList.size() == 0) {
+				DeployLog.pubLog(sessionKey, "this tikv not belong to any pd-server or the data error ...... ");
+				return false;
+			}
+			InstanceDtlBean pd = pdServerList.get(0);
+			String pdIp    = pd.getAttribute("IP").getAttrValue();
+			String pdPort  = pd.getAttribute("PORT").getAttrValue();
+			String pdUser = pd.getAttribute("OS_USER").getAttrValue();
+			String pdPwd  = pd.getAttribute("OS_PWD").getAttrValue();
+			ui = new JschUserInfo(pdUser, pdPwd, pdIp, CONSTS.SSH_PORT_DEFAULT);
+			executor = new SSHExecutor(ui);
+			executor.connect();
+			connected = true;
+			String deployPdRootPath = String.format("pd_deploy/%s", pdPort);
+			executor.cd("$HOME/" + deployPdRootPath, sessionKey);
+			int tikvId = executor.getStoreId(pdIp, pdPort, ip, port);
+			if(!executor.pdctlDeleteTikvStore(pdIp, pdPort, tikvId, sessionKey)) {
+				DeployLog.pubLog(sessionKey, "remove tikv from pd-cluster false ...... ");
+				return false;
+			}
+			executor.close();	
+
 			ui = new JschUserInfo(user, pwd, ip, CONSTS.SSH_PORT_DEFAULT);
 			executor = new SSHExecutor(ui);
 			executor.connect();
