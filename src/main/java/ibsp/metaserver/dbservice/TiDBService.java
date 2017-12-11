@@ -51,72 +51,21 @@ public class TiDBService {
 			return false;
 		}
 		
-		// get db collectd info
-		/*Integer dbCollectdCmptID = MetaData.get().getComponentID("DB_COLLECTD");
-		String collectdID = serviceStub.get(dbCollectdCmptID);
-		if (HttpUtils.isNull(collectdID)) {
-			result.setRetCode(CONSTS.REVOKE_NOK);
-			result.setRetInfo("db collectd id is null ......");
-			return false;
-		}
-		InstanceBean collectdInstance = getInstance(collectdID, result);
-		Map<String, InstAttributeBean> collectdAttr = getAttribute(collectdID, result);
-		if (collectdInstance == null || collectdAttr == null) {
-			result.setRetCode(CONSTS.REVOKE_NOK);
-			result.setRetInfo("db collectd info error ......");
-			return false;
-		}
-		collectd.setInstance(collectdInstance);
-		collectd.setAttrMap(collectdAttr);*/
+		return  getTidbInfoByServIdOrServiceStub(serviceID,serviceStub,tidbServerList,result) && 
+				getPDInfoByServIdOrServiceStub(serviceID, serviceStub, pdServerList, result) && 
+				getTikvInfoByServIdOrServiceStub(serviceID, serviceStub, tikvServerList, result);
+	}
+	
+	public static boolean getPDInfoByServIdOrServiceStub(String serviceID, Map<Integer, String> serviceStub,
+			List<InstanceDtlBean> pdServerList, ResultBean result) {
 		
-		
-		// get tidb server list
-		Integer tidbContainerCmptID = MetaData.get().getComponentID("DB_TIDB_CONTAINER");
-		String tidbContainerID = serviceStub.get(tidbContainerCmptID);
-		Set<String> tidbStub = MetaDataService.getSubNodes(tidbContainerID, result);
-		if (tidbStub == null || tidbStub.isEmpty()) {
-			result.setRetCode(CONSTS.REVOKE_NOK);
-			result.setRetInfo("tidb container subnode is null ......");
-			return false;
-		}
-		for (String id : tidbStub) {
-			InstanceBean tidbInstance = MetaDataService.getInstance(id, result);
-			Map<String, InstAttributeBean> tidbAttr = MetaDataService.getAttribute(id, result);
-			if (tidbInstance == null || tidbAttr == null) {
-				String err = String.format("tidb id:%s, info missing ......", id);
-				result.setRetCode(CONSTS.REVOKE_NOK);
-				result.setRetInfo(err);
+		if (serviceStub == null) {
+			serviceStub = MetaDataService.getSubNodesWithType(serviceID, result);
+			if(serviceStub == null) {
 				return false;
 			}
-			InstanceDtlBean tidb = new InstanceDtlBean(tidbInstance, tidbAttr);
-			tidbServerList.add(tidb);
 		}
-		
-		
-		// get tikv server list
-		Integer tikvContainerCmptID = MetaData.get().getComponentID("DB_TIKV_CONTAINER");
-		String tikvContainerID = serviceStub.get(tikvContainerCmptID);
-		Set<String> tikvStub = MetaDataService.getSubNodes(tikvContainerID, result);
-		if (tikvStub == null || tikvStub.isEmpty()) {
-			result.setRetCode(CONSTS.REVOKE_NOK);
-			result.setRetInfo("tikv container subnode is null ......");
-			return false;
-		}
-		for (String id : tikvStub) {
-			InstanceBean tikvInstance = MetaDataService.getInstance(id, result);
-			Map<String, InstAttributeBean> tikvAttr = MetaDataService.getAttribute(id, result);
-			if (tikvInstance == null || tikvAttr == null) {
-				String err = String.format("tikv id:%s, info missing ......", id);
-				result.setRetCode(CONSTS.REVOKE_NOK);
-				result.setRetInfo(err);
-				return false;
-			}
-			InstanceDtlBean tikv = new InstanceDtlBean(tikvInstance, tikvAttr);
-			tikvServerList.add(tikv);
-		}
-		
-		
-		// get pd server list
+				
 		Integer pdContainerCmptID = MetaData.get().getComponentID("DB_PD_CONTAINER");
 		String pdContainerID = serviceStub.get(pdContainerCmptID);
 		Set<String> pdStub = MetaDataService.getSubNodes(pdContainerID, result);
@@ -140,7 +89,72 @@ public class TiDBService {
 		
 		return true;
 	}
-	
+
+	public static boolean getTikvInfoByServIdOrServiceStub(String serviceID, Map<Integer, String> serviceStub,
+			List<InstanceDtlBean> tikvServerList, ResultBean result) {
+		
+		if (serviceStub == null) {
+			serviceStub = MetaDataService.getSubNodesWithType(serviceID, result);
+			if(serviceStub == null) {
+				return false;
+			}
+		}
+				
+		Integer tikvContainerCmptID = MetaData.get().getComponentID("DB_TIKV_CONTAINER");
+		String tikvContainerID = serviceStub.get(tikvContainerCmptID);
+		Set<String> tikvStub = MetaDataService.getSubNodes(tikvContainerID, result);
+		if (tikvStub == null || tikvStub.isEmpty()) {
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo("tikv container subnode is null ......");
+			return false;
+		}
+		for (String id : tikvStub) {
+			InstanceBean tikvInstance = MetaDataService.getInstance(id, result);
+			Map<String, InstAttributeBean> tikvAttr = MetaDataService.getAttribute(id, result);
+			if (tikvInstance == null || tikvAttr == null) {
+				String err = String.format("tikv id:%s, info missing ......", id);
+				result.setRetCode(CONSTS.REVOKE_NOK);
+				result.setRetInfo(err);
+				return false;
+			}
+			InstanceDtlBean tikv = new InstanceDtlBean(tikvInstance, tikvAttr);
+			tikvServerList.add(tikv);
+		}
+
+		return true;
+	}
+
+	public static boolean getTidbInfoByServIdOrServiceStub(String serviceID,Map<Integer, String> serviceStub, 
+			List<InstanceDtlBean> tidbServerList, ResultBean result) {
+		
+		if (serviceStub == null) {
+			serviceStub = MetaDataService.getSubNodesWithType(serviceID, result);
+			if(serviceStub == null) {
+				return false;
+			}
+		}
+		Integer tidbContainerCmptID = MetaData.get().getComponentID("DB_TIDB_CONTAINER");
+		String tidbContainerID = serviceStub.get(tidbContainerCmptID);
+		Set<String> tidbStub = MetaDataService.getSubNodes(tidbContainerID, result);
+		if (tidbStub == null || tidbStub.isEmpty()) {
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo("tidb container subnode is null ......");
+			return false;
+		}
+		for (String id : tidbStub) {
+			InstanceBean tidbInstance = MetaDataService.getInstance(id, result);
+			Map<String, InstAttributeBean> tidbAttr = MetaDataService.getAttribute(id, result);
+			if (tidbInstance == null || tidbAttr == null) {
+				String err = String.format("tidb id:%s, info missing ......", id);
+				result.setRetCode(CONSTS.REVOKE_NOK);
+				result.setRetInfo(err);
+				return false;
+			}
+			InstanceDtlBean tidb = new InstanceDtlBean(tidbInstance, tidbAttr);
+			tidbServerList.add(tidb);
+		}
+		return true;
+	}
 	
 	public static JsonObject explainSql(String sql, String servID, 
 			String schema, String user, String pwd, ResultBean bean) {
