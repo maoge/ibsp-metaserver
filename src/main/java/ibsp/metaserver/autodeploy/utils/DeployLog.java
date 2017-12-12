@@ -75,6 +75,23 @@ public class DeployLog {
 		}
 	}
 	
+	public static void pubSuccessLog(String sessionKey, String log) {
+		StringBuffer logSB = new StringBuffer();
+		logSB.append(CONSTS.DEPLOY_SINGLE_SUCCESS_BEGIN_STYLE);
+		logSB.append(log);
+		logSB.append(CONSTS.END_STYLE);
+		pubLog(sessionKey, logSB.toString());
+	}
+	
+	public static void pubErrorLog(String sessionKey, String log) {
+		StringBuffer logSB = new StringBuffer();
+		logSB.append(CONSTS.DEPLOY_SINGLE_FAIL_BEGIN_STYLE);
+		logSB.append(log);
+		logSB.append(CONSTS.END_STYLE);
+		pubLog(sessionKey, logSB.toString());
+		
+	}
+	
 	public static String getLog(String sessionKey) {
 		final LogBean logBean = DeployLog.getLogBean(sessionKey);
 		if (logBean == null) {

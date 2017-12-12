@@ -226,10 +226,13 @@ public class SSHExecutor {
 		return res;
 	}
 	
-	public boolean pdctlStoreState(String sessionKey) throws InterruptedException {
-		String cmd = String.format("");
+	public boolean pdctlStoreState(int id, String sessionKey) throws InterruptedException {
+		String cmd = String.format("./bin/pd-ctl -u http://%s:%s -d store %s \\n", id);
 		String context = generalCommand(cmd);
-		return context.indexOf(CONSTS.PD_DELETE_MEMBER_SUCC) != -1 ? Boolean.FALSE : Boolean.TRUE;
+		int start = context.indexOf(cmd);
+		JsonObject store = new JsonObject(context.substring(start+cmd.length()));
+		String stateName = store.getString("state_name");
+		return stateName.equals(CONSTS.TIKV_TOMBSTONE_STATUS);
 	}
 
 	public boolean scp(String user, String passwd, String srcHost, String src, String des, String sshPort , String sessionKey)

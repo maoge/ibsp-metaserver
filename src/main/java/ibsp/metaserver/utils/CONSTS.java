@@ -39,9 +39,10 @@ public class CONSTS {
 	
 	public static final int POS_DEFAULT_VALUE        = -1;
 	
-	public static final long STAT_COMPTE_INTERVAL    = 1000L;
-	public static final long DBPOOL_CHECK_INTERVAL   = 6000L;
-	public static final long DEPLOY_CHECK_INTERVAL   = 500L;
+	public static final long STAT_COMPTE_INTERVAL        = 1000L;
+	public static final long DBPOOL_CHECK_INTERVAL       = 6000L;
+	public static final long DEPLOY_CHECK_INTERVAL       = 500L;
+	public static final long TIKV_STATE_CHECK_INTERVAL   = 500L;
 	
 	public static final String HTTP_METHOD_GET       = "GET";
 	public static final String HTTP_METHOD_POST      = "POST";

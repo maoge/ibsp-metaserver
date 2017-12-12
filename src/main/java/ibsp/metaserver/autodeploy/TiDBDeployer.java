@@ -139,10 +139,6 @@ public class TiDBDeployer implements Deployer {
 			}
 			//when deploying a new PD server, needJoin must be true
 			deployRet = deployPDServer(serviceID, instDtl, true, join, initCluster, sessionKey, result);
-			//updateStartShell doesn't interfere deploy result, the service is still available
-			if (deployRet) {
-				updateStartShell(initCluster, pdServerList, tidbServerList, tikvServerList, sessionKey);
-			}
 			break;
 		case 119:    // DB_TIDB
 			deployRet = deployTiDBServer(serviceID, instDtl, pdList, sessionKey, result);
@@ -356,39 +352,18 @@ public class TiDBDeployer implements Deployer {
 		String dataDir   = "data";
 		String logFile   = "log/pd.log";
 		
-		String startContext = String.format("bin/pd-server --name=%s \\\\\n"
-				+ "    --client-urls=%s --peer-urls=%s \\\\\n"
-				+ "    --advertise-client-urls=%s --advertise-peer-urls=%s \\\\\n"
-				+ "    --data-dir=%s -L info \\\\\n"
-				+ "    --log-file=%s",
-				id, clientUrl, peerUrl, clientUrl, peerUrl, dataDir, logFile);
+		//用于后面升级脚本的时候，装载所有的pd和tikv的信息
+		List<InstanceDtlBean> allPdServerList   = new ArrayList<InstanceDtlBean>();
+		List<InstanceDtlBean> allTikvServerList = new ArrayList<InstanceDtlBean>();
 		
-		// subsequent pd node need join to the first start node
-		if (needJoin) {
-			startContext += " --join="+join;
-		} else {
-			startContext += " --initial-cluster="+initCluster;
-		}
-		startContext += " &";
+		String startContext = needJoin ? getPdJoinStartCmd(id, clientUrl, peerUrl, dataDir, logFile, join) :
+			getPdInitStartCmd(id, clientUrl, peerUrl, dataDir, logFile, initCluster);
 		
-		String stopContext = String.format("var=%s\\n"
-				+ "pid=\\`ps -ef | grep \\\"\\${var}\\\" | awk '{print \\$1, \\$2, \\$8}' | grep pd-server | awk '{print \\$2}'\\`\\n"
-				+ "if [ \\\"\\${pid}\\\" != \\\"\\\" ]\\n"
-				+ "then\\n"
-				+ "    kill -9 \\$pid\\n"
-				+ "    echo stop pd-server pid:\\$pid\\n"
-				+ "else\\n"
-				+ "    echo stop pd-server not running\\n"
-				+ "fi\\n",
-				id);
+		String stopContext = getPdStopCmd(id);
 
 		if (pdInstance.getIsDeployed().equals(CONSTS.DEPLOYED)) {
 			String info = String.format("pd id:%s %s:%s is deployed ......", id, ip, port);
-			StringBuffer deploySuccessLog = new StringBuffer();
-			deploySuccessLog.append(CONSTS.DEPLOY_SINGLE_SUCCESS_BEGIN_STYLE);
-			deploySuccessLog.append(info);
-			deploySuccessLog.append(CONSTS.END_STYLE);
-			DeployLog.pubLog(sessionKey, deploySuccessLog.toString());
+			DeployLog.pubSuccessLog(sessionKey, info);
 
 			return true;
 		}
@@ -402,11 +377,7 @@ public class TiDBDeployer implements Deployer {
 
 		try {
 			String infoBegin = String.format("deploy pd id:%s %s:%s begin ......", id, ip, port);
-			StringBuffer deployBeginLog = new StringBuffer();
-			deployBeginLog.append(CONSTS.DEPLOY_SINGLE_SUCCESS_BEGIN_STYLE);
-			deployBeginLog.append(infoBegin);
-			deployBeginLog.append(CONSTS.END_STYLE);
-			DeployLog.pubLog(sessionKey, deployBeginLog.toString());
+			DeployLog.pubSuccessLog(sessionKey, infoBegin);
 			
 			ui = new JschUserInfo(user, pwd, ip, CONSTS.SSH_PORT_DEFAULT);
 			executor = new SSHExecutor(ui);
@@ -473,22 +444,23 @@ public class TiDBDeployer implements Deployer {
 			if (!ConfigDataService.modInstanceDeployFlag(id, CONSTS.DEPLOYED, result))
 				return false;
 			
+			//在这里做更新脚本动作，上一个版本得到的init-cluster里面少了新添加的那个pd的地址
+			//重新从数据库获取所有的pd信息，然后更新所有的pd脚本 再获取所有的tikv信息 升级tikv脚本
+			if(!(TiDBService.getPDInfoByServIdOrServiceStub(serviceID, null, allPdServerList, result) && 
+					refreshPdStartCmd(allPdServerList, sessionKey) && 
+					TiDBService.getTikvInfoByServIdOrServiceStub(serviceID, null, allTikvServerList, result) && 
+					refreshTikvStartCmd(allTikvServerList, getPDList(allPdServerList), sessionKey))) {
+				DeployLog.pubErrorLog(sessionKey, "replace scripts error！please manual replace...");
+			}
 			String info = String.format("deploy pd id:%s %s:%s success ......", id, ip, port);
-			StringBuffer deploySuccessLog = new StringBuffer();
-			deploySuccessLog.append(CONSTS.DEPLOY_SINGLE_SUCCESS_BEGIN_STYLE);
-			deploySuccessLog.append(info);
-			deploySuccessLog.append(CONSTS.END_STYLE);
-			DeployLog.pubLog(sessionKey, deploySuccessLog.toString());
+			DeployLog.pubSuccessLog(sessionKey, info);
 
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 
 			String error = String.format("deploy pd id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
-			StringBuffer deploySuccessLog = new StringBuffer();
-			deploySuccessLog.append(CONSTS.DEPLOY_SINGLE_FAIL_BEGIN_STYLE);
-			deploySuccessLog.append(error);
-			deploySuccessLog.append(CONSTS.END_STYLE);
-			DeployLog.pubLog(sessionKey, deploySuccessLog.toString());
+			DeployLog.pubErrorLog(sessionKey, error);
+
 
 			return false;
 		} finally {
@@ -547,11 +519,7 @@ public class TiDBDeployer implements Deployer {
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 			String error = String.format("Instance %s:%s update start shell failed(PD dilatation): %s", ip, port, e.getMessage());
-			StringBuffer deploySuccessLog = new StringBuffer();
-			deploySuccessLog.append(CONSTS.DEPLOY_SINGLE_FAIL_BEGIN_STYLE);
-			deploySuccessLog.append(error);
-			deploySuccessLog.append(CONSTS.END_STYLE);
-			DeployLog.pubLog(sessionKey, deploySuccessLog.toString());
+			DeployLog.pubErrorLog(sessionKey, error);
 		} finally {
 			if (connected) {
 				executor.close();
@@ -583,32 +551,12 @@ public class TiDBDeployer implements Deployer {
 		String dataDir = "data";
 		String logFile = "log/tikv.log";
 		
-		String startContext = String.format("bin/tikv-server --addr %s:%s \\\\\n"
-				+ "    --pd %s \\\\\n"
-				+ "    --data-dir %s \\\\\n"
-				+ "    -L info --log-file %s &",
-				ip, port, pdList, dataDir, logFile);
-		
-		
-		String stopUniqueFlag = String.format("\\\\--addr %s:%s", ip, port);
-		String stopContext = String.format("var=\\\"%s\\\"\\n"
-				+ "pid=\\`ps -ef | grep \\\"\\${var}\\\" | awk '{print \\$1, \\$2, \\$8}' | grep tikv-server | awk '{print \\$2}'\\`\\n"
-				+ "if [ \\\"\\${pid}\\\" != \\\"\\\" ]\\n"
-				+ "then\\n"
-				+ "    kill -9 \\$pid\\n"
-				+ "    echo stop tikv-server pid:\\$pid\\n"
-				+ "else\\n"
-				+ "    echo stop tikv-server not running\\n"
-				+ "fi\\n",
-				stopUniqueFlag);
+		String startContext = getTikvStartCmd(ip, port, pdList, dataDir, logFile);
+		String stopContext  = getTikvStopCmd(id, port);
 		
 		if (tikvInstance.getIsDeployed().equals(CONSTS.DEPLOYED)) {
 			String info = String.format("tikv id:%s %s:%s is deployed ......", id, ip, port);
-			StringBuffer deploySuccessLog = new StringBuffer();
-			deploySuccessLog.append(CONSTS.DEPLOY_SINGLE_SUCCESS_BEGIN_STYLE);
-			deploySuccessLog.append(info);
-			deploySuccessLog.append(CONSTS.END_STYLE);
-			DeployLog.pubLog(sessionKey, deploySuccessLog.toString());
+			DeployLog.pubSuccessLog(sessionKey, info);
 
 			return true;
 		}
@@ -622,11 +570,7 @@ public class TiDBDeployer implements Deployer {
 		
 		try {
 			String startInfo = String.format("deploy tikv id:%s %s:%s begin ......", id, ip, port);
-			StringBuffer deployBeginLog = new StringBuffer();
-			deployBeginLog.append(CONSTS.DEPLOY_SINGLE_SUCCESS_BEGIN_STYLE);
-			deployBeginLog.append(startInfo);
-			deployBeginLog.append(CONSTS.END_STYLE);
-			DeployLog.pubLog(sessionKey, deployBeginLog.toString());
+			DeployLog.pubSuccessLog(sessionKey, startInfo);
 			
 			ui = new JschUserInfo(user, pwd, ip, CONSTS.SSH_PORT_DEFAULT);
 			executor = new SSHExecutor(ui);
@@ -681,21 +625,13 @@ public class TiDBDeployer implements Deployer {
 				return false;
 			
 			String info = String.format("deploy tikv id:%s %s:%s success ......", id, ip, port);
-			StringBuffer deploySuccessLog = new StringBuffer();
-			deploySuccessLog.append(CONSTS.DEPLOY_SINGLE_SUCCESS_BEGIN_STYLE);
-			deploySuccessLog.append(info);
-			deploySuccessLog.append(CONSTS.END_STYLE);
-			DeployLog.pubLog(sessionKey, deploySuccessLog.toString());
+			DeployLog.pubSuccessLog(sessionKey, info);
 			
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 
 			String error = String.format("deploy tikv id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
-			StringBuffer deploySuccessLog = new StringBuffer();
-			deploySuccessLog.append(CONSTS.DEPLOY_SINGLE_FAIL_BEGIN_STYLE);
-			deploySuccessLog.append(error);
-			deploySuccessLog.append(CONSTS.END_STYLE);
-			DeployLog.pubLog(sessionKey, deploySuccessLog.toString());
+			DeployLog.pubErrorLog(sessionKey, error);
 
 			return false;
 		} finally {
@@ -750,11 +686,7 @@ public class TiDBDeployer implements Deployer {
 		
 		if (tidbInstance.getIsDeployed().equals(CONSTS.DEPLOYED)) {
 			String info = String.format("tidb id:%s %s:%s is deployed ......", id, ip, port);
-			StringBuffer deploySuccessLog = new StringBuffer();
-			deploySuccessLog.append(CONSTS.DEPLOY_SINGLE_SUCCESS_BEGIN_STYLE);
-			deploySuccessLog.append(info);
-			deploySuccessLog.append(CONSTS.END_STYLE);
-			DeployLog.pubLog(sessionKey, deploySuccessLog.toString());
+			DeployLog.pubSuccessLog(sessionKey, info);
 
 			return true;
 		}
@@ -768,11 +700,7 @@ public class TiDBDeployer implements Deployer {
 		
 		try {
 			String startInfo = String.format("deploy tidb id:%s %s:%s begin ......", id, ip, port);
-			StringBuffer deployBeginLog = new StringBuffer();
-			deployBeginLog.append(CONSTS.DEPLOY_SINGLE_SUCCESS_BEGIN_STYLE);
-			deployBeginLog.append(startInfo);
-			deployBeginLog.append(CONSTS.END_STYLE);
-			DeployLog.pubLog(sessionKey, deployBeginLog.toString());
+			DeployLog.pubSuccessLog(sessionKey, startInfo);
 			
 			ui = new JschUserInfo(user, pwd, ip, CONSTS.SSH_PORT_DEFAULT);
 			executor = new SSHExecutor(ui);
@@ -831,21 +759,13 @@ public class TiDBDeployer implements Deployer {
 			}
 			
 			String info = String.format("deploy tidb id:%s %s:%s success ......", id, ip, port);
-			StringBuffer deploySuccessLog = new StringBuffer();
-			deploySuccessLog.append(CONSTS.DEPLOY_SINGLE_SUCCESS_BEGIN_STYLE);
-			deploySuccessLog.append(info);
-			deploySuccessLog.append(CONSTS.END_STYLE);
-			DeployLog.pubLog(sessionKey, deploySuccessLog.toString());
+			DeployLog.pubSuccessLog(sessionKey, info);
 			
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 
 			String info = String.format("deploy tidb id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
-			StringBuffer deploySuccessLog = new StringBuffer();
-			deploySuccessLog.append(CONSTS.DEPLOY_SINGLE_FAIL_BEGIN_STYLE);
-			deploySuccessLog.append(info);
-			deploySuccessLog.append(CONSTS.END_STYLE);
-			DeployLog.pubLog(sessionKey, deploySuccessLog.toString());
+			DeployLog.pubErrorLog(sessionKey, info);
 
 			return false;
 		} finally {
@@ -874,13 +794,12 @@ public class TiDBDeployer implements Deployer {
 		String user  = pdInstDtlBean.getAttribute("OS_USER").getAttrValue();
 		String pwd   = pdInstDtlBean.getAttribute("OS_PWD").getAttrValue();
 		
+		List<InstanceDtlBean> allPdServerList = new ArrayList<InstanceDtlBean>();
+		List<InstanceDtlBean> allTikvServerList = new ArrayList<InstanceDtlBean>();
+		
 		if (pdInstance.getIsDeployed().equals(CONSTS.NOT_DEPLOYED)) {
 			String info = String.format("pd id:%s %s:%s is not deployed ......", id, ip, port);
-			StringBuffer deploySuccessLog = new StringBuffer();
-			deploySuccessLog.append(CONSTS.DEPLOY_SINGLE_SUCCESS_BEGIN_STYLE);
-			deploySuccessLog.append(info);
-			deploySuccessLog.append(CONSTS.END_STYLE);
-			DeployLog.pubLog(sessionKey, deploySuccessLog.toString());
+			DeployLog.pubSuccessLog(sessionKey, info);
 
 			return true;
 		}
@@ -892,11 +811,7 @@ public class TiDBDeployer implements Deployer {
 
 		try {
 			String infoBegin = String.format("undeploy pd id:%s %s:%s begin ......", id, ip, port);
-			StringBuffer deployBeginLog = new StringBuffer();
-			deployBeginLog.append(CONSTS.DEPLOY_SINGLE_SUCCESS_BEGIN_STYLE);
-			deployBeginLog.append(infoBegin);
-			deployBeginLog.append(CONSTS.END_STYLE);
-			DeployLog.pubLog(sessionKey, deployBeginLog.toString());
+			DeployLog.pubSuccessLog(sessionKey, infoBegin);
 			
 			ui = new JschUserInfo(user, pwd, ip, CONSTS.SSH_PORT_DEFAULT);
 			executor = new SSHExecutor(ui);
@@ -910,9 +825,8 @@ public class TiDBDeployer implements Deployer {
 				//如果失败，可能是这个pd服务没有起来，尝试其它的pd节点进行pd缩容
 				boolean deletePdMember = executor.pdctlDeletePdMember(ip, port, id, sessionKey);
 				if(!deletePdMember) {
-					List<InstanceDtlBean> pdServerList = new ArrayList<InstanceDtlBean>();
-					TiDBService.getPDInfoByServIdOrServiceStub(serviceID, null, pdServerList, result);
-					for(InstanceDtlBean pd : pdServerList) {
+					TiDBService.getPDInfoByServIdOrServiceStub(serviceID, null, allPdServerList, result);
+					for(InstanceDtlBean pd : allPdServerList) {
 						String otherId    = pd.getAttribute("PD_ID").getAttrValue();
 						String otherIp    = pd.getAttribute("IP").getAttrValue();
 						String otherPort  = pd.getAttribute("PORT").getAttrValue();
@@ -945,22 +859,23 @@ public class TiDBDeployer implements Deployer {
 				return false;
 			}
 			
+			// 重新从数据库获取所有的PD的信息，然后刷新PD脚本 再从数据库所有的tikv信息，刷新tikv的脚本
+			if(!(TiDBService.getPDInfoByServIdOrServiceStub(serviceID, null, allPdServerList, result) &&
+					refreshPdStartCmd(allPdServerList, sessionKey) && 
+					TiDBService.getTikvInfoByServIdOrServiceStub(serviceID, null, allTikvServerList, result) &&
+					refreshTikvStartCmd(allTikvServerList, getPDList(allPdServerList), sessionKey))) {
+				DeployLog.pubErrorLog(sessionKey, "update tidb components scripts fail...");
+				return false;
+			}
+			
 			String info = String.format("undeploy pd id:%s %s:%s success ......", id, ip, port);
-			StringBuffer deploySuccessLog = new StringBuffer();
-			deploySuccessLog.append(CONSTS.DEPLOY_SINGLE_SUCCESS_BEGIN_STYLE);
-			deploySuccessLog.append(info);
-			deploySuccessLog.append(CONSTS.END_STYLE);
-			DeployLog.pubLog(sessionKey, deploySuccessLog.toString());
+			DeployLog.pubSuccessLog(sessionKey, info);
 
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 
 			String error = String.format("undeploy pd id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
-			StringBuffer deploySuccessLog = new StringBuffer();
-			deploySuccessLog.append(CONSTS.DEPLOY_SINGLE_FAIL_BEGIN_STYLE);
-			deploySuccessLog.append(error);
-			deploySuccessLog.append(CONSTS.END_STYLE);
-			DeployLog.pubLog(sessionKey, deploySuccessLog.toString());
+			DeployLog.pubErrorLog(sessionKey, error);
 
 			return false;
 		} finally {
@@ -985,13 +900,19 @@ public class TiDBDeployer implements Deployer {
 		
 		if (tikvInstance.getIsDeployed().equals(CONSTS.NOT_DEPLOYED)) {
 			String info = String.format("tikv id:%s %s:%s is not deployed ......", id, ip, port);
-			StringBuffer deploySuccessLog = new StringBuffer();
-			deploySuccessLog.append(CONSTS.DEPLOY_SINGLE_SUCCESS_BEGIN_STYLE);
-			deploySuccessLog.append(info);
-			deploySuccessLog.append(CONSTS.END_STYLE);
-			DeployLog.pubLog(sessionKey, deploySuccessLog.toString());
+			DeployLog.pubSuccessLog(sessionKey, info);
 
 			return true;
+		}
+		
+		List<InstanceDtlBean> pdServerList = new ArrayList<InstanceDtlBean>();
+		List<InstanceDtlBean> tikvServerList = new ArrayList<InstanceDtlBean>();
+		
+		//获取所有pd的地址，后面取第一个pd用来执行tikv的remove操作
+		TiDBService.getPDInfoByServIdOrServiceStub(serviceID, null, pdServerList, result);
+		if(pdServerList==null || pdServerList.size() == 0) {
+			DeployLog.pubErrorLog(sessionKey, "this tikv not belong to any pd-server or the data error ...... ");
+			return false;
 		}
 		
 		String deployRootPath = String.format("tikv_deploy/%s", port);
@@ -1001,19 +922,8 @@ public class TiDBDeployer implements Deployer {
 		
 		try {
 			String startInfo = String.format("undeploy tikv id:%s %s:%s begin ......", id, ip, port);
-			StringBuffer deployBeginLog = new StringBuffer();
-			deployBeginLog.append(CONSTS.DEPLOY_SINGLE_SUCCESS_BEGIN_STYLE);
-			deployBeginLog.append(startInfo);
-			deployBeginLog.append(CONSTS.END_STYLE);
-			DeployLog.pubLog(sessionKey, deployBeginLog.toString());
-			
-			/**get a pd server to remove tikv store*/
-			List<InstanceDtlBean> pdServerList = new ArrayList<InstanceDtlBean>();
-			TiDBService.getPDInfoByServIdOrServiceStub(serviceID, null, pdServerList, result);
-			if(pdServerList==null || pdServerList.size() == 0) {
-				DeployLog.pubLog(sessionKey, "this tikv not belong to any pd-server or the data error ...... ");
-				return false;
-			}
+			DeployLog.pubSuccessLog(sessionKey, startInfo);
+			//获取pd集群的第一个pd 
 			InstanceDtlBean pd = pdServerList.get(0);
 			String pdIp    = pd.getAttribute("IP").getAttrValue();
 			String pdPort  = pd.getAttribute("PORT").getAttrValue();
@@ -1023,16 +933,18 @@ public class TiDBDeployer implements Deployer {
 			executor = new SSHExecutor(ui);
 			executor.connect();
 			connected = true;
-			String deployPdRootPath = String.format("pd_deploy/%s", pdPort);
-			executor.cd("$HOME/" + deployPdRootPath, sessionKey);
+			String deployPdRootPath = String.format("$HOME/pd_deploy/%s", pdPort);
+			executor.cd(deployPdRootPath, sessionKey);
+			//获取这个tikv的id(tidb中自己生成的id)，根据id来删除
 			int tikvId = executor.getStoreId(pdIp, pdPort, ip, port);
 			if(!executor.pdctlDeleteTikvStore(pdIp, pdPort, tikvId, sessionKey)) {
-				DeployLog.pubLog(sessionKey, "remove tikv from pd-cluster false ...... ");
+				DeployLog.pubErrorLog(sessionKey, "remove tikv from pd-cluster false ...... ");
 				return false;
 			}
-			executor.close();	
-
-			ui = new JschUserInfo(user, pwd, ip, CONSTS.SSH_PORT_DEFAULT);
+			executor.close();
+			
+			//TODO 另外一个线程来做，最后更新数据库 ，前台根据数据库来查看是否下线
+			/*ui = new JschUserInfo(user, pwd, ip, CONSTS.SSH_PORT_DEFAULT);
 			executor = new SSHExecutor(ui);
 			executor.connect();
 			connected = true;
@@ -1055,24 +967,16 @@ public class TiDBDeployer implements Deployer {
 			
 			// mod t_instance.IS_DEPLOYED = 0
 			if (!ConfigDataService.modInstanceDeployFlag(id, CONSTS.NOT_DEPLOYED, result))
-				return false;
+				return false;*/
 			
 			String info = String.format("undeploy tikv id:%s %s:%s success ......", id, ip, port);
-			StringBuffer deploySuccessLog = new StringBuffer();
-			deploySuccessLog.append(CONSTS.DEPLOY_SINGLE_SUCCESS_BEGIN_STYLE);
-			deploySuccessLog.append(info);
-			deploySuccessLog.append(CONSTS.END_STYLE);
-			DeployLog.pubLog(sessionKey, deploySuccessLog.toString());
+			DeployLog.pubErrorLog(sessionKey, info);
 			
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 
 			String error = String.format("undeploy tikv id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
-			StringBuffer deploySuccessLog = new StringBuffer();
-			deploySuccessLog.append(CONSTS.DEPLOY_SINGLE_FAIL_BEGIN_STYLE);
-			deploySuccessLog.append(error);
-			deploySuccessLog.append(CONSTS.END_STYLE);
-			DeployLog.pubLog(sessionKey, deploySuccessLog.toString());
+			DeployLog.pubErrorLog(sessionKey, error);
 
 			return false;
 		} finally {
@@ -1097,12 +1001,8 @@ public class TiDBDeployer implements Deployer {
 		
 		if (tidbInstance.getIsDeployed().equals(CONSTS.NOT_DEPLOYED)) {
 			String info = String.format("tidb id:%s %s:%s is not deployed ......", id, ip, port);
-			StringBuffer deploySuccessLog = new StringBuffer();
-			deploySuccessLog.append(CONSTS.DEPLOY_SINGLE_SUCCESS_BEGIN_STYLE);
-			deploySuccessLog.append(info);
-			deploySuccessLog.append(CONSTS.END_STYLE);
-			DeployLog.pubLog(sessionKey, deploySuccessLog.toString());
-
+			DeployLog.pubSuccessLog(sessionKey, info);
+			
 			return true;
 		}
 		
@@ -1113,11 +1013,7 @@ public class TiDBDeployer implements Deployer {
 		
 		try {
 			String startInfo = String.format("undeploy tidb id:%s %s:%s begin ......", id, ip, port);
-			StringBuffer deployBeginLog = new StringBuffer();
-			deployBeginLog.append(CONSTS.DEPLOY_SINGLE_SUCCESS_BEGIN_STYLE);
-			deployBeginLog.append(startInfo);
-			deployBeginLog.append(CONSTS.END_STYLE);
-			DeployLog.pubLog(sessionKey, deployBeginLog.toString());
+			DeployLog.pubSuccessLog(sessionKey, startInfo);
 			
 			ui = new JschUserInfo(user, pwd, ip, CONSTS.SSH_PORT_DEFAULT);
 			executor = new SSHExecutor(ui);
@@ -1145,21 +1041,13 @@ public class TiDBDeployer implements Deployer {
 				return false;
 			
 			String info = String.format("undeploy tidb id:%s %s:%s success ......", id, ip, port);
-			StringBuffer deploySuccessLog = new StringBuffer();
-			deploySuccessLog.append(CONSTS.DEPLOY_SINGLE_SUCCESS_BEGIN_STYLE);
-			deploySuccessLog.append(info);
-			deploySuccessLog.append(CONSTS.END_STYLE);
-			DeployLog.pubLog(sessionKey, deploySuccessLog.toString());
+			DeployLog.pubSuccessLog(sessionKey, info);
 			
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 
 			String info = String.format("undeploy tidb id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
-			StringBuffer deploySuccessLog = new StringBuffer();
-			deploySuccessLog.append(CONSTS.DEPLOY_SINGLE_FAIL_BEGIN_STYLE);
-			deploySuccessLog.append(info);
-			deploySuccessLog.append(CONSTS.END_STYLE);
-			DeployLog.pubLog(sessionKey, deploySuccessLog.toString());
+			DeployLog.pubErrorLog(sessionKey, info);
 
 			return false;
 		} finally {
@@ -1210,16 +1098,14 @@ public class TiDBDeployer implements Deployer {
 	
 	private String getPDList(List<InstanceDtlBean> pdServerList) {
 		StringBuilder sb = new StringBuilder();
-		for (int i = 0; i < pdServerList.size(); i++) {
-			InstanceDtlBean pdInfo = pdServerList.get(i);
-			String ip = pdInfo.getAttribute("IP").getAttrValue();
-			String port = pdInfo.getAttribute("PORT").getAttrValue();
-
-			String s = String.format("%s:%s", ip, port);
-			if (i > 0)
+		boolean isFirst = true;
+		for (InstanceDtlBean pd : pdServerList) {
+			if(!isFirst) {
 				sb.append(CONSTS.PATH_COMMA);
-
-			sb.append(s);
+			}
+			sb.append(pd.getAttribute("IP").getAttrValue()).append(":")
+				.append(pd.getAttribute("PORT").getAttrValue());
+			isFirst = false;
 		}
 
 		return sb.toString();
@@ -1284,5 +1170,181 @@ public class TiDBDeployer implements Deployer {
 		
 		return ret;
 	}
+	
+	private boolean refreshPdStartCmd(List<InstanceDtlBean> pdServerList, String sessionKey) {
+		String initCluster = getPDInitCluster(pdServerList);
+		
+		// ssh all pd and replace start shell
+		for(InstanceDtlBean pd : pdServerList) {
+			generatePdStartCmd(pd, initCluster, sessionKey);	
+		}
+		return Boolean.TRUE;
+	}
+	
+	private boolean refreshTikvStartCmd(List<InstanceDtlBean> tikvServerList, String pdList, String sessionKey) {
+		for(InstanceDtlBean tikv : tikvServerList) {
+			generateTikvStartCmd(tikv, pdList, sessionKey);
+		}
+		
+		return Boolean.TRUE;
+	}
+	
+	private boolean generatePdStartCmd(InstanceDtlBean pd, String initCluster, String sessionKey) {
+		String ip        = pd.getAttribute("IP").getAttrValue();
+		String user      = pd.getAttribute("OS_USER").getAttrValue();
+		String pwd       = pd.getAttribute("OS_PWD").getAttrValue();
+		
+		JschUserInfo ui = null;
+		SSHExecutor executor = null;
+		boolean connected = false;
+		
+		try {
+			ui = new JschUserInfo(user, pwd, ip, CONSTS.SSH_PORT_DEFAULT);
+			executor = new SSHExecutor(ui);
+			executor.connect();
+			connected = true;
+			generatePdStartCmdBySSH(executor, pd, initCluster, sessionKey);
+			
+		}catch (Exception e) {
+			logger.error(e.getMessage(), e);
+			String error = String.format("rolling update pd error:%s", e.getMessage());
+			DeployLog.pubErrorLog(sessionKey, error);
+			
+			return false;
+		} finally {
+			if (connected) {
+				executor.close();
+			}
+		}	
+		return true;
+	}
+	
+	private boolean generateTikvStartCmd(InstanceDtlBean tikv, String pdList, String sessionKey) {
+		String ip        = tikv.getAttribute("IP").getAttrValue();
+		String user      = tikv.getAttribute("OS_USER").getAttrValue();
+		String pwd       = tikv.getAttribute("OS_PWD").getAttrValue();
+		
+		JschUserInfo ui      = null;
+		SSHExecutor executor = null;
+		boolean connected    = false;
+		
+		try {
+			ui = new JschUserInfo(user, pwd, ip, CONSTS.SSH_PORT_DEFAULT);
+			executor = new SSHExecutor(ui);
+			executor.connect();
+			connected = true;
+			generateTikvStartCmdBySSH(executor, tikv, pdList, sessionKey);
+			
+		}catch (Exception e) {
+			logger.error(e.getMessage(), e);
+			String error = String.format("rolling update tikv error:%s", e.getMessage());
+			DeployLog.pubErrorLog(sessionKey, error);
+			
+			return Boolean.FALSE;
+		} finally {
+			if (connected) {
+				executor.close();
+			}
+		}	
+		return Boolean.TRUE;
+	}
+	
+	private boolean generatePdStartCmdBySSH(SSHExecutor executor, InstanceDtlBean pd, String initCluster, String sessionKey) throws InterruptedException {
+		String ip        = pd.getAttribute("IP").getAttrValue();
+		String id        = pd.getAttribute("PD_ID").getAttrValue();
+		String port      = pd.getAttribute("PORT").getAttrValue();
+		String cPort     = pd.getAttribute("CLUSTER_PORT").getAttrValue();
+		String clientUrl = String.format("http://%s:%s", ip, port);
+		String peerUrl   = String.format("http://%s:%s", ip, cPort);
+		String dataDir   = "data";
+		String logFile   = "log/pd.log";
+		
+		String deployRootPath = String.format("$HOME/pd_deploy/%s", port);
+		String startShell = getPdInitStartCmd(id, clientUrl, peerUrl, dataDir, logFile, initCluster);
+		
+		if (executor.isDirExistInCurrPath(deployRootPath, sessionKey)) {
+			executor.cd(deployRootPath, sessionKey);
+			executor.createStartShell(startShell);
+			String log = String.format("pd[%s:%s]%s create startShell success! ", ip, port, id);
+			DeployLog.pubLog(sessionKey, log.toString());
+		}
+		
+		return Boolean.TRUE;
+	}
+	
+	private boolean generateTikvStartCmdBySSH(SSHExecutor executor, InstanceDtlBean tikv, String pdList, String sessionKey) throws InterruptedException {
+		String id   = tikv.getAttribute("TIKV_ID").getAttrValue();
+		String ip   = tikv.getAttribute("IP").getAttrValue();
+		String port = tikv.getAttribute("PORT").getAttrValue();
 
+		String dataDir   = "data";
+		String logFile   = "log/tikv.log";
+		
+		String deployRootPath = String.format("$HOME/tikv_deploy/%s", port);
+		String startShell = getTikvStartCmd(ip, port, pdList, dataDir, logFile);	
+		if (executor.isDirExistInCurrPath(deployRootPath, sessionKey)) {
+			executor.cd(deployRootPath, sessionKey);
+			executor.createStartShell(startShell);
+			String log = String.format("tikv[%s:%s]%s create startShell success! ", ip, port, id);
+			DeployLog.pubLog(sessionKey, log.toString());
+		}
+		
+		return Boolean.TRUE;
+	}
+	
+	private String getPdInitStartCmd(String id, String clientUrl, String peerUrl, String dataDir, String logFile,String cluster) {
+		return String.format("bin/pd-server --name=%s \\\\\n"
+				+ "    --client-urls=%s --peer-urls=%s \\\\\n"
+				+ "    --advertise-client-urls=%s --advertise-peer-urls=%s \\\\\n"
+				+ "    --data-dir=%s -L info \\\\\n" 
+				+ "    --log-file=%s \\\\\n"
+				+ "    --initial-cluster=%s \\\\\n"
+				+ "    &",
+				id, clientUrl, peerUrl, clientUrl, peerUrl, dataDir, logFile, cluster);
+	}
+	
+	private String getPdJoinStartCmd(String id, String clientUrl, String peerUrl, String dataDir, String logFile,String join) {
+		return String.format("bin/pd-server --name=%s \\\\\n"
+				+ "    --client-urls=%s --peer-urls=%s \\\\\n"
+				+ "    --advertise-client-urls=%s --advertise-peer-urls=%s \\\\\n"
+				+ "    --data-dir=%s -L info \\\\\n" 
+				+ "    --log-file=%s \\\\\n"
+				+ "    --join=%s \\\\\n"
+				+ "    &",
+				id, clientUrl, peerUrl, clientUrl, peerUrl, dataDir, logFile, join);
+	}
+	
+	private String getPdStopCmd(String id) {
+		return String.format("var=\"name=%s\" \\n"
+				+ "pid=\\`ps -ef | grep \\\"\\${var}\\\" | awk '{print \\$1, \\$2, \\$8}' | grep pd-server | awk '{print \\$2}'\\`\\n"
+				+ "if [ \\\"\\${pid}\\\" != \\\"\\\" ]\\n"
+				+ "then\\n"
+				+ "    kill \\$pid\\n"
+				+ "    echo stop pd-server pid:\\$pid\\n"
+				+ "else\\n"
+				+ "    echo stop pd-server not running\\n"
+				+ "fi\\n",
+				id);
+	}
+	
+	private String getTikvStartCmd(String ip, String port, String pdList, String dataDir, String logFile) {
+		return String.format("bin/tikv-server --addr %s:%s \\\\\n"
+				+ "    --pd %s \\\\\n"
+				+ "    --data-dir %s \\\\\n"
+				+ "    -L info --log-file %s &",
+				ip, port, pdList, dataDir, logFile);
+	}
+	
+	private String getTikvStopCmd(String ip,String port) {
+		return String.format("var=\"\\--addr %s:%s \"\\n"
+				+ "pid=\\`ps -ef | grep \\\"\\${var}\\\" | awk '{print \\$1, \\$2, \\$8}' | grep tikv-server | awk '{print \\$2}'\\`\\n"
+				+ "if [ \\\"\\${pid}\\\" != \\\"\\\" ]\\n"
+				+ "then\\n"
+				+ "    kill \\$pid\\n"
+				+ "    echo stop tikv-server pid:\\$pid\\n"
+				+ "else\\n"
+				+ "    echo stop tikv-server not running\\n"
+				+ "fi\\n",
+				ip, port);
+	}
 }
