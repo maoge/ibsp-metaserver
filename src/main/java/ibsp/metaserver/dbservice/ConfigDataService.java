@@ -55,8 +55,8 @@ public class ConfigDataService {
 	private static final String MOD_INSTANCE_ATTR = "update t_instance_attr set ATTR_VALUE = ? "
 	                                              + "where INST_ID = ? and ATTR_ID = ?";
 	
-	private static final String INS_SERVICE       = "insert into t_service(INST_ID,SERV_NAME,SERV_TYPE,IS_DEPLOYED,CREATE_TIME) "
-	                                              + "values(?,?,?,?,?)";
+	private static final String INS_SERVICE       = "insert into t_service(INST_ID,SERV_NAME,SERV_TYPE,IS_DEPLOYED,CREATE_TIME,USER,PASSWORD) "
+	                                              + "values(?,?,?,?,?,?,?)";
 	
 	private static final String INS_TOPOLOGY      = "insert into t_topology(INST_ID1,INST_ID2,TOPO_TYPE) "
 	                                              + "values(?,?,?)";

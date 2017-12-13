@@ -21,6 +21,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -384,5 +385,17 @@ public class TiDBService {
         }
         con.disconnect();
         return new JsonObject(result.toString());
+	}
+	
+	public static void main(String[] args) {
+		List<InstanceDtlBean> pdServerList = new ArrayList<InstanceDtlBean>();
+		List<InstanceDtlBean> tidbServerList = new ArrayList<InstanceDtlBean>();
+		List<InstanceDtlBean> tikvServerList = new ArrayList<InstanceDtlBean>();
+		InstanceDtlBean collectd = null;
+		ResultBean result = new ResultBean();
+
+		loadServiceInfo("dccb67fc-a799-dbec-8266-cb78c79bc956", pdServerList, tidbServerList, tikvServerList, collectd, result);
+		
+		System.out.println(pdServerList);
 	}
 }
