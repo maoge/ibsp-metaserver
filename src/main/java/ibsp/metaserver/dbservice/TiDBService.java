@@ -1,17 +1,5 @@
 package ibsp.metaserver.dbservice;
 
-import ibsp.metaserver.bean.InstAttributeBean;
-import ibsp.metaserver.bean.InstanceBean;
-import ibsp.metaserver.bean.InstanceDtlBean;
-import ibsp.metaserver.bean.ResultBean;
-import ibsp.metaserver.bean.SqlBean;
-import ibsp.metaserver.global.MetaData;
-import ibsp.metaserver.utils.CONSTS;
-import ibsp.metaserver.utils.CRUD;
-import ibsp.metaserver.utils.HttpUtils;
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
-
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -29,6 +17,18 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import ibsp.metaserver.bean.InstAttributeBean;
+import ibsp.metaserver.bean.InstanceBean;
+import ibsp.metaserver.bean.InstanceDtlBean;
+import ibsp.metaserver.bean.ResultBean;
+import ibsp.metaserver.bean.SqlBean;
+import ibsp.metaserver.global.MetaData;
+import ibsp.metaserver.utils.CONSTS;
+import ibsp.metaserver.utils.CRUD;
+import ibsp.metaserver.utils.HttpUtils;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 
 public class TiDBService {
 	
@@ -307,6 +307,24 @@ public class TiDBService {
 		return null;
 	}
 	
+	public static boolean getTikvStatusByTikvId(String servID, int tikvId, ResultBean bean) {
+		boolean res = false;
+		try {
+			String PDAddress = getAddressByServID(servID, CONSTS.SERV_DB_PD);
+			if (HttpUtils.isNull(PDAddress)) {
+				bean.setRetCode(CONSTS.REVOKE_NOK);
+				bean.setRetInfo(CONSTS.ERR_FIND_PD_SERVER_ERROR+servID);
+			}
+			String url = PDAddress + "/pd/api/v1/store/" + tikvId;
+			JsonObject tikvStatus = callPDApi(url);
+			return CONSTS.TIKV_TOMBSTONE_STATUS.equals(tikvStatus.getJsonObject("store").getString("state_name"));
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+			bean.setRetCode(CONSTS.REVOKE_NOK);
+			bean.setRetInfo(e.getMessage());
+		}
+		return res;
+	}
 	
 	public static JsonObject getTikvStatus(String servID, String instAdd, ResultBean bean) {
 		try {
@@ -371,7 +389,7 @@ public class TiDBService {
 		return address;
 	}
 	
-	private static JsonObject callPDApi(String address) throws Exception {
+	public static JsonObject callPDApi(String address) throws Exception {
 		URL url = new URL("http://"+address);
 		HttpURLConnection con = (HttpURLConnection)url.openConnection();
         con.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");

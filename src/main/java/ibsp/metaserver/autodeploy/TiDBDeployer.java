@@ -494,7 +494,7 @@ public class TiDBDeployer implements Deployer {
 		String logFile = "log/tikv.log";
 		
 		String startContext = getTikvStartCmd(ip, port, pdList, dataDir, logFile);
-		String stopContext  = getTikvStopCmd(id, port);
+		String stopContext  = getTikvStopCmd(ip, port);
 		
 		if (tikvInstance.getIsDeployed().equals(CONSTS.DEPLOYED)) {
 			String info = String.format("tikv id:%s %s:%s is deployed ......", id, ip, port);
@@ -836,7 +836,6 @@ public class TiDBDeployer implements Deployer {
 		}
 		
 		List<InstanceDtlBean> pdServerList = new ArrayList<InstanceDtlBean>();
-		List<InstanceDtlBean> tikvServerList = new ArrayList<InstanceDtlBean>();
 		
 		//获取所有pd的地址，后面取第一个pd用来执行tikv的remove操作
 		TiDBService.getPDInfoByServIdOrServiceStub(serviceID, null, pdServerList, result);
@@ -845,7 +844,6 @@ public class TiDBDeployer implements Deployer {
 			return false;
 		}
 		
-		String deployRootPath = String.format("tikv_deploy/%s", port);
 		JschUserInfo ui = null;
 		SSHExecutor executor = null;
 		boolean connected = false;
@@ -867,12 +865,12 @@ public class TiDBDeployer implements Deployer {
 			executor.cd(deployPdRootPath, sessionKey);
 			//获取这个tikv的id(tidb中自己生成的id)，根据id来删除
 			int tikvId = executor.getStoreId(pdIp, pdPort, ip, port);
-			if(!executor.pdctlDeleteTikvStore(pdIp, pdPort, tikvId, sessionKey)) {
+			if(tikvId != 0 && !executor.pdctlDeleteTikvStore(pdIp, pdPort, tikvId, sessionKey)) {
 				DeployLog.pubErrorLog(sessionKey, "remove tikv from pd-cluster false ...... ");
 				return false;
 			}
 			executor.close();
-			
+			checkTikvStatus(serviceID, id, ip, port, user, pwd, tikvId);
 			//TODO 另外一个线程来做，最后更新数据库 ，前台根据数据库来查看是否下线
 			/*ui = new JschUserInfo(user, pwd, ip, CONSTS.SSH_PORT_DEFAULT);
 			executor = new SSHExecutor(ui);
@@ -1099,6 +1097,51 @@ public class TiDBDeployer implements Deployer {
 		}
 		
 		return ret;
+	}
+	
+	//检查tikv的状态，停止tikv 最后删除目录
+	private void checkTikvStatus(String servId, String id, String ip, String port, String user, String password, int tikvId) {
+		new Thread(new Runnable() {
+			public void run() {
+				JschUserInfo ui = null;
+				SSHExecutor executor = null;
+				boolean connected = false;
+				String deployRootPath = "$HOME/tikv_deploy/" + port;
+				ResultBean result = new ResultBean();
+
+				try {
+					ui = new JschUserInfo(user, password, ip, CONSTS.SSH_PORT_DEFAULT);
+					executor = new SSHExecutor(ui);
+					executor.connect();
+					connected = true;
+					executor.cd(deployRootPath);
+					if(tikvId != 0) {
+						while(!TiDBService.getTikvStatusByTikvId(servId, tikvId, result)) {
+							Thread.sleep(CONSTS.TIKV_STATE_CHECK_INTERVAL);
+						}
+					}
+					// stop tikv-server
+					if (executor.isPortUsed(port,"")) {
+						if (!execStopShell(executor, port, "")) {
+							logger.error(String.format("stop tikv[%s:%s] shell faild", ip, port));
+						}
+					}
+					//删除目录
+					executor.rm(deployRootPath, true, "");
+					// mod t_instance.IS_DEPLOYED = 0
+					if (!ConfigDataService.modInstanceDeployFlag(id, CONSTS.NOT_DEPLOYED, result)) {
+						logger.error(result.getRetInfo());
+					}
+				}catch (Exception e) {
+					logger.error(e.getMessage());
+					e.printStackTrace();
+				}finally {
+					if(connected) {
+						executor.close();
+					}
+				}
+			}
+		}).start();
 	}
 	
 	private boolean refreshDbCompCmd(List<InstanceDtlBean> pdServerList, List<InstanceDtlBean> tikvServerList

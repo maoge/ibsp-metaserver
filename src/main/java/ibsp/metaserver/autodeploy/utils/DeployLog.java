@@ -57,7 +57,7 @@ public class DeployLog {
 	}
 	
 	public static void pubLog(String sessionKey, String log) {
-		if (sessionKey == null)
+		if (sessionKey == null || sessionKey.length() == 0)
 			return;
 		
 		final LogBean logBean = DeployLog.getLogBean(sessionKey);

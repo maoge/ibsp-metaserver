@@ -226,8 +226,8 @@ public class SSHExecutor {
 		return res;
 	}
 	
-	public boolean pdctlStoreState(int id, String sessionKey) throws InterruptedException {
-		String cmd = String.format("./bin/pd-ctl -u http://%s:%s -d store %s \\n", id);
+	public boolean pdctlStoreState(String ip,String port, int id) throws InterruptedException {
+		String cmd = String.format("./bin/pd-ctl -u http://%s:%s -d store %s \\n",ip, port, id);
 		String context = generalCommand(cmd);
 		int start = context.indexOf(cmd);
 		JsonObject store = new JsonObject(context.substring(start+cmd.length()));
