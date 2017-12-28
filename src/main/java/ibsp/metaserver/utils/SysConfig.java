@@ -44,6 +44,11 @@ public class SysConfig {
 	private int active_collect_retry_interval=1000;
 	private int alarm_time_window=600000;
 	
+	private String redis_host = "127.0.0.1";
+	private int redis_port = 6379;
+	private String redis_auth = "";
+	private int redis_pool_size = 5;
+	
 	private int  conn_highwater_mark = 1000;
 	private long mem_highwater_mark  = 10000000000L;            // 10G byte
 	private	long diskreamin_highwater_mark     = 30000000000L;  // 磁盘剩余不少于 10G byte
@@ -76,6 +81,11 @@ public class SysConfig {
 		this.active_collect_retry          = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("active.collect.retry");
 		this.active_collect_retry_interval = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("active.collect.retry.interval");
 		this.alarm_time_window             = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("alarm.time.window");
+		
+		this.redis_host = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).get("redis.host");
+		this.redis_port = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("redis.port");
+		this.redis_auth = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).get("redis.auth");
+		this.redis_pool_size = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("redis.pool.size");
 		
 		this.conn_highwater_mark  = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("connection.highwater.mark");
 		this.mem_highwater_mark   = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getLong("memory.highwater.mark");
@@ -283,6 +293,38 @@ public class SysConfig {
 
 	public void setNeed_auth(boolean need_auth) {
 		this.need_auth = need_auth;
+	}
+
+	public String getRedisHost() {
+		return redis_host;
+	}
+
+	public void setRedisHost(String redis_host) {
+		this.redis_host = redis_host;
+	}
+
+	public int getRedisPort() {
+		return redis_port;
+	}
+
+	public void setRedisPort(int redis_port) {
+		this.redis_port = redis_port;
+	}
+
+	public String getRedisAuth() {
+		return redis_auth;
+	}
+
+	public void setRedisAuth(String redis_auth) {
+		this.redis_auth = redis_auth;
+	}
+
+	public int getRedisPoolSize() {
+		return redis_pool_size;
+	}
+
+	public void setRedisPoolSize(int redis_pool_size) {
+		this.redis_pool_size = redis_pool_size;
 	}
 
 }

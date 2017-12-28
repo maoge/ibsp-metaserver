@@ -259,7 +259,7 @@ DROP TABLE IF EXISTS `t_topology`;
 CREATE TABLE `t_topology` (
   `INST_ID1`     varchar(36) NOT NULL COMMENT 'A端INST_ID或父INST_ID',
   `INST_ID2`     varchar(36) NOT NULL COMMENT 'Z端INST_ID或子INST_ID',
-  `TOPO_TYPE`    int         NOT NULL COMMENT 'TOPO类型:1 link;2 contain',
+  `TOPO_TYPE`    tinyint     NOT NULL COMMENT 'TOPO类型:1 link;2 contain',
   KEY `IDX_TOPO_INST_ID1` (`INST_ID1`),
   KEY `IDX_TOPO_INST_ID2` (`INST_ID2`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -299,6 +299,14 @@ INSERT  INTO `t_file_deploy`(`FILE_ID`,`HOST_ID`,`FILE_TYPE`,`SERV_CLAZZ`,`FILE_
 ('3', '1', 'DB_PD',       'DB', 'pd_server-1.0.0.tar.gz',   '/home/mq1/ftp/', 1456105739394),
 ('4', '1', 'DB_COLLECTD', 'DB', 'db_collectd-1.0.0.tar.gz', '/home/mq1/ftp/', 1456105739394);
 
+DROP TABLE IF EXISTS `t_monitor_collect`;
+CREATE TABLE `t_monitor_collect` (
+  `INST_ID`      varchar(36) NOT NULL,
+  `TS`           bigint(14)  NOT NULL COMMENT '采集时间',
+  `QUOTA_CODE`   tinyint     NOT NULL COMMENT '指标编码',
+  `QUOTA_MEAN`   varchar(16) NOT NULL COMMENT '指标值',
+  KEY `IDX_MONITOR_COLLECT` (`INST_ID`,`TS`)
+) ENGINE=INNODB DEFAULT CHARSET=utf8;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;

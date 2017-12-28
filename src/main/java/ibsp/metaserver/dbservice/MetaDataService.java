@@ -11,6 +11,7 @@ import ibsp.metaserver.bean.RelationBean;
 import ibsp.metaserver.bean.ResultBean;
 import ibsp.metaserver.bean.ServiceBean;
 import ibsp.metaserver.bean.SqlBean;
+import ibsp.metaserver.bean.TopologyBean;
 import ibsp.metaserver.exception.CRUDException;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.schema.Validator;
@@ -51,6 +52,9 @@ public class MetaDataService {
 	private static final String SEL_DEPLOY_FILE   = "SELECT FILE_TYPE,FILE_NAME,FILE_DIR,IP_ADDRESS,USER_NAME,USER_PWD,FTP_PORT "
             + "FROM t_file_deploy t1, t_ftp_host t2 "
             + "WHERE t1.HOST_ID = t2.HOST_ID";
+	
+	private static final String SEL_ALL_INTANCE = "SELECT INST_ID,CMPT_ID,IS_DEPLOYED,POS_X,POS_Y,WIDTH,HEIGHT,ROW,COL FROM t_instance";
+	private static final String SEL_ALL_INTANCE_ATTR = "SELECT INST_ID, ATTR_ID, ATTR_NAME, ATTR_VALUE from t_instance_attr";
 	
 	static {
 		SERVICE_TYPE_MAPPER = new ConcurrentHashMap<String, String>();
@@ -304,6 +308,128 @@ public class MetaDataService {
 		}
 		
 		return serviceBean;
+	}
+	
+	public static List<ServiceBean> getAllDeployedServices() {
+		String sql = "select INST_ID, SERV_NAME, SERV_TYPE, IS_DEPLOYED, CREATE_TIME, USER, PASSWORD "
+				+ "from t_service where IS_DEPLOYED = ?";
+		List<ServiceBean> services = null;
+		
+		try {
+			SqlBean sqlBean = new SqlBean(sql);
+			sqlBean.addParams(new Object[] { CONSTS.DEPLOYED });
+			
+			CRUD c = new CRUD();
+			c.putSqlBean(sqlBean);
+			
+			List<HashMap<String, Object>> result = c.queryForList();
+			if (result == null) {
+				return null;
+			}
+			
+			services = new LinkedList<ServiceBean>();
+			
+			for (HashMap<String, Object> item : result) {
+				if (item == null)
+					continue;
+				
+				ServiceBean service = ServiceBean.convert(item);
+				services.add(service);
+			}
+			
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+		}
+		
+		return services;
+	}
+	
+	public static List<TopologyBean> getAllTopology() {
+		String sql = "select INST_ID1, INST_ID2, TOPO_TYPE from t_topology";
+		List<TopologyBean> topos = null;
+		
+		try {
+			SqlBean sqlBean = new SqlBean(sql);
+			
+			CRUD c = new CRUD();
+			c.putSqlBean(sqlBean);
+			
+			List<HashMap<String, Object>> result = c.queryForList();
+			if (result == null) {
+				return null;
+			}
+			
+			topos = new LinkedList<TopologyBean>();
+			
+			for (HashMap<String, Object> item : result) {
+				if (item == null)
+					continue;
+				
+				TopologyBean topo = TopologyBean.convert(item);
+				topos.add(topo);
+			}
+			
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+		}
+		
+		return topos;
+	}
+	
+	public static List<InstanceBean> getAllInstance() {
+		List<InstanceBean> instances = null;
+		try {
+			SqlBean sqlBean = new SqlBean(SEL_ALL_INTANCE);
+			
+			CRUD c = new CRUD();
+			c.putSqlBean(sqlBean);
+			
+			List<HashMap<String, Object>> listMapping = c.queryForList();
+			if (listMapping == null)
+				return null;
+			
+			instances = new LinkedList<InstanceBean>();
+			for (HashMap<String, Object> mapping : listMapping) {
+				InstanceBean instance = InstanceBean.convert(mapping);
+				if (instance == null)
+					continue;
+				
+				instances.add(instance);
+			}
+			
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+		}
+		
+		return instances;
+	}
+	
+	public static List<InstAttributeBean> getAllInstanceAttribute() {
+		List<InstAttributeBean> instAttrs = null;
+		try {
+			SqlBean sqlBean = new SqlBean(SEL_ALL_INTANCE_ATTR);
+			
+			CRUD c = new CRUD();
+			c.putSqlBean(sqlBean);
+			
+			List<HashMap<String, Object>> listMapping = c.queryForList();
+			if (listMapping == null)
+				return null;
+			
+			instAttrs = new LinkedList<InstAttributeBean>();
+			for (HashMap<String, Object> mapping : listMapping) {
+				InstAttributeBean instance = InstAttributeBean.convert(mapping);
+				if (instance == null)
+					continue;
+				
+				instAttrs.add(instance);
+			}
+			
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+		}
+		
+		return instAttrs;
 	}
 	
 	public static List<InstAttributeBean> getInstanceAttribute(String instID) {
