@@ -281,7 +281,7 @@ public class TiDBService {
 				name += "\n表:"+resultObject.getString("table");
 				resultObject.remove("table");
 			}
-			name += "\n约"+Math.round(object.getDouble("COUNT"))+"条数据";
+			name += "\n约"+Math.round(Double.parseDouble(object.getString("COUNT")))+"条数据";
 			
 			resultObject.put("name", name);
 			resultObject.put("value", value);
