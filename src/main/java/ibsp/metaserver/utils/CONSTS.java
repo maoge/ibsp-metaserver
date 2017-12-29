@@ -13,6 +13,8 @@ public class CONSTS {
 	public static final long SSH_CMD_TIMEOUT         = 15000;
 	public static final String SSH_TIMEOUT_INFO      = "exec remote ssh cmd timeout!";
 	
+	public static final String COLLECT_DATA_API      = "getCollectData";
+	
 	public static final String LINE_SEP              = "\n";
 	public static final String HOSTS_FILE            = "/etc/hosts";
 	public static final String BASH_PROFILE          = ".bash_profile";

@@ -3,8 +3,17 @@ package ibsp.metaserver.utils;
 public class FixHeader {
 	
 	public static final String HEADER_UUID                     = "UUID";
+	public static final String HEADER_ID                       = "ID";
 	public static final String HEADER_OP_TYPE                  = "OP_TYPE";
 	public static final String HEADER_SESSION_KEY              = "SESSION_KEY";
+	
+	public static final String HEADER_TS                       = "TS";
+	public static final String HEADER_CPU                      = "CPU";
+	public static final String HEADER_MEM                      = "MEM";
+	public static final String HEADER_DISK                     = "DISK";
+	public static final String HEADER_USED                     = "Used";
+	public static final String HEADER_TOTAL                    = "Total";
+	public static final String HEADER_AVAILABLE                = "Available";
 	
 	public static final String HEADER_VBROKER_ID               = "VBROKER_ID";
 	public static final String HEADER_VBROKER_IDS              = "VBROKER_IDS";

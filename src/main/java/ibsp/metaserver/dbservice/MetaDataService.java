@@ -1,5 +1,6 @@
 package ibsp.metaserver.dbservice;
 
+import ibsp.metaserver.bean.CollectQuotaBean;
 import ibsp.metaserver.bean.DeployFileBean;
 import ibsp.metaserver.bean.InstAttributeBean;
 import ibsp.metaserver.bean.InstanceBean;
@@ -308,6 +309,37 @@ public class MetaDataService {
 		}
 		
 		return serviceBean;
+	}
+	
+	public static List<CollectQuotaBean> getAllCollectQuotas() {
+		String sql = "select QUOTA_CODE, QUOTA_NAME from t_meta_collect_quota";
+		List<CollectQuotaBean> quotas = null;
+		
+		try {
+			SqlBean sqlBean = new SqlBean(sql);
+			CRUD c = new CRUD();
+			c.putSqlBean(sqlBean);
+			
+			List<HashMap<String, Object>> result = c.queryForList();
+			if (result == null) {
+				return null;
+			}
+			
+			quotas = new LinkedList<CollectQuotaBean>();
+			
+			for (HashMap<String, Object> item : result) {
+				if (item == null)
+					continue;
+				
+				CollectQuotaBean quota = CollectQuotaBean.convert(item);
+				quotas.add(quota);
+			}
+			
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+		}
+		
+		return quotas;
 	}
 	
 	public static List<ServiceBean> getAllDeployedServices() {

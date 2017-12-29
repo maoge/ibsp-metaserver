@@ -213,6 +213,21 @@ insert into `t_meta_cmpt_attr`(`CMPT_ID`,`ATTR_ID`) values
 (121, 109);
 
 
+/*---------------采集指标编码对照表----------------*/
+DROP TABLE IF EXISTS `t_meta_collect_quota`;
+CREATE TABLE `t_meta_collect_quota` (
+  `QUOTA_CODE`    int         NOT NULL COMMENT '采集指标编码',
+  `QUOTA_NAME`    varchar(48) NOT NULL COMMENT '采集指标名称',
+  PRIMARY KEY (`QUOTA_CODE`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+insert into `t_meta_collect_quota`(`QUOTA_CODE`,`QUOTA_NAME`) values
+( 1, 'CPU.Used'),
+( 2, 'MEM.Used'),
+( 3, 'DISK.Total'),
+( 4, 'DISK.Used'),
+( 5, 'DISK.Available');
+
 /*---------------组件实例----------------*/
 DROP TABLE IF EXISTS `t_instance`;
 CREATE TABLE `t_instance` (

@@ -1,5 +1,6 @@
 package ibsp.metaserver.global;
 
+import ibsp.metaserver.bean.CollectQuotaBean;
 import ibsp.metaserver.bean.DeployFileBean;
 import ibsp.metaserver.bean.IdSetBean;
 import ibsp.metaserver.bean.InstAttributeBean;
@@ -19,6 +20,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -47,6 +49,7 @@ public class MetaData {
 	private Map<String, DeployFileBean> deployFileMap;
 	private Map<String, ServiceBean> serviceMap;
 	private Map<String, InstanceDtlBean> instanceDtlMap;
+	private Map<String, Integer> collectQuotaMap;
 	private Topology topo;
 	
 	private JedisPool jedisPool;
@@ -66,6 +69,7 @@ public class MetaData {
 		deployFileMap      = new ConcurrentHashMap<String,  DeployFileBean>();
 		serviceMap         = new ConcurrentHashMap<String,  ServiceBean>();
 		instanceDtlMap     = new ConcurrentHashMap<String,  InstanceDtlBean>();
+		collectQuotaMap    = new ConcurrentHashMap<String,  Integer>();
 		topo               = new Topology();
 	}
 	
@@ -97,6 +101,7 @@ public class MetaData {
 		LoadDeployFile();
 		LoadServices();
 		LoadInstances();
+		LoadCollectQuota();
 		LoadTopo();
 	}
 	
@@ -109,7 +114,7 @@ public class MetaData {
 		jedisPool = new JedisPool(jedisConfig, SysConfig.get().getRedisHost(), SysConfig.get().getRedisPort(), 3000, SysConfig.get().getRedisAuth());
 	}
 	
-	private Jedis getJedis() {
+	public Jedis getJedis() {
 		Jedis jedis = null;
 		try {
 			intanceLock.lock();
@@ -121,6 +126,30 @@ public class MetaData {
 			intanceLock.unlock();
 		}
 		return jedis;
+	}
+	
+	private void LoadCollectQuota() {
+		try {
+			intanceLock.lock();
+			
+			List<CollectQuotaBean> list = MetaDataService.getAllCollectQuotas();
+			if (list == null || list.isEmpty())
+				return;
+			
+			collectQuotaMap.clear();
+			
+			for (CollectQuotaBean quota : list) {
+				if (quota == null)
+					continue;
+				
+				collectQuotaMap.put(quota.getQuotaName(), quota.getQuotaCode());
+			}
+			
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+		} finally {
+			intanceLock.unlock();
+		}
 	}
 	
 	private void LoadServices() {
@@ -327,23 +356,42 @@ public class MetaData {
 		return serviceMap;
 	}
 	
-	/*public String getServiceCollectdID(String servID) {
+	public String getServiceCollectdID(String servID) {
 		ServiceBean servBean = serviceMap.get(servID);
 		if (servBean == null)
 			return null;
 		
 		String servType = servBean.getServType();
-		switch (servType) {
-		case CONSTS.SERV_TYPE_MQ:
-			break;
-		case CONSTS.SERV_TYPE_CACHE:
-			break;
-		case CONSTS.SERV_TYPE_DB:
-			break;
-		default:
-			break;
+		String collectdCmptName = String.format("%s_COLLECTD", servType);
+		Set<String> subs = topo.get(servID, CONSTS.TOPO_TYPE_CONTAIN);
+		if (subs == null)
+			return null;
+		
+		String collectdID = null;
+		
+		for (String subID : subs) {
+			InstanceDtlBean instDtlBean = instanceDtlMap.get(subID);
+			if (instDtlBean == null)
+				continue;
+			
+			InstanceBean instBean = instDtlBean.getInstance();
+			int cmptID = instBean.getCmptID();
+			MetaComponentBean component = metaCmptMap.get(cmptID);
+			if (component.getCmptName().equals(collectdCmptName)) {
+				collectdID = instBean.getInstID();
+				break;
+			}
 		}
-	}*/
+		
+		return collectdID;
+	}
+	
+	public InstanceDtlBean getInstanceDtlBean(String instID) {
+		if (instanceDtlMap == null)
+			return null;
+		
+		return instanceDtlMap.get(instID);
+	}
 	
 	public DeployFileBean getDeployFile(String type) {
 		if (deployFileMap == null)
@@ -438,6 +486,13 @@ public class MetaData {
 	
 	public MetaAttributeBean getAttributeByID(Integer attrID) {
 		return metaAttrMap.get(attrID);
+	}
+	
+	public Integer getQuotaCode(String quotaName) {
+		if (collectQuotaMap == null)
+			return null;
+		
+		return collectQuotaMap.get(quotaName);
 	}
 	
 }

@@ -154,10 +154,53 @@ public class HttpUtils {
 	public static boolean isNull(Object obj) {
 		return (obj == null || "".equals(obj)) ? true : false;
 	}
+	
+	public static String getUrlData(String urlString) throws IOException {
+		String res = null;
+		URL url;
+		StringBuffer bs = null;
+		BufferedReader buffer = null;
+		HttpURLConnection urlcon = null;
+		
+		boolean isConn = false;
+		
+		try {
+			url = new URL(urlString);
+			urlcon = (HttpURLConnection) url.openConnection();
+			
+			urlcon.setRequestMethod(CONSTS.HTTP_METHOD_GET);
+			urlcon.setDoOutput(false);
+			urlcon.setReadTimeout(READ_TIMEOUT);
+			urlcon.setConnectTimeout(CONN_TIMEOUT);
+			
+			isConn = true;
+			
+			buffer = new BufferedReader(new InputStreamReader(urlcon.getInputStream()));
+			bs = new StringBuffer();
+			String s = null;
+			while ((s = buffer.readLine()) != null) {
+				bs.append(s);
+			}
+			res = bs.toString();
+		} catch (IOException e) {
+			throw new IOException(urlString + "\r url调用异常", e);
+		} finally {
+			if (buffer != null)
+				try {
+					buffer.close();
+				} catch (IOException e) {
+					logger.error(e.getMessage(), e);
+				}
+			if (urlcon != null && isConn) {
+				urlcon.disconnect();
+			}
+		}
+		return res;
+	}
 
 	public static String getUrlData(String urlString, String userName, String userPwd)
 			throws IOException, ConnectException {
-		String res = "";
+		String res = null;
 		URL url;
 		StringBuffer bs = null;
 		BufferedReader buffer = null;
