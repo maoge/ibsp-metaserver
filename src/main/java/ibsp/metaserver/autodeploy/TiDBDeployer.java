@@ -706,7 +706,106 @@ public class TiDBDeployer implements Deployer {
 	
 	private boolean deployDBCollectd(String serviceID, InstanceDtlBean instanceDtl,
 			String pdList, String sessionKey, ResultBean result) {
-		// TODO
+		
+		InstanceBean collectdInstance = instanceDtl.getInstance();
+		
+		String id   = instanceDtl.getAttribute("COLLECTD_ID").getAttrValue();
+		String ip   = instanceDtl.getAttribute("IP").getAttrValue();
+		String port = instanceDtl.getAttribute("PORT").getAttrValue();
+		String user = instanceDtl.getAttribute("OS_USER").getAttrValue();
+		String pwd  = instanceDtl.getAttribute("OS_PWD").getAttrValue();
+		
+//		String logFile = "log/collectd.log";
+		
+		//TODO log file and metaserver address
+		String startContext = getCollectdStartCmd(id, ip, port, "http://192.168.14.206:19991", serviceID);
+		
+		String stopContext = getCollectdStopCmd(id);
+		
+		if (collectdInstance.getIsDeployed().equals(CONSTS.DEPLOYED)) {
+			String info = String.format("DB collectd id:%s %s:%s is deployed ......", id, ip, port);
+			DeployLog.pubSuccessLog(sessionKey, info);
+			return true;
+		}
+		
+		String deployRootPath = String.format("db_collectd_deploy/%s", port);
+		JschUserInfo ui = null;
+		SSHExecutor executor = null;
+		boolean connected = false;
+		
+		DeployFileBean tidbFile = MetaData.get().getDeployFile(CONSTS.SERV_DB_COLLECTD);
+		
+		try {
+			String startInfo = String.format("deploy DB collectd id:%s %s:%s begin ......", id, ip, port);
+			DeployLog.pubSuccessLog(sessionKey, startInfo);
+			
+			ui = new JschUserInfo(user, pwd, ip, CONSTS.SSH_PORT_DEFAULT);
+			executor = new SSHExecutor(ui);
+			executor.connect();
+			connected = true;
+			
+			if (executor.isPortUsed(Integer.parseInt(port))) {
+				DeployLog.pubLog(sessionKey, "port "+port+" is already in use......");
+				return false;
+			}
+			
+			// make deploy dir
+			if (!executor.isDirExistInCurrPath(deployRootPath, sessionKey)) {
+				executor.mkdir(deployRootPath, sessionKey);
+			}
+
+			executor.cd("$HOME/" + deployRootPath, sessionKey);
+			executor.mkdir("log", sessionKey);
+			
+			// fetch deploy file
+			String srcFile = String.format("%s%s", tidbFile.getFtpDir(), tidbFile.getFileName());
+			String desPath = ".";
+			executor.scp(tidbFile.getFtpUser(), tidbFile.getFtpPwd(),
+					tidbFile.getFtpHost(), srcFile, desPath,
+					tidbFile.getSshPort(), sessionKey);
+			
+			// unpack deploy file
+			executor.tgzUnpack(tidbFile.getFileName(), sessionKey);
+			executor.rm(tidbFile.getFileName(), false, sessionKey);
+			
+			// create start shell
+			if (!executor.createStartShell(startContext)) {
+				DeployLog.pubLog(sessionKey, "create DB collectd start shell fail ......");
+				return false;
+			}
+			
+			// create stop shell
+			if (!executor.createStopShell(stopContext)) {
+				DeployLog.pubLog(sessionKey, "create DB collectd stop shell fail ......");
+				return false;
+			}
+			
+			// start tidb-server
+			if (!execStartShell(executor, port, sessionKey)) {
+				DeployLog.pubLog(sessionKey, "exec DB collectd start shell fail ......");
+				return false;
+			}
+			
+			// mod t_instance.IS_DEPLOYED = 1
+			if (!ConfigDataService.modInstanceDeployFlag(id, CONSTS.DEPLOYED, result)) {
+				return false;
+			}
+			
+			String info = String.format("deploy DB collectd id:%s %s:%s success ......", id, ip, port);
+			DeployLog.pubSuccessLog(sessionKey, info);
+			
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+
+			String info = String.format("deploy DB collectd id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
+			DeployLog.pubErrorLog(sessionKey, info);
+
+			return false;
+		} finally {
+			if (connected) {
+				executor.close();
+			}
+		}
 		return true;
 	}
 	
@@ -988,7 +1087,72 @@ public class TiDBDeployer implements Deployer {
 	}
 	
 	private boolean undeployDBCollectd(InstanceDtlBean collectd, String sessionKey, ResultBean result) {
-		// TODO
+		
+		InstanceBean collectdInstance = collectd.getInstance();
+		
+		String id   = collectd.getAttribute("COLLECTD_ID").getAttrValue();
+		String ip   = collectd.getAttribute("IP").getAttrValue();
+		String port = collectd.getAttribute("PORT").getAttrValue();
+		String user = collectd.getAttribute("OS_USER").getAttrValue();
+		String pwd  = collectd.getAttribute("OS_PWD").getAttrValue();
+		
+		if (collectdInstance.getIsDeployed().equals(CONSTS.NOT_DEPLOYED)) {
+			String info = String.format("DB collectd id:%s %s:%s is not deployed ......", id, ip, port);
+			DeployLog.pubSuccessLog(sessionKey, info);
+			
+			return true;
+		}
+		
+		String deployRootPath = String.format("db_collectd_deploy/%s", port);
+		JschUserInfo ui = null;
+		SSHExecutor executor = null;
+		boolean connected = false;
+		
+		try {
+			String startInfo = String.format("undeploy DB collectd id:%s %s:%s begin ......", id, ip, port);
+			DeployLog.pubSuccessLog(sessionKey, startInfo);
+			
+			ui = new JschUserInfo(user, pwd, ip, CONSTS.SSH_PORT_DEFAULT);
+			executor = new SSHExecutor(ui);
+			executor.connect();
+			connected = true;
+			
+			// cd deploy dir, exec stop shell, rm deploy dir
+			if (executor.isDirExistInCurrPath(deployRootPath, sessionKey)) {
+				executor.cd("$HOME/" + deployRootPath, sessionKey);
+				
+				// stop tidb-server
+				if (executor.isPortUsed(port, sessionKey)) {
+					if (!execStopShell(executor, port, sessionKey)) {
+						DeployLog.pubLog(sessionKey, "exec DB collectd stop shell fail ......");
+						return false;
+					}
+				}
+				
+				executor.cd("$HOME", sessionKey);
+				executor.rm(deployRootPath, true, sessionKey);
+			}
+			
+			// mod t_instance.IS_DEPLOYED = 0
+			if (!ConfigDataService.modInstanceDeployFlag(id, CONSTS.NOT_DEPLOYED, result))
+				return false;
+			
+			String info = String.format("undeploy DB collectd id:%s %s:%s success ......", id, ip, port);
+			DeployLog.pubSuccessLog(sessionKey, info);
+			
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+
+			String info = String.format("undeploy DB collectd id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
+			DeployLog.pubErrorLog(sessionKey, info);
+
+			return false;
+		} finally {
+			if (connected) {
+				executor.close();
+			}
+		}
+		
 		return true;
 	}
 	
@@ -1410,5 +1574,27 @@ public class TiDBDeployer implements Deployer {
 				+ "    echo stop tikv-server not running\\n"
 				+ "fi\\n",
 				ip, port);
+	}
+	
+	private String getCollectdStartCmd(String id, String ip, String port, String rootUrl, String servID) {
+		return String.format("bin/collectd -name=%s \\\\\n"
+				+ "    -addr=%s:%s \\\\\n"
+				+ "    -compress=false \\\\\n"
+				+ "    -rooturl=%s \\\\\n"
+				+ "    -servid=%s &",
+				id, ip, port, rootUrl, servID);
+	}
+	
+	private String getCollectdStopCmd(String id) {
+		return String.format("var=\\\"name=%s\\\" \\n"
+				+ "pid=\\`ps -ef | grep \\\"\\${var}\\\" | awk '{print \\$1, \\$2, \\$8}' | grep collectd | awk '{print \\$2}'\\`\\n"
+				+ "if [ \\\"\\${pid}\\\" != \\\"\\\" ]\\n"
+				+ "then\\n"
+				+ "    kill \\$pid\\n"
+				+ "    echo stop collectd pid:\\$pid\\n"
+				+ "else\\n"
+				+ "    echo stop collectd not running\\n"
+				+ "fi\\n",
+				id);
 	}
 }
