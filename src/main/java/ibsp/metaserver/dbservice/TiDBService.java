@@ -54,7 +54,8 @@ public class TiDBService {
 		
 		return  getTidbInfoByServIdOrServiceStub(serviceID,serviceStub,tidbServerList,result) && 
 				getPDInfoByServIdOrServiceStub(serviceID, serviceStub, pdServerList, result) && 
-				getTikvInfoByServIdOrServiceStub(serviceID, serviceStub, tikvServerList, result);
+				getTikvInfoByServIdOrServiceStub(serviceID, serviceStub, tikvServerList, result) &&
+				getCollectdInfoByServIdOrServiceStub(serviceID, serviceStub, collectd, result);
 	}
 	
 	public static boolean getPDInfoByServIdOrServiceStub(String serviceID, Map<Integer, String> serviceStub,
@@ -154,6 +155,31 @@ public class TiDBService {
 			InstanceDtlBean tidb = new InstanceDtlBean(tidbInstance, tidbAttr);
 			tidbServerList.add(tidb);
 		}
+		return true;
+	}
+	
+	public static boolean getCollectdInfoByServIdOrServiceStub(String serviceID,Map<Integer, String> serviceStub, 
+			InstanceDtlBean collectd, ResultBean result) {
+		
+		if (serviceStub == null) {
+			serviceStub = MetaDataService.getSubNodesWithType(serviceID, result);
+			if(serviceStub == null) {
+				return false;
+			}
+		}
+		Integer tidbCollectdCmptID = MetaData.get().getComponentID("DB_COLLECTD");
+		String id = serviceStub.get(tidbCollectdCmptID);
+		InstanceBean collectdInstance = MetaDataService.getInstance(id, result);
+		Map<String, InstAttributeBean> collectdAttr = MetaDataService.getAttribute(id, result);
+		if (collectdInstance == null || collectdAttr == null) {
+			String err = String.format("DB collectd id:%s, info missing ......", id);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(err);
+			return false;
+		}
+		
+		collectd.setInstance(collectdInstance);
+		collectd.setAttrMap(collectdAttr);
 		return true;
 	}
 	
