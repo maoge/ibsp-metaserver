@@ -150,14 +150,14 @@ public class MetaData {
 			return false;
 		
 		switch (type) {
-		case e3:
-		case e4:
+		case e6:
+		case e7:
 			ServiceBean service = MetaDataService.getService(instID);
 			if (service != null) {
 				serviceMap.put(instID, service);
 			}
 			break;
-		case e5:
+		case e8:
 			serviceMap.remove(instID);
 			break;
 		default:

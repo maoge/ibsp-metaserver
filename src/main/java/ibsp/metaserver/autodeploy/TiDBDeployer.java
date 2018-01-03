@@ -230,18 +230,18 @@ public class TiDBDeployer implements Deployer {
 				Set<String> subsub = topo.get(subID, CONSTS.TOPO_TYPE_CONTAIN);
 				if (subsub != null) {
 					for (String subsubID : subsub) {
-						if (!MetaDataService.deleteInstance(subsubID, result))
+						if (!MetaDataService.deleteInstance(subID, subsubID, result))
 							return false;
 					}
 				}
 				
-				if (!MetaDataService.deleteInstance(subID, result))
+				if (!MetaDataService.deleteInstance(serviceID, subID, result))
 					return false;
 			}
 		}
 		
 		// delete t_instance INST_ID = serviceID
-		if (!MetaDataService.deleteInstance(serviceID, result))
+		if (!MetaDataService.deleteInstance(serviceID, serviceID, result))
 			return false;
 		
 		// delete t_service

@@ -13,6 +13,9 @@ import ibsp.metaserver.bean.ResultBean;
 import ibsp.metaserver.bean.ServiceBean;
 import ibsp.metaserver.bean.SqlBean;
 import ibsp.metaserver.bean.TopologyBean;
+import ibsp.metaserver.eventbus.EventBean;
+import ibsp.metaserver.eventbus.EventBusMsg;
+import ibsp.metaserver.eventbus.EventType;
 import ibsp.metaserver.exception.CRUDException;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.schema.Validator;
@@ -90,7 +93,7 @@ public class MetaDataService {
 		return ret;
 	}
 	
-	public static boolean deleteInstance(String instID, ResultBean result) {
+	public static boolean deleteInstance(String parentID, String instID, ResultBean result) {
 		boolean res = false;
 		
 		try {
@@ -117,6 +120,23 @@ public class MetaDataService {
 			result.setRetInfo(e.getMessage());
 		}
 		
+		if (res) {
+			JsonObject ev1Json = new JsonObject();
+			ev1Json.put("INST_ID", instID);
+			EventBean ev1 = new EventBean(EventType.e5);
+			ev1.setUuid(MetaData.get().getUUID());
+			ev1.setJsonStr(ev1Json.toString());
+			EventBusMsg.publishEvent(ev1);
+			
+			JsonObject ev2Json = new JsonObject();
+			ev2Json.put("INST_ID1", parentID);
+			ev2Json.put("INST_ID2", instID);
+			EventBean ev2 = new EventBean(EventType.e2);
+			ev1.setUuid(MetaData.get().getUUID());
+			ev1.setJsonStr(ev2Json.toString());
+			EventBusMsg.publishEvent(ev2);
+		}
+		
 		return res;
 	}
 	
@@ -137,6 +157,16 @@ public class MetaDataService {
 			
 			result.setRetCode(CONSTS.REVOKE_NOK);
 			result.setRetInfo(e.getMessage());
+		}
+		
+		if (res) {
+			JsonObject evJson = new JsonObject();
+			evJson.put("INST_ID", instID);
+			
+			EventBean ev = new EventBean(EventType.e8);
+			ev.setUuid(MetaData.get().getUUID());
+			ev.setJsonStr(evJson.toString());
+			EventBusMsg.publishEvent(ev);
 		}
 		
 		return res;
