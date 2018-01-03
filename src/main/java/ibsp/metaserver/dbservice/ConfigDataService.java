@@ -1,18 +1,5 @@
 package ibsp.metaserver.dbservice;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.github.fge.jsonschema.core.exceptions.ProcessingException;
-import com.github.fge.jsonschema.core.report.ProcessingReport;
-
 import ibsp.metaserver.autodeploy.utils.JschUserInfo;
 import ibsp.metaserver.autodeploy.utils.SSHExecutor;
 import ibsp.metaserver.bean.DeployFileBean;
@@ -22,6 +9,10 @@ import ibsp.metaserver.bean.MetaComponentBean;
 import ibsp.metaserver.bean.PosBean;
 import ibsp.metaserver.bean.ResultBean;
 import ibsp.metaserver.bean.SqlBean;
+import ibsp.metaserver.eventbus.EventBean;
+import ibsp.metaserver.eventbus.EventBusMsg;
+import ibsp.metaserver.eventbus.EventType;
+import ibsp.metaserver.eventbus.OperType;
 import ibsp.metaserver.exception.CRUDException;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.schema.Validator;
@@ -33,6 +24,20 @@ import ibsp.metaserver.utils.HttpUtils;
 import ibsp.metaserver.utils.UUIDUtils;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.github.fge.jsonschema.core.exceptions.ProcessingException;
+import com.github.fge.jsonschema.core.report.ProcessingReport;
 
 public class ConfigDataService {
 	
@@ -99,6 +104,7 @@ public class ConfigDataService {
 		
 		String serviceID = servIDBean.getRetInfo();
 		String serviceName = servNameBean.getRetInfo();
+		List<EventBean> events = new LinkedList<EventBean>();
 		
 		boolean exist = isServiceExist(serviceID, result);
 		if (exist) {
@@ -107,20 +113,33 @@ public class ConfigDataService {
 				return false;
 		} else {
 			// first save service topo
-			if (!addService(serviceID, serviceName, curd, sServType, result))
+			if (!addService(serviceID, serviceName, curd, sServType, result, events))
 				return false;
 			
-			if (!enumJson(topoJson, curd, result))
+			if (!enumJson(topoJson, curd, result, events))
 				return false;
 		}
 		
-		return curd.executeUpdate(true, result);
+		boolean res = curd.executeUpdate(true, result);
+		if (res) {
+			Iterator<EventBean> it = events.iterator();
+			while (it.hasNext()) {
+				EventBean ev = it.next();
+				if (ev == null)
+					continue;
+				
+				EventBusMsg.publishEvent(ev);
+			}
+		}
+		
+		return res;
 	}
 	
 	public static boolean saveServiceNode(String sParentID, String sOperType, String sNodeJson, ResultBean result) {
 		JsonObject nodeJson = new JsonObject(sNodeJson);
 		
 		CRUD curd = new CRUD();
+		List<EventBean> events = new LinkedList<EventBean>();
 		
 		Iterator<Entry<String, Object>> itNode = nodeJson.iterator();
 		while (itNode.hasNext()) {
@@ -166,16 +185,16 @@ public class ConfigDataService {
 				
 				if (sOperType.equals(CONSTS.OP_TYPE_ADD)) {
 					// add instance
-					addInstance(instID, cmptID, curd, instanceNode, result);
+					addInstance(instID, cmptID, curd, instanceNode, result, events);
 					
 					// add component attribute
 					addComponentAttribute(instID, cmptID, curd, instanceNode, result);
 					
 					// add relation
-					addRelation(sParentID, cmptID, curd, instanceNode, result);
+					addRelation(sParentID, cmptID, curd, instanceNode, result, events);
 				} else if (sOperType.equals(CONSTS.OP_TYPE_MOD)) {
 					// mod component attribute
-					modComponentAttribute(instID, cmptID, curd, instanceNode, result);
+					modComponentAttribute(instID, cmptID, curd, instanceNode, result, events);
 				} else {
 					String err = String.format("OP_TYPE:%s error ......", sOperType);
 					result.setRetCode(CONSTS.REVOKE_NOK);
@@ -185,7 +204,19 @@ public class ConfigDataService {
 			}
 		}
 		
-		return curd.executeUpdate(true, result);
+		boolean res = curd.executeUpdate(true, result);
+		if (res) {
+			Iterator<EventBean> it = events.iterator();
+			while (it.hasNext()) {
+				EventBean ev = it.next();
+				if (ev == null)
+					continue;
+				
+				EventBusMsg.publishEvent(ev);
+			}
+		}
+		
+		return res;
 	}
 	
 	public static boolean delServiceNode(String sParentID, String sInstID, ResultBean result) {
@@ -242,7 +273,7 @@ public class ConfigDataService {
 	}
 	
 	private static boolean modComponentAttribute(String instID, Integer cmptID,
-			CRUD curd, JsonObject nodeJson, ResultBean result) {
+			CRUD curd, JsonObject nodeJson, ResultBean result, List<EventBean> events) {
 		
 		IdSetBean<Integer> attrIdSet = MetaData.get().getAttrIdSet(cmptID);
 		Iterator<Integer> it = attrIdSet.iterator();
@@ -256,6 +287,14 @@ public class ConfigDataService {
 			sqlAttr.addParams(new Object[]{attrValue, instID, attrID});
 			curd.putSqlBean(sqlAttr);
 		}
+		
+		JsonObject evJson = new JsonObject();
+		evJson.put("INST_ID", instID);
+		
+		EventBean ev = new EventBean(EventType.e4);
+		ev.setUuid(MetaData.get().getUUID());
+		ev.setJsonStr(evJson.toString());
+		events.add(ev);
 		
 		return true;
 	}
@@ -291,7 +330,7 @@ public class ConfigDataService {
 	}
 	
 	private static boolean addInstance(String instID, Integer cmptID,
-			CRUD curd, JsonObject nodeJson, ResultBean result) {
+			CRUD curd, JsonObject nodeJson, ResultBean result, List<EventBean> events) {
 		
 		PosBean pos = new PosBean();
 		JsonObject jsonPos = nodeJson.getJsonObject(FixHeader.HEADER_POS);
@@ -307,6 +346,14 @@ public class ConfigDataService {
 		sqlInst.addParams(new Object[]{instID, cmptID, deployed, pos.getX(), pos.getY(),
 				pos.getWidth(), pos.getHeight(), pos.getRow(), pos.getCol()});
 		curd.putSqlBean(sqlInst);
+		
+		JsonObject evJson = new JsonObject();
+		evJson.put("INST_ID", instID);
+		
+		EventBean ev = new EventBean(EventType.e3);
+		ev.setUuid(MetaData.get().getUUID());
+		ev.setJsonStr(evJson.toString());
+		events.add(ev);
 		
 		return true;
 	}
@@ -331,7 +378,7 @@ public class ConfigDataService {
 	}
 	
 	private static boolean addRelation(String instID1, Integer cmptID,
-			CRUD curd, JsonObject nodeJson, ResultBean result) {
+			CRUD curd, JsonObject nodeJson, ResultBean result, List<EventBean> events) {
 		
 		String subCmptIDAttrName = MetaData.get().getCmptIDAttrNameByID(cmptID);
 		String instID2 = nodeJson.getString(subCmptIDAttrName);
@@ -340,6 +387,16 @@ public class ConfigDataService {
 			SqlBean sqlTopo = new SqlBean(INS_TOPOLOGY);
 			sqlTopo.addParams(new Object[] { instID1, instID2, CONSTS.TOPO_TYPE_CONTAIN });
 			curd.putSqlBean(sqlTopo);
+			
+			JsonObject evJson = new JsonObject();
+			evJson.put("INST_ID1", instID1);
+			evJson.put("INST_ID2", instID2);
+			evJson.put("TOPO_TYPE", CONSTS.TOPO_TYPE_CONTAIN);
+			
+			EventBean ev = new EventBean(EventType.e1);
+			ev.setUuid(MetaData.get().getUUID());
+			ev.setJsonStr(evJson.toString());
+			events.add(ev);
 		}
 		
 		return true;
@@ -383,7 +440,8 @@ public class ConfigDataService {
 		return true;
 	}
 	
-	private static boolean enumJson(Object json, CRUD curd, ResultBean result) {
+	private static boolean enumJson(Object json, CRUD curd,
+			ResultBean result, List<EventBean> events) {
 		if (json instanceof JsonObject) {
 			Iterator<Entry<String, Object>> it = ((JsonObject) json).iterator();
 			while (it.hasNext()) {
@@ -400,12 +458,12 @@ public class ConfigDataService {
 					if (((JsonObject) val).fieldNames().size() == 0)
 						return true;
 					
-					if (!addComponentAttrbuteAndRelation((JsonObject) val, curd, key, result)) {
+					if (!addComponentAttrbuteAndRelation((JsonObject) val, curd, key, result, events)) {
 						return false;
 					}
 				}
 				
-				if (!enumJson(val, curd, result))
+				if (!enumJson(val, curd, result, events))
 					return false;
 			}
 		} else if (json instanceof JsonArray) {
@@ -418,7 +476,7 @@ public class ConfigDataService {
 				if (val == null)
 					return false;
 				
-				if (!enumJson(val, curd, result))
+				if (!enumJson(val, curd, result, events))
 					return false;
 			}
 		}
@@ -426,7 +484,7 @@ public class ConfigDataService {
 		return true;
 	}
 	
-	private static boolean addComponentAttrbuteAndRelation(JsonObject json, CRUD curd, String cmptName, ResultBean result) {
+	private static boolean addComponentAttrbuteAndRelation(JsonObject json, CRUD curd, String cmptName, ResultBean result, List<EventBean> events) {
 		MetaComponentBean component = MetaData.get().getComponentByName(cmptName);
 		if (component == null) {
 			String info = String.format("compoent:%s not found ......", cmptName);
@@ -493,6 +551,17 @@ public class ConfigDataService {
 					SqlBean sqlTopo = new SqlBean(INS_TOPOLOGY);
 					sqlTopo.addParams(new Object[] { instID, subCmptID, CONSTS.TOPO_TYPE_CONTAIN });
 					curd.putSqlBean(sqlTopo);
+					
+					JsonObject evJson = new JsonObject();
+					evJson.put("INST_ID1", instID);
+					evJson.put("INST_ID2", subCmptID);
+					evJson.put("TOPO_TYPE", CONSTS.TOPO_TYPE_CONTAIN);
+					
+					EventBean ev = new EventBean(EventType.e1);
+					ev.setUuid(MetaData.get().getUUID());
+					ev.setJsonStr(evJson.toString());
+					
+					events.add(ev);
 				}
 			}
 		}
@@ -543,7 +612,7 @@ public class ConfigDataService {
 	}
 	
 	private static boolean addService(String serviceID, String serviceName,
-			CRUD curd, String sServType, ResultBean result) {
+			CRUD curd, String sServType, ResultBean result, List<EventBean> events) {
 		long dt = System.currentTimeMillis();
 		Object[] params = new Object[] { serviceID, serviceName, sServType, CONSTS.NOT_DEPLOYED, dt, null, null};
 		//set db root password
@@ -564,6 +633,14 @@ public class ConfigDataService {
 		SqlBean sqlServBean = new SqlBean(INS_SERVICE);
 		sqlServBean.addParams(params);
 		curd.putSqlBean(sqlServBean);
+		
+		JsonObject evJson = new JsonObject();
+		evJson.put("INST_ID", serviceID);
+		
+		EventBean ev = new EventBean(EventType.e6);
+		ev.setUuid(MetaData.get().getUUID());
+		ev.setJsonStr(evJson.toString());
+		events.add(ev);
 		
 		return true;
 	}

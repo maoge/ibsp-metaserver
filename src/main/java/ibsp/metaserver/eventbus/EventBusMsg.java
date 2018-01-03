@@ -17,7 +17,7 @@ public class EventBusMsg {
 			return;
 		}
 		
-		String msg = evBean.getJsonString();
+		String msg = evBean.asJsonString();
 		
 		logger.debug("EventBus public messages:{}", msg);
 		EventBus evBus = ServiceData.get().getEventBus();

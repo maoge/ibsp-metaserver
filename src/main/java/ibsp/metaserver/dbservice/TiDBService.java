@@ -158,7 +158,7 @@ public class TiDBService {
 		return true;
 	}
 	
-	public static boolean getCollectdInfoByServIdOrServiceStub(String serviceID,Map<Integer, String> serviceStub, 
+	public static boolean getCollectdInfoByServIdOrServiceStub(String serviceID, Map<Integer, String> serviceStub,
 			InstanceDtlBean collectd, ResultBean result) {
 		
 		if (serviceStub == null) {

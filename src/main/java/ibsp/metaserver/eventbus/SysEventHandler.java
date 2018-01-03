@@ -11,6 +11,7 @@ import java.net.UnknownHostException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.threadpool.WorkerPool;
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.FixHeader;
@@ -46,12 +47,36 @@ public class SysEventHandler implements Handler<Message<String>> {
 		@Override
 		public void run() {
 			JsonObject jsonObj = new JsonObject(msg);
-			int eventCode = jsonObj.getInteger(FixHeader.HEADER_EVENT_CODE);
-			EventType eventType = EventType.get(eventCode);
-			EventType type = EventType.get(eventCode);
+			if (jsonObj.isEmpty()) {
+				return;
+			}
+			
+			int eventCode       = jsonObj.getInteger(FixHeader.HEADER_EVENT_CODE);
+			String uuid         = jsonObj.getString(FixHeader.HEADER_UUID);
+			String jsonStr      = jsonObj.getString(FixHeader.HEADER_JSONSTR);
+			EventType type      = EventType.get(eventCode);
+			JsonObject json     = new JsonObject(jsonStr);
+			
+//			if (uuid.equals(MetaData.get().getUUID())) {
+//				return;
+//			}
 			
 			switch(type) {
-			
+			case e1:
+			case e2:
+				System.out.println(msg);
+				MetaData.get().doTopo(json, type);
+				break;
+			case e3:
+			case e4:
+			case e5:
+				MetaData.get().doInstance(json, type);
+				break;
+			case e6:
+			case e7:
+			case e8:
+				MetaData.get().doService(json, type);
+				break;
 			default:
 				break;
 			}

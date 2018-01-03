@@ -57,6 +57,11 @@ public class MetaDataService {
 	private static final String SEL_ALL_INTANCE = "SELECT INST_ID,CMPT_ID,IS_DEPLOYED,POS_X,POS_Y,WIDTH,HEIGHT,ROW,COL FROM t_instance";
 	private static final String SEL_ALL_INTANCE_ATTR = "SELECT INST_ID, ATTR_ID, ATTR_NAME, ATTR_VALUE from t_instance_attr";
 	
+	private static final String DEL_INSTANCE = "delete from t_instance where INST_ID = ?";
+	private static final String DEL_INSTANCE_ATTR = "delete from t_instance_attr where INST_ID = ?";
+	private static final String DEL_TOPOLOGY = "delete from t_topology where INST_ID2 = ?";
+	private static final String DEL_SERVICE = "delete from t_service where INST_ID = ?";
+	
 	static {
 		SERVICE_TYPE_MAPPER = new ConcurrentHashMap<String, String>();
 		SERVICE_TYPE_MAPPER.put(CONSTS.SERV_TYPE_DB, "tidb");
@@ -83,6 +88,58 @@ public class MetaDataService {
 		}
 		
 		return ret;
+	}
+	
+	public static boolean deleteInstance(String instID, ResultBean result) {
+		boolean res = false;
+		
+		try {
+			CRUD c = new CRUD();
+			
+			SqlBean sqlBean1 = new SqlBean(DEL_INSTANCE);
+			sqlBean1.addParams(new Object[] { instID });
+			c.putSqlBean(sqlBean1);
+			
+			SqlBean sqlBean2 = new SqlBean(DEL_INSTANCE_ATTR);
+			sqlBean2.addParams(new Object[] { instID });
+			c.putSqlBean(sqlBean2);
+			
+			SqlBean sqlBean3 = new SqlBean(DEL_TOPOLOGY);
+			sqlBean3.addParams(new Object[] { instID });
+			c.putSqlBean(sqlBean3);
+			
+			res = c.executeUpdate();
+			
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+			
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(e.getMessage());
+		}
+		
+		return res;
+	}
+	
+	public static boolean deleteService(String instID, ResultBean result) {
+		boolean res = false;
+		
+		try {
+			CRUD c = new CRUD();
+			
+			SqlBean sqlBean = new SqlBean(DEL_SERVICE);
+			sqlBean.addParams(new Object[] { instID });
+			c.putSqlBean(sqlBean);
+			
+			res = c.executeUpdate();
+			
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+			
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(e.getMessage());
+		}
+		
+		return res;
 	}
 	
 	public static List<MetaAttributeBean> getAllMetaAttribute() {
@@ -462,6 +519,46 @@ public class MetaDataService {
 		}
 		
 		return instAttrs;
+	}
+	
+	public static InstanceDtlBean getInstanceDtl(String instID) {
+		InstanceBean instance = getInstance(instID);
+		List<InstAttributeBean> attrs = getInstanceAttribute(instID);
+		
+		if (instance == null)
+			return null;
+		
+		InstanceDtlBean instDtl = new InstanceDtlBean(instance);
+		for (InstAttributeBean attr : attrs) {
+			instDtl.addAttribute(attr);
+		}
+		
+		return instDtl;
+	}
+	
+	public static InstanceBean getInstance(String instID) {
+		String sql = "select INST_ID, CMPT_ID, IS_DEPLOYED, POS_X, POS_Y, WIDTH, HEIGHT, ROW, COL "
+				+ "from t_instance where INST_ID = ?";
+		
+		InstanceBean instance = null;
+		try {
+			SqlBean sqlBean = new SqlBean(sql);
+			sqlBean.addParams(new Object[] { instID });
+			
+			CRUD c = new CRUD();
+			c.putSqlBean(sqlBean);
+			
+			Map<String, Object> mapper = c.queryForMap();
+			if (mapper == null)
+				return null;
+			
+			instance = InstanceBean.convert(mapper);
+			
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+		}
+		
+		return instance;
 	}
 	
 	public static List<InstAttributeBean> getInstanceAttribute(String instID) {

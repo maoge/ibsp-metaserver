@@ -6,6 +6,7 @@ import java.sql.PreparedStatement;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +25,7 @@ import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.DES3;
 import ibsp.metaserver.utils.HttpUtils;
+import ibsp.metaserver.utils.Topology;
 
 public class TiDBDeployer implements Deployer {
 
@@ -82,7 +84,7 @@ public class TiDBDeployer implements Deployer {
 				tidbServerList, tikvServerList, collectd, result))
 			return false;
 		
-		if (!undeployDBCollectd(collectd, sessionKey, result))
+		if (!undeployDBCollectd(collectd, sessionKey, true, result))
 			return false;
 		
 		// undeploy tidb-server
@@ -194,22 +196,66 @@ public class TiDBDeployer implements Deployer {
 		boolean undeployRet = false;
 		switch (cmptID) {
 		case 118:    // DB_PD
-			undeployRet = undeployPDServer(serviceID, instDtl, initCluster, sessionKey, result);
+			undeployRet = undeployPDServer(serviceID, instDtl, initCluster, sessionKey, false, result);
 			break;
 		case 119:    // DB_TIDB
-			undeployRet = undeployTiDBServer(serviceID, instDtl, sessionKey, result);
+			undeployRet = undeployTiDBServer(serviceID, instDtl, sessionKey, false, result);
 			break;
 		case 120:    // DB_TIKV
-			undeployRet = undeployTiKVServer(serviceID, instDtl, sessionKey, result);
+			undeployRet = undeployTiKVServer(serviceID, instDtl, sessionKey, false, result);
 			break;
 		case 121:    // DB_COLLECTD
-			undeployRet = undeployDBCollectd(instDtl, sessionKey, result);
+			undeployRet = undeployDBCollectd(instDtl, sessionKey, false, result);
 			break;
 		default:
 			break;
 		}
 		
 		return undeployRet;
+	}
+	
+	@Override
+	public boolean deleteService(String serviceID, String sessionKey, ResultBean result) {
+		Topology topo = MetaData.get().getTopo();
+		if (topo == null) {
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo("MetaData topo is null!");
+			return false;
+		}
+		
+		// delete t_instance,t_instance_attr,t_topology
+		Set<String> sub = topo.get(serviceID, CONSTS.TOPO_TYPE_CONTAIN);
+		if (sub != null) {
+			for (String subID : sub) {
+				Set<String> subsub = topo.get(subID, CONSTS.TOPO_TYPE_CONTAIN);
+				if (subsub != null) {
+					for (String subsubID : subsub) {
+						if (!MetaDataService.deleteInstance(subsubID, result))
+							return false;
+					}
+				}
+				
+				if (!MetaDataService.deleteInstance(subID, result))
+					return false;
+			}
+		}
+		
+		// delete t_instance INST_ID = serviceID
+		if (!MetaDataService.deleteInstance(serviceID, result))
+			return false;
+		
+		// delete t_service
+		if (!MetaDataService.deleteService(serviceID, result))
+			return false;
+		
+		// TODO MetaData clear using event:serviceMap,instanceDtlMap,topo
+		
+		return true;
+	}
+	
+	@Override
+	public boolean deleteInstance(String serviceID, String instID, String sessionKey, ResultBean result) {
+		return false;
 	}
 
 	private boolean deployPDServerList(String serviceID, List<InstanceDtlBean> pdServerList,
@@ -289,7 +335,7 @@ public class TiDBDeployer implements Deployer {
 		for (int i = 0; i < pdServerList.size(); i++) {
 			InstanceDtlBean pdInstBean = pdServerList.get(i);
 
-			if (!undeployPDServer(serviceID, pdInstBean, "", sessionKey, result)) {
+			if (!undeployPDServer(serviceID, pdInstBean, "", sessionKey, true, result)) {
 				return false;
 			}
 		}
@@ -302,7 +348,7 @@ public class TiDBDeployer implements Deployer {
 		
 		for (int i = 0; i < tikvServerList.size(); i++) {
 			InstanceDtlBean tikvInstDtlBean = tikvServerList.get(i);
-			if (!undeployTiKVServer(serviceID, tikvInstDtlBean, sessionKey, result)) {
+			if (!undeployTiKVServer(serviceID, tikvInstDtlBean, sessionKey, true, result)) {
 				return false;
 			}
 		}
@@ -315,7 +361,7 @@ public class TiDBDeployer implements Deployer {
 		
 		for (int i = 0; i < tidbServerList.size(); i++) {
 			InstanceDtlBean tidbInstDtlBean = tidbServerList.get(i);
-			if (!undeployTiDBServer(serviceID, tidbInstDtlBean, sessionKey, result)) {
+			if (!undeployTiDBServer(serviceID, tidbInstDtlBean, sessionKey, true, result)) {
 				return false;
 			}
 		}
@@ -459,6 +505,8 @@ public class TiDBDeployer implements Deployer {
 			String error = String.format("deploy pd id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
 			DeployLog.pubErrorLog(sessionKey, error);
 
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(error);
 
 			return false;
 		} finally {
@@ -575,6 +623,9 @@ public class TiDBDeployer implements Deployer {
 			String error = String.format("deploy tikv id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
 			DeployLog.pubErrorLog(sessionKey, error);
 
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(error);
+			
 			return false;
 		} finally {
 			if (connected) {
@@ -691,9 +742,12 @@ public class TiDBDeployer implements Deployer {
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 
-			String info = String.format("deploy tidb id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
-			DeployLog.pubErrorLog(sessionKey, info);
+			String error = String.format("deploy tidb id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
+			DeployLog.pubErrorLog(sessionKey, error);
 
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(error);
+			
 			return false;
 		} finally {
 			if (connected) {
@@ -797,8 +851,11 @@ public class TiDBDeployer implements Deployer {
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 
-			String info = String.format("deploy DB collectd id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
-			DeployLog.pubErrorLog(sessionKey, info);
+			String error = String.format("deploy DB collectd id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
+			DeployLog.pubErrorLog(sessionKey, error);
+			
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(error);
 
 			return false;
 		} finally {
@@ -810,7 +867,7 @@ public class TiDBDeployer implements Deployer {
 	}
 	
 	private boolean undeployPDServer(String serviceID, InstanceDtlBean pdInstDtlBean,
-			String initCluster, String sessionKey, ResultBean result) {
+			String initCluster, String sessionKey, boolean isUndeployService, ResultBean result) {
 		
 		InstanceBean pdInstance = pdInstDtlBean.getInstance();
 
@@ -843,10 +900,7 @@ public class TiDBDeployer implements Deployer {
 			executor.connect();
 			connected = true;
 			
-			// cd deploy dir, exec stop shell, rm deploy dir
-			if (executor.isDirExistInCurrPath(deployRootPath, sessionKey)) {
-				executor.cd("$HOME/" + deployRootPath, sessionKey);
-				
+			if (!isUndeployService) {
 				//如果失败，可能是这个pd服务没有起来，尝试其它的pd节点进行pd缩容
 				boolean deletePdMember = executor.pdctlDeletePdMember(ip, port, id, sessionKey);
 				if(!deletePdMember) {
@@ -864,8 +918,17 @@ public class TiDBDeployer implements Deployer {
 				
 				if(!deletePdMember) {
 					DeployLog.pubLog(sessionKey, "exec pd delete memeber shell fail ......");
+					
+					result.setRetCode(CONSTS.REVOKE_NOK);
+					result.setRetInfo("exec pd delete memeber shell fail ......");
+					
 					return false;
 				}
+			}
+				
+			// cd deploy dir, exec stop shell, rm deploy dir
+			if (executor.isDirExistInCurrPath(deployRootPath, sessionKey)) {
+				executor.cd("$HOME/" + deployRootPath, sessionKey);
 				
 				// stop pd-server
 				if (executor.isPortUsed(port, sessionKey)) {
@@ -878,24 +941,25 @@ public class TiDBDeployer implements Deployer {
 				executor.cd("$HOME", sessionKey);
 				executor.rm(deployRootPath, true, sessionKey);
 			}
-
+				
 			// mod t_instance.IS_DEPLOYED = 0
 			if (!ConfigDataService.modInstanceDeployFlag(id, CONSTS.NOT_DEPLOYED, result)) {
 				return false;
 			}
-			
-			// 重新从数据库获取所有的PD的信息，然后刷新PD脚本 再从数据库所有的tikv信息，刷新tikv的脚本
-			List<InstanceDtlBean> tikvServerList = new ArrayList<InstanceDtlBean>();
-			List<InstanceDtlBean> tidbServerList = new ArrayList<InstanceDtlBean>();
-			InstanceDtlBean collectd = new InstanceDtlBean();
-			TiDBService.loadServiceInfo(serviceID, pdServerList, tidbServerList, tikvServerList, collectd, result);
-			for(InstanceDtlBean pd : pdServerList) {
-				if(pd.getAttribute("PD_ID").getAttrValue().equals(id)) {
-					pdServerList.remove(pd);
+	
+			if (!isUndeployService) {
+				// 重新从数据库获取所有的PD的信息，然后刷新PD脚本 再从数据库所有的tikv信息，刷新tikv的脚本
+				List<InstanceDtlBean> tikvServerList = new ArrayList<InstanceDtlBean>();
+				List<InstanceDtlBean> tidbServerList = new ArrayList<InstanceDtlBean>();
+				InstanceDtlBean collectd = new InstanceDtlBean();
+				TiDBService.loadServiceInfo(serviceID, pdServerList, tidbServerList, tikvServerList, collectd, result);
+				for(InstanceDtlBean pd : pdServerList) {
+					if(pd.getAttribute("PD_ID").getAttrValue().equals(id)) {
+						pdServerList.remove(pd);
+					}
 				}
+				refreshDbCompCmd(pdServerList, tikvServerList, tidbServerList, sessionKey);
 			}
-			refreshDbCompCmd(pdServerList, tikvServerList, tidbServerList, sessionKey);
-
 			
 			String info = String.format("undeploy pd id:%s %s:%s success ......", id, ip, port);
 			DeployLog.pubSuccessLog(sessionKey, info);
@@ -905,6 +969,9 @@ public class TiDBDeployer implements Deployer {
 
 			String error = String.format("undeploy pd id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
 			DeployLog.pubErrorLog(sessionKey, error);
+			
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(error);
 
 			return false;
 		} finally {
@@ -917,7 +984,7 @@ public class TiDBDeployer implements Deployer {
 	}
 	
 	private boolean undeployTiKVServer(String serviceID, InstanceDtlBean tikvInstDtlBean,
-			String sessionKey, ResultBean result) {
+			String sessionKey, boolean isUndeployService, ResultBean result) {
 		
 		InstanceBean tikvInstance = tikvInstDtlBean.getInstance();
 		
@@ -948,53 +1015,35 @@ public class TiDBDeployer implements Deployer {
 		boolean connected = false;
 		
 		try {
-			String startInfo = String.format("undeploy tikv id:%s %s:%s begin ......", id, ip, port);
-			DeployLog.pubSuccessLog(sessionKey, startInfo);
-			//获取pd集群的第一个pd 
-			InstanceDtlBean pd = pdServerList.get(0);
-			String pdIp    = pd.getAttribute("IP").getAttrValue();
-			String pdPort  = pd.getAttribute("PORT").getAttrValue();
-			String pdUser = pd.getAttribute("OS_USER").getAttrValue();
-			String pdPwd  = pd.getAttribute("OS_PWD").getAttrValue();
-			ui = new JschUserInfo(pdUser, pdPwd, pdIp, CONSTS.SSH_PORT_DEFAULT);
-			executor = new SSHExecutor(ui);
-			executor.connect();
-			connected = true;
-			String deployPdRootPath = String.format("$HOME/pd_deploy/%s", pdPort);
-			executor.cd(deployPdRootPath, sessionKey);
-			//获取这个tikv的id(tidb中自己生成的id)，根据id来删除
-			int tikvId = executor.getStoreId(pdIp, pdPort, ip, port);
-			if(tikvId != 0 && !executor.pdctlDeleteTikvStore(pdIp, pdPort, tikvId, sessionKey)) {
-				DeployLog.pubErrorLog(sessionKey, "remove tikv from pd-cluster false ...... ");
-				return false;
-			}
-			executor.close();
-			checkTikvStatus(serviceID, id, ip, port, user, pwd, tikvId);
-			//TODO 另外一个线程来做，最后更新数据库 ，前台根据数据库来查看是否下线
-			/*ui = new JschUserInfo(user, pwd, ip, CONSTS.SSH_PORT_DEFAULT);
-			executor = new SSHExecutor(ui);
-			executor.connect();
-			connected = true;
-			
-			// cd deploy dir, exec stop shell, rm deploy dir
-			if (executor.isDirExistInCurrPath(deployRootPath, sessionKey)) {
-				executor.cd("$HOME/" + deployRootPath, sessionKey);
+			if (isUndeployService) {
+				checkTikvStatus(serviceID, id, ip, port, user, pwd, 0);
+			} else {
+				String startInfo = String.format("undeploy tikv id:%s %s:%s begin ......", id, ip, port);
+				DeployLog.pubSuccessLog(sessionKey, startInfo);
 				
-				// stop tikv-server
-				if (executor.isPortUsed(port, sessionKey)) {
-					if (!execStopShell(executor, port, sessionKey)) {
-						DeployLog.pubLog(sessionKey, "exec tikv stop shell fail ......");
-						return false;
-					}
+				//获取pd集群的第一个pd 
+				InstanceDtlBean pd = pdServerList.get(0);
+				String pdIp    = pd.getAttribute("IP").getAttrValue();
+				String pdPort  = pd.getAttribute("PORT").getAttrValue();
+				String pdUser = pd.getAttribute("OS_USER").getAttrValue();
+				String pdPwd  = pd.getAttribute("OS_PWD").getAttrValue();
+				
+				ui = new JschUserInfo(pdUser, pdPwd, pdIp, CONSTS.SSH_PORT_DEFAULT);
+				executor = new SSHExecutor(ui);
+				executor.connect();
+				connected = true;
+				String deployPdRootPath = String.format("$HOME/pd_deploy/%s", pdPort);
+				executor.cd(deployPdRootPath, sessionKey);
+				
+				//获取这个tikv的id(tidb中自己生成的id)，根据id来删除
+				int tikvId = executor.getStoreId(pdIp, pdPort, ip, port);
+				if(tikvId != 0 && !executor.pdctlDeleteTikvStore(pdIp, pdPort, tikvId, sessionKey)) {
+					DeployLog.pubErrorLog(sessionKey, "remove tikv from pd-cluster false ...... ");
+					return false;
 				}
 				
-				executor.cd("$HOME", sessionKey);
-				executor.rm(deployRootPath, true, sessionKey);
+				checkTikvStatus(serviceID, id, ip, port, user, pwd, tikvId);
 			}
-			
-			// mod t_instance.IS_DEPLOYED = 0
-			if (!ConfigDataService.modInstanceDeployFlag(id, CONSTS.NOT_DEPLOYED, result))
-				return false;*/
 			
 			String info = String.format("undeploy tikv id:%s %s:%s success ......", id, ip, port);
 			DeployLog.pubErrorLog(sessionKey, info);
@@ -1004,6 +1053,9 @@ public class TiDBDeployer implements Deployer {
 
 			String error = String.format("undeploy tikv id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
 			DeployLog.pubErrorLog(sessionKey, error);
+			
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(error);
 
 			return false;
 		} finally {
@@ -1016,7 +1068,7 @@ public class TiDBDeployer implements Deployer {
 	}
 	
 	private boolean undeployTiDBServer(String serviceID, InstanceDtlBean tidbInstDtlBean,
-			String sessionKey, ResultBean result) {
+			String sessionKey, boolean isUndeployService, ResultBean result) {
 		
 		InstanceBean tidbInstance = tidbInstDtlBean.getInstance();
 		
@@ -1073,8 +1125,11 @@ public class TiDBDeployer implements Deployer {
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 
-			String info = String.format("undeploy tidb id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
-			DeployLog.pubErrorLog(sessionKey, info);
+			String error = String.format("undeploy tidb id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
+			DeployLog.pubErrorLog(sessionKey, error);
+			
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(error);
 
 			return false;
 		} finally {
@@ -1086,7 +1141,8 @@ public class TiDBDeployer implements Deployer {
 		return true;
 	}
 	
-	private boolean undeployDBCollectd(InstanceDtlBean collectd, String sessionKey, ResultBean result) {
+	private boolean undeployDBCollectd(InstanceDtlBean collectd, String sessionKey,
+			boolean isUndeployService, ResultBean result) {
 		
 		InstanceBean collectdInstance = collectd.getInstance();
 		
@@ -1143,8 +1199,11 @@ public class TiDBDeployer implements Deployer {
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 
-			String info = String.format("undeploy DB collectd id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
-			DeployLog.pubErrorLog(sessionKey, info);
+			String error = String.format("undeploy DB collectd id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
+			DeployLog.pubErrorLog(sessionKey, error);
+			
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(error);
 
 			return false;
 		} finally {

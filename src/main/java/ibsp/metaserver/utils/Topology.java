@@ -71,6 +71,20 @@ public class Topology {
 		return ret;
 	}
 	
+	public void remove(String par, String sub, int topoType) {
+		try {
+			lock.lock();
+			
+			Map<String, Set<String>> map = topoType == CONSTS.TOPO_TYPE_CONTAIN ? mapContain : mapLink;
+			Set<String> val = map.get(par);
+			if (val != null)
+				val.remove(sub);
+			
+		} finally {
+			lock.unlock();
+		}
+	}
+	
 	public void clear() {
 		try {
 			lock.lock();

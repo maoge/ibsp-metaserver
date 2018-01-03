@@ -12,9 +12,13 @@ import ibsp.metaserver.bean.RelationBean;
 import ibsp.metaserver.bean.ServiceBean;
 import ibsp.metaserver.bean.TopologyBean;
 import ibsp.metaserver.dbservice.MetaDataService;
+import ibsp.metaserver.eventbus.EventType;
 import ibsp.metaserver.utils.CONSTS;
+import ibsp.metaserver.utils.HttpUtils;
 import ibsp.metaserver.utils.SysConfig;
 import ibsp.metaserver.utils.Topology;
+import ibsp.metaserver.utils.UUIDUtils;
+import io.vertx.core.json.JsonObject;
 
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -42,6 +46,8 @@ public class MetaData {
 	
 	private static String ID_INDEX = "_ID";
 	
+	private String uuid;
+	
 	private Map<Integer, MetaAttributeBean> metaAttrMap;
 	private Map<Integer, MetaComponentBean> metaCmptMap;
 	private Map<String,  Integer> metaCmptName2IDMap;
@@ -62,6 +68,8 @@ public class MetaData {
 	}
 	
 	public MetaData() {
+		uuid               = UUIDUtils.genUUID();
+		
 		metaAttrMap        = new ConcurrentHashMap<Integer, MetaAttributeBean>();
 		metaCmptMap        = new ConcurrentHashMap<Integer, MetaComponentBean>();
 		metaCmptName2IDMap = new ConcurrentHashMap<String,  Integer>();
@@ -71,6 +79,93 @@ public class MetaData {
 		instanceDtlMap     = new ConcurrentHashMap<String,  InstanceDtlBean>();
 		collectQuotaMap    = new ConcurrentHashMap<String,  Integer>();
 		topo               = new Topology();
+	}
+	
+	public boolean doTopo(JsonObject json, EventType type) {
+		boolean res = true;
+		
+		if (topo == null)
+			return false;
+
+		String instID1 = json.getString("INST_ID1");
+		String instID2 = json.getString("INST_ID2");
+		Integer topoType = json.getInteger("TOPO_TYPE");
+
+		if (HttpUtils.isNull(instID1) || HttpUtils.isNull(instID2)
+				|| topoType == null)
+			return false;
+
+		switch (type) {
+		case e1:
+			topo.put(instID1, instID2, topoType);
+			break;
+		case e2:
+			topo.remove(instID1, instID2, topoType);
+			break;
+		default:
+			res = false;
+			break;
+		}
+
+		return res;
+	}
+	
+	public boolean doInstance(JsonObject json, EventType type) {
+		boolean res = true;
+		
+		if (instanceDtlMap == null)
+			return false;
+		
+		String instID = json.getString("INST_ID");
+		if (HttpUtils.isNull(instID))
+			return false;
+		
+		switch (type) {
+		case e3:
+		case e4:
+			InstanceDtlBean instDtl = MetaDataService.getInstanceDtl(instID);
+			if (instDtl != null) {
+				instanceDtlMap.put(instID, instDtl);
+			}
+			break;
+		case e5:
+			instanceDtlMap.remove(instID);
+			break;
+		default:
+			res = false;
+			break;
+		}
+		
+		return res;
+	}
+	
+	public boolean doService(JsonObject json, EventType type) {
+		boolean res = true;
+		
+		if (serviceMap == null)
+			return false;
+		
+		String instID = json.getString("INST_ID");
+		if (HttpUtils.isNull(instID))
+			return false;
+		
+		switch (type) {
+		case e3:
+		case e4:
+			ServiceBean service = MetaDataService.getService(instID);
+			if (service != null) {
+				serviceMap.put(instID, service);
+			}
+			break;
+		case e5:
+			serviceMap.remove(instID);
+			break;
+		default:
+			res = false;
+			break;
+		}
+		
+		return res;
 	}
 	
 	public static MetaData get() {
@@ -112,6 +207,10 @@ public class MetaData {
 		jedisConfig.setTestOnBorrow(true);
 		
 		jedisPool = new JedisPool(jedisConfig, SysConfig.get().getRedisHost(), SysConfig.get().getRedisPort(), 3000, SysConfig.get().getRedisAuth());
+	}
+	
+	public String getUUID() {
+		return uuid;
 	}
 	
 	public Jedis getJedis() {
@@ -493,6 +592,10 @@ public class MetaData {
 			return null;
 		
 		return collectQuotaMap.get(quotaName);
+	}
+	
+	public Topology getTopo() {
+		return topo;
 	}
 	
 }

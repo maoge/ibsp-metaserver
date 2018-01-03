@@ -30,4 +30,18 @@ public class MQDeployer implements Deployer {
 		return false;
 	}
 
+	@Override
+	public boolean deleteService(String serviceID, String sessionKey,
+			ResultBean result) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean deleteInstance(String serviceID, String instID,
+			String sessionKey, ResultBean result) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
 }
