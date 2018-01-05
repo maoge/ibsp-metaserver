@@ -17,6 +17,7 @@ public class QuotaDataService {
 	
 	private static Logger logger = LoggerFactory.getLogger(QuotaDataService.class);
 	
+	private static final String REDIS_OK = "OK";
 	private static final String INS_MONITOR_COLLECT = "insert into t_monitor_collect(INST_ID,TS,QUOTA_CODE,QUOTA_MEAN) values(?,?,?,?)";
 	
 	public static void saveQuotaDataToDB(List<QuotaMeanBean> quotas) {
@@ -47,7 +48,13 @@ public class QuotaDataService {
 			return;
 		}
 		
-		jedis.hmset(id, quotas);
+		try {
+			if (!jedis.hmset(id, quotas).equals(REDIS_OK)) {
+				logger.error("save collect data to redis fail!");
+			}
+		} finally {
+			jedis.close();
+		}
 	}
 
 }

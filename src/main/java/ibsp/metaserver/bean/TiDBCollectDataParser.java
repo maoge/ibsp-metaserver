@@ -61,11 +61,11 @@ public class TiDBCollectDataParser extends CollectDataParser {
 			JsonObject jsonMEM = json.getJsonObject(FixHeader.HEADER_MEM);
 			JsonObject jsonDisk = json.getJsonObject(FixHeader.HEADER_DISK);
 			
-			String cpuUsed   = jsonCPU.getString(FixHeader.HEADER_USED);
-			String memUesd   = jsonMEM.getString(FixHeader.HEADER_USED);
-			String diskTotal = jsonDisk.getString(FixHeader.HEADER_TOTAL);
-			String diskUsed  = jsonDisk.getString(FixHeader.HEADER_USED);
-			String diskAvailable = jsonDisk.getString(FixHeader.HEADER_AVAILABLE);
+			String cpuUsed   = String.valueOf(jsonCPU.getDouble(FixHeader.HEADER_USED));
+			String memUesd   = String.valueOf(jsonMEM.getLong(FixHeader.HEADER_USED));
+			String diskTotal = String.valueOf(jsonDisk.getLong(FixHeader.HEADER_TOTAL));
+			String diskUsed  = String.valueOf(jsonDisk.getLong(FixHeader.HEADER_USED));
+			String diskAvailable = String.valueOf(jsonDisk.getLong(FixHeader.HEADER_AVAILABLE));
 			
 			quotas.add(new QuotaMeanBean(id, ts, MetaData.get().getQuotaCode(CPU_USED), cpuUsed));
 			quotas.add(new QuotaMeanBean(id, ts, MetaData.get().getQuotaCode(MEM_USED), memUesd));

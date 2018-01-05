@@ -9,6 +9,7 @@ import ibsp.metaserver.microservice.handler.AutoDeployHandler;
 import ibsp.metaserver.microservice.handler.ConfigServerHandler;
 import ibsp.metaserver.microservice.handler.MetaServerHandler;
 import ibsp.metaserver.microservice.handler.TiDBHandler;
+import ibsp.metaserver.monitor.ActiveCollect;
 import ibsp.metaserver.singleton.AllServiceMap;
 import ibsp.metaserver.singleton.ServiceStatInfo;
 import ibsp.metaserver.utils.CONSTS;
@@ -100,9 +101,9 @@ public class Server extends AbstractVerticle {
 			});
 		}
 		
-		//if (SysConfig.get().isActiveCollect()) {
-		//	ActiveCollectTaskDispather.get().Stop();
-		//}
+		if (SysConfig.get().isActiveCollect()) {
+			ActiveCollect.get().Stop();
+		}
 		
 		ServiceData.get().getHttpServer().close();
 		DbSource.close();

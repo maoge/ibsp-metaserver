@@ -4,6 +4,7 @@ import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.PropertiesUtils;
 import ibsp.metaserver.utils.SysConfig;
 import ibsp.metaserver.microservice.Server;
+import ibsp.metaserver.monitor.ActiveCollect;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
@@ -44,6 +45,7 @@ public class BootStrap {
 		WorkerPool.get();
 		DbSource.get();
 		MetaData.get();
+		ActiveCollect.get();
 	}
 	
 	private static void bootMicroService() {

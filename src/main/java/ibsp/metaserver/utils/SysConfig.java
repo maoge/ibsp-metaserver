@@ -84,7 +84,8 @@ public class SysConfig {
 		
 		this.redis_host = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).get("redis.host");
 		this.redis_port = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("redis.port");
-		this.redis_auth = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).get("redis.auth");
+		String authStr  = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).get("redis.auth");
+		this.redis_auth = DES3.decrypt(authStr);
 		this.redis_pool_size = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("redis.pool.size");
 		
 		this.conn_highwater_mark  = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("connection.highwater.mark");
