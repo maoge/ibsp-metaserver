@@ -1,7 +1,6 @@
 package ibsp.metaserver.microservice.handler;
 
 import java.util.Map;
-
 import ibsp.metaserver.annotation.App;
 import ibsp.metaserver.annotation.Service;
 import ibsp.metaserver.bean.ResultBean;
@@ -10,6 +9,7 @@ import ibsp.metaserver.dbservice.MetaDataService;
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.FixHeader;
 import ibsp.metaserver.utils.HttpUtils;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 
@@ -135,4 +135,41 @@ public class ConfigServerHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 	
+	@Service(id = "getServiceList", name = "getServiceList", auth = true, bwswitch = true)
+	public static void getServiceList(RoutingContext routeContext) {
+		JsonObject json = new JsonObject();
+		ResultBean result = new ResultBean();
+		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
+		JsonArray serviceList = ConfigDataService.getServiceList(params, result);
+//		HttpUtils.outJsonArray(routeContext, serviceList);
+		
+		if (serviceList != null) {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+			json.put(FixHeader.HEADER_RET_INFO, serviceList);
+		} else {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+			json.put(FixHeader.HEADER_RET_INFO, result.getRetInfo());
+		}
+		
+		HttpUtils.outJsonObject(routeContext, json);
+	}
+	
+	@Service(id = "getServiceCount", name = "getServiceCount", auth = true, bwswitch = true)
+	public static void getServiceCount(RoutingContext routeContext) {
+		JsonObject json = new JsonObject();
+		ResultBean result = new ResultBean();
+		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
+		JsonObject serviceCount = ConfigDataService.getServiceCount(params, result);
+//		HttpUtils.outJsonObject(routeContext, serviceCount);
+		
+		if (serviceCount != null) {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+			json.put(FixHeader.HEADER_RET_INFO, serviceCount);
+		} else {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+			json.put(FixHeader.HEADER_RET_INFO, result.getRetInfo());
+		}
+		
+		HttpUtils.outJsonObject(routeContext, json);
+	}
 }

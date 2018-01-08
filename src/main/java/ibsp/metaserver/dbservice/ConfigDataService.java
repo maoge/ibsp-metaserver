@@ -78,6 +78,9 @@ public class ConfigDataService {
 	private static final String MOD_INSTANCE_DEP  = "UPDATE t_instance SET IS_DEPLOYED = ? WHERE INST_ID = ?";
 	private static final String MOD_SERVICE_DEP   = "UPDATE t_service SET IS_DEPLOYED = ? WHERE INST_ID = ?";
 	
+	private static final String SEL_SERVICE_LIST  = "SELECT INST_ID, SERV_NAME, SERV_TYPE, IS_DEPLOYED FROM t_service WHERE 1=1 ";
+	private static final String COUNT_SERVICE_LIST= "SELECT count(0) count FROM t_service WHERE 1=1 ";
+	
 	static {
 		SKELETON_SCHEMA_MAPPER = new HashMap<String, String>();
 		SKELETON_SCHEMA_MAPPER.put(CONSTS.SERV_TYPE_MQ,    "mq_skeleton");
@@ -746,6 +749,36 @@ public class ConfigDataService {
 		curd.putSqlBean(sqlInst);
 		
 		return curd.executeUpdate(result);
+	}
+
+	public static JsonArray getServiceList(Map<String, String> params, ResultBean result) {
+		SqlBean sql = new SqlBean(SEL_SERVICE_LIST);
+		CRUD curd = new CRUD();
+		curd.putSqlBean(sql);
+		
+		try {
+			return curd.queryForJSONArray();
+		} catch (CRUDException e) {
+			logger.error(e.getMessage(), e);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(e.getMessage());
+		}
+		return null;
+	}
+	
+	public static JsonObject getServiceCount(Map<String, String> params, ResultBean result) {
+		SqlBean sql = new SqlBean(COUNT_SERVICE_LIST);
+		CRUD curd = new CRUD();
+		curd.putSqlBean(sql);
+		
+		try {
+			return curd.queryForJSONObject();
+		} catch (CRUDException e) {
+			logger.error(e.getMessage(), e);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(e.getMessage());
+		}
+		return null;
 	}
 
 }
