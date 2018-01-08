@@ -55,7 +55,8 @@ public class MetaData {
 	private Map<String, DeployFileBean> deployFileMap;
 	private Map<String, ServiceBean> serviceMap;
 	private Map<String, InstanceDtlBean> instanceDtlMap;
-	private Map<String, Integer> collectQuotaMap;
+	private Map<String, Integer> quotaName2Code;
+	private Map<Integer, String> quotaCode2Name;
 	private Topology topo;
 	
 	private JedisPool jedisPool;
@@ -77,7 +78,8 @@ public class MetaData {
 		deployFileMap      = new ConcurrentHashMap<String,  DeployFileBean>();
 		serviceMap         = new ConcurrentHashMap<String,  ServiceBean>();
 		instanceDtlMap     = new ConcurrentHashMap<String,  InstanceDtlBean>();
-		collectQuotaMap    = new ConcurrentHashMap<String,  Integer>();
+		quotaName2Code     = new ConcurrentHashMap<String,  Integer>();
+		quotaCode2Name     = new ConcurrentHashMap<Integer, String>();
 		topo               = new Topology();
 	}
 	
@@ -235,13 +237,15 @@ public class MetaData {
 			if (list == null || list.isEmpty())
 				return;
 			
-			collectQuotaMap.clear();
+			quotaName2Code.clear();
+			quotaCode2Name.clear();
 			
 			for (CollectQuotaBean quota : list) {
 				if (quota == null)
 					continue;
 				
-				collectQuotaMap.put(quota.getQuotaName(), quota.getQuotaCode());
+				quotaName2Code.put(quota.getQuotaName(), quota.getQuotaCode());
+				quotaCode2Name.put(quota.getQuotaCode(), quota.getQuotaName());
 			}
 			
 		} catch (Exception e) {
@@ -588,10 +592,17 @@ public class MetaData {
 	}
 	
 	public Integer getQuotaCode(String quotaName) {
-		if (collectQuotaMap == null)
+		if (quotaName2Code == null)
 			return null;
 		
-		return collectQuotaMap.get(quotaName);
+		return quotaName2Code.get(quotaName);
+	}
+	
+	public String getQuotaName(Integer quotaCode) {
+		if (quotaCode == null)
+			return null;
+		
+		return quotaCode2Name.get(quotaCode);
 	}
 	
 	public Topology getTopo() {

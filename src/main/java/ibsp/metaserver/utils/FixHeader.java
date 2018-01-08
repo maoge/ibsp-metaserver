@@ -15,6 +15,11 @@ public class FixHeader {
 	public static final String HEADER_TOTAL                    = "Total";
 	public static final String HEADER_AVAILABLE                = "Available";
 	
+	public static final String HEADER_QUOTA_CODE               = "QUOTA_CODE";
+	public static final String HEADER_QUOTA_MEAN               = "QUOTA_MEAN";
+	public static final String HEADER_START_TS                 = "START_TS";
+	public static final String HEADER_END_TS                   = "END_TS";
+	
 	public static final String HEADER_VBROKER_ID               = "VBROKER_ID";
 	public static final String HEADER_VBROKER_IDS              = "VBROKER_IDS";
 	public static final String HEADER_VBROKER_NAME             = "VBROKER_NAME";

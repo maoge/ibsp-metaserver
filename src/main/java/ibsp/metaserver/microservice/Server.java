@@ -6,6 +6,7 @@ import ibsp.metaserver.dbpool.DbSource;
 import ibsp.metaserver.eventbus.SysEventHandler;
 import ibsp.metaserver.global.ServiceData;
 import ibsp.metaserver.microservice.handler.AutoDeployHandler;
+import ibsp.metaserver.microservice.handler.CollectDataHandler;
 import ibsp.metaserver.microservice.handler.ConfigServerHandler;
 import ibsp.metaserver.microservice.handler.MetaServerHandler;
 import ibsp.metaserver.microservice.handler.TiDBHandler;
@@ -68,6 +69,7 @@ public class Server extends AbstractVerticle {
 		clazzToReg.add(ConfigServerHandler.class);
 		clazzToReg.add(AutoDeployHandler.class);
 		clazzToReg.add(TiDBHandler.class);
+		clazzToReg.add(CollectDataHandler.class);
 		
 		registerRoute(router, clazzToReg);
 		
