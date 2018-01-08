@@ -89,7 +89,6 @@ public class MetaServerHandler {
 				} else {
 					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
 					
-					// HEADER_ATTRIBUTES
 					JsonArray arr = new JsonArray();
 					for (MetaAttributeBean attr : attrs) {
 						arr.add(attr.asJson());

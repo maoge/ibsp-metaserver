@@ -63,6 +63,12 @@ public class ActiveCollect {
 		return theInstance;
 	}
 	
+	public void Stop() {
+		if (SysConfig.get().isActiveCollect()) {
+			taskInventor.shutdown();
+		}
+	}
+	
 	private class ActiveCollectTaskInventor implements Runnable {
 		
 		public ActiveCollectTaskInventor() {
