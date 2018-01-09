@@ -224,4 +224,7 @@ public class FixHeader {
 	
 	public static final String HEADER_SQL_STR                  = "SQL_STR";
 	public static final String HEADER_SCHEMA_NAME              = "SCHEMA_NAME";
+	
+	public static final String HEADER_PAGE_SIZE                = "pageSize";
+	public static final String HEADER_PAGE_NUMBER              = "pageNumber";
 }

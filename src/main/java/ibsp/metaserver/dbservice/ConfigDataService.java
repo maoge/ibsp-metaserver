@@ -752,7 +752,18 @@ public class ConfigDataService {
 	}
 
 	public static JsonArray getServiceList(Map<String, String> params, ResultBean result) {
-		SqlBean sql = new SqlBean(SEL_SERVICE_LIST);
+		
+		StringBuilder sb = new StringBuilder(SEL_SERVICE_LIST);
+		extendSQLForServiceList(params, sb);
+		if (params!=null) {
+			int pageSize = Integer.parseInt(params.get(FixHeader.HEADER_PAGE_SIZE));
+			int pageNumber = Integer.parseInt(params.get(FixHeader.HEADER_PAGE_NUMBER));
+			int start = pageSize*(pageNumber-1);
+			if(HttpUtils.isNotNull(pageSize)&&HttpUtils.isNotNull(pageNumber)){
+				sb.append(" limit "+start+","+pageSize+" ");
+			}
+		}
+		SqlBean sql = new SqlBean(sb.toString());
 		CRUD curd = new CRUD();
 		curd.putSqlBean(sql);
 		
@@ -767,7 +778,10 @@ public class ConfigDataService {
 	}
 	
 	public static JsonObject getServiceCount(Map<String, String> params, ResultBean result) {
-		SqlBean sql = new SqlBean(COUNT_SERVICE_LIST);
+		
+		StringBuilder sb = new StringBuilder(COUNT_SERVICE_LIST);
+		extendSQLForServiceList(params, sb);
+		SqlBean sql = new SqlBean(sb.toString());
 		CRUD curd = new CRUD();
 		curd.putSqlBean(sql);
 		
@@ -781,4 +795,16 @@ public class ConfigDataService {
 		return null;
 	}
 
+	private static void extendSQLForServiceList(Map<String, String> params, StringBuilder sb) {
+		if (params!=null) {
+			String serviceName = params.get("SERVICE_NAME");
+			String serviceType = params.get("SERVICE_TYPE");
+			if (HttpUtils.isNotNull(serviceName)) {
+				sb.append(" and serv_name like '%"+serviceName+"%' ");
+			}
+			if (HttpUtils.isNotNull(serviceType)) {
+				sb.append(" and serv_type = '"+serviceType+"' ");
+			}
+		}
+	}
 }
