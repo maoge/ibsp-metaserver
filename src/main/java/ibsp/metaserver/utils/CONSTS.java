@@ -38,6 +38,7 @@ public class CONSTS {
 	public static final int REVOKE_NOK_QUEUE_EXIST   = -2;
 	public static final int REVOKE_AUTH_FAIL         = -3;
 	public static final int REVOKE_AUTH_IP_LIMIT     = -4;
+	public static final int SERVICE_NOT_INIT         = -5;
 	
 	public static final int POS_DEFAULT_VALUE        = -1;
 	
@@ -83,7 +84,7 @@ public class CONSTS {
 	public static final String SERV_DB_PD            = "DB_PD";
 	public static final String SERV_DB_TIDB          = "DB_TIDB";
 	public static final String SERV_DB_TIKV          = "DB_TIKV";
-	public static final String SERV_DB_COLLECTD      = "DB_COLLECTD";
+	public static final String SERV_COLLECTD      = "COLLECTD";
 	
 	public static final String SCHEMA_OBJECT         = "\"object\"";
 	public static final String SCHEMA_ARRAY          = "\"array\"";

@@ -751,6 +751,12 @@ public class MetaDataService {
 			
 			topoJson = new JsonObject();
 			JsonArray deployFlagArr = new JsonArray();
+			//if service itself is null, return not init
+			if (MetaDataService.getInstance(instID, result) == null) {
+				result.setRetCode(CONSTS.SERVICE_NOT_INIT);
+				result.setRetInfo("");
+				return null;
+			}
 			if (!addInstanceAttribute(instID, topoJson, skeleton, deployFlagArr)) {
 				result.setRetCode(CONSTS.REVOKE_NOK);
 				result.setRetInfo(CONSTS.ERR_METADATA_NOT_FOUND);

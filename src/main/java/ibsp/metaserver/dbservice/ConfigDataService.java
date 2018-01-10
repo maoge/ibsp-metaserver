@@ -106,19 +106,14 @@ public class ConfigDataService {
 			return false;
 		
 		String serviceID = servIDBean.getRetInfo();
-		String serviceName = servNameBean.getRetInfo();
 		List<EventBean> events = new LinkedList<EventBean>();
 		
-		boolean exist = isServiceExist(serviceID, result);
-		if (exist) {
+		if (MetaDataService.getInstance(serviceID, result) != null) {
 			// do move container operation after save service topo
 			if (!enumJsonPos(topoJson, curd, result))
 				return false;
 		} else {
-			// first save service topo
-			if (!addService(serviceID, serviceName, curd, sServType, result, events))
-				return false;
-			
+			// init containers
 			if (!enumJson(topoJson, curd, result, events))
 				return false;
 		}
@@ -614,38 +609,61 @@ public class ConfigDataService {
 		return true;
 	}
 	
-	private static boolean addService(String serviceID, String serviceName,
-			CRUD curd, String sServType, ResultBean result, List<EventBean> events) {
-		long dt = System.currentTimeMillis();
-		Object[] params = new Object[] { serviceID, serviceName, sServType, CONSTS.NOT_DEPLOYED, dt, null, null};
-		//set db root password
-		switch (sServType) {
-		case CONSTS.SERV_TYPE_DB:
-			String uuid = UUIDUtils.genUUID();
-			params[params.length-1] = DES3.encrypt(uuid.substring(uuid.lastIndexOf("-")+1));
-			params[params.length-2] = "root";
-			break;
-		case CONSTS.SERV_TYPE_MQ:
-			//TODO
-			break;
-		case CONSTS.SERV_TYPE_CACHE:
-			//TODO
-			break;
+	public static boolean addService(Map<String, String> params, ResultBean result) {
+		
+		if (params != null) {
+			String serviceName = params.get("SERVICE_NAME");
+			String serviceType = params.get("SERVICE_TYPE");
+			if (HttpUtils.isNull(serviceName) || HttpUtils.isNull(serviceType)) {
+				result.setRetInfo(CONSTS.ERR_PARAM_INCOMPLETE);
+				return false;
+			}
+			String serviceID = UUIDUtils.genUUID();
+			CRUD curd = new CRUD();
+			long dt = System.currentTimeMillis();
+			Object[] sqlParams = new Object[] {serviceID, serviceName, serviceType, 
+					CONSTS.NOT_DEPLOYED, dt, null, null};
+			
+			//set db root password
+			switch (serviceType) {
+			case CONSTS.SERV_TYPE_DB:
+				String pwd = UUIDUtils.genUUID();
+				sqlParams[sqlParams.length-1] = DES3.encrypt(pwd.substring(pwd.lastIndexOf("-")+1));
+				sqlParams[sqlParams.length-2] = "root";
+				break;
+			case CONSTS.SERV_TYPE_MQ:
+				//TODO
+				break;
+			case CONSTS.SERV_TYPE_CACHE:
+				//TODO
+				break;
+			}
+			
+			SqlBean sqlServBean = new SqlBean(INS_SERVICE);
+			sqlServBean.addParams(sqlParams);
+			curd.putSqlBean(sqlServBean);
+
+			try {
+				boolean res = curd.executeUpdate(true, result);
+				//publish event e6
+				if (res) {
+					JsonObject evJson = new JsonObject();
+					evJson.put("INST_ID", serviceID);
+					
+					EventBean ev = new EventBean(EventType.e6);
+					ev.setUuid(MetaData.get().getUUID());
+					ev.setJsonStr(evJson.toString());	
+					EventBusMsg.publishEvent(ev);
+				}
+				return res;
+			} catch (Exception e) {
+				result.setRetInfo(e.getMessage());
+				return false;
+			}
+		} else {
+			result.setRetInfo(CONSTS.ERR_PARAM_INCOMPLETE);
+			return false;
 		}
-		
-		SqlBean sqlServBean = new SqlBean(INS_SERVICE);
-		sqlServBean.addParams(params);
-		curd.putSqlBean(sqlServBean);
-		
-		JsonObject evJson = new JsonObject();
-		evJson.put("INST_ID", serviceID);
-		
-		EventBean ev = new EventBean(EventType.e6);
-		ev.setUuid(MetaData.get().getUUID());
-		ev.setJsonStr(evJson.toString());
-		events.add(ev);
-		
-		return true;
 	}
 	
 	private static void getPos(JsonObject posJson, PosBean pos) {

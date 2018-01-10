@@ -62,7 +62,7 @@ public class TiDBDeployer implements Deployer {
 			return false;
 
 		// deploy collectd
-		if (!deployDBCollectd(serviceID, collectd, pdList, sessionKey, result))
+		if (!deployCollectd(serviceID, collectd, pdList, sessionKey, result))
 			return false;
 			
 		// mod t_service.IS_DEPLOYED = 1
@@ -84,7 +84,7 @@ public class TiDBDeployer implements Deployer {
 				tidbServerList, tikvServerList, collectd, result))
 			return false;
 		
-		if (!undeployDBCollectd(collectd, sessionKey, true, result))
+		if (!undeployCollectd(collectd, sessionKey, true, result))
 			return false;
 		
 		// undeploy tidb-server
@@ -149,7 +149,7 @@ public class TiDBDeployer implements Deployer {
 			deployRet = deployTiKVServer(serviceID, instDtl, pdList, sessionKey, result);
 			break;
 		case 121:    // DB_COLLECTD
-			deployRet = deployDBCollectd(serviceID, instDtl, pdList, sessionKey, result);
+			deployRet = deployCollectd(serviceID, instDtl, pdList, sessionKey, result);
 			break;
 		default:
 			break;
@@ -205,7 +205,7 @@ public class TiDBDeployer implements Deployer {
 			undeployRet = undeployTiKVServer(serviceID, instDtl, sessionKey, false, result);
 			break;
 		case 121:    // DB_COLLECTD
-			undeployRet = undeployDBCollectd(instDtl, sessionKey, false, result);
+			undeployRet = undeployCollectd(instDtl, sessionKey, false, result);
 			break;
 		default:
 			break;
@@ -758,7 +758,7 @@ public class TiDBDeployer implements Deployer {
 		return true;
 	}
 	
-	private boolean deployDBCollectd(String serviceID, InstanceDtlBean instanceDtl,
+	private boolean deployCollectd(String serviceID, InstanceDtlBean instanceDtl,
 			String pdList, String sessionKey, ResultBean result) {
 		
 		InstanceBean collectdInstance = instanceDtl.getInstance();
@@ -777,20 +777,20 @@ public class TiDBDeployer implements Deployer {
 		String stopContext = getCollectdStopCmd(id);
 		
 		if (collectdInstance.getIsDeployed().equals(CONSTS.DEPLOYED)) {
-			String info = String.format("DB collectd id:%s %s:%s is deployed ......", id, ip, port);
+			String info = String.format("Collectd id:%s %s:%s is deployed ......", id, ip, port);
 			DeployLog.pubSuccessLog(sessionKey, info);
 			return true;
 		}
 		
-		String deployRootPath = String.format("db_collectd_deploy/%s", port);
+		String deployRootPath = String.format("collectd_deploy/%s", port);
 		JschUserInfo ui = null;
 		SSHExecutor executor = null;
 		boolean connected = false;
 		
-		DeployFileBean tidbFile = MetaData.get().getDeployFile(CONSTS.SERV_DB_COLLECTD);
+		DeployFileBean collectdFile = MetaData.get().getDeployFile(CONSTS.SERV_COLLECTD);
 		
 		try {
-			String startInfo = String.format("deploy DB collectd id:%s %s:%s begin ......", id, ip, port);
+			String startInfo = String.format("deploy collectd id:%s %s:%s begin ......", id, ip, port);
 			DeployLog.pubSuccessLog(sessionKey, startInfo);
 			
 			ui = new JschUserInfo(user, pwd, ip, CONSTS.SSH_PORT_DEFAULT);
@@ -812,31 +812,31 @@ public class TiDBDeployer implements Deployer {
 			executor.mkdir("log", sessionKey);
 			
 			// fetch deploy file
-			String srcFile = String.format("%s%s", tidbFile.getFtpDir(), tidbFile.getFileName());
+			String srcFile = String.format("%s%s", collectdFile.getFtpDir(), collectdFile.getFileName());
 			String desPath = ".";
-			executor.scp(tidbFile.getFtpUser(), tidbFile.getFtpPwd(),
-					tidbFile.getFtpHost(), srcFile, desPath,
-					tidbFile.getSshPort(), sessionKey);
+			executor.scp(collectdFile.getFtpUser(), collectdFile.getFtpPwd(),
+					collectdFile.getFtpHost(), srcFile, desPath,
+					collectdFile.getSshPort(), sessionKey);
 			
 			// unpack deploy file
-			executor.tgzUnpack(tidbFile.getFileName(), sessionKey);
-			executor.rm(tidbFile.getFileName(), false, sessionKey);
+			executor.tgzUnpack(collectdFile.getFileName(), sessionKey);
+			executor.rm(collectdFile.getFileName(), false, sessionKey);
 			
 			// create start shell
 			if (!executor.createStartShell(startContext)) {
-				DeployLog.pubLog(sessionKey, "create DB collectd start shell fail ......");
+				DeployLog.pubLog(sessionKey, "create collectd start shell fail ......");
 				return false;
 			}
 			
 			// create stop shell
 			if (!executor.createStopShell(stopContext)) {
-				DeployLog.pubLog(sessionKey, "create DB collectd stop shell fail ......");
+				DeployLog.pubLog(sessionKey, "create collectd stop shell fail ......");
 				return false;
 			}
 			
-			// start tidb-server
+			// start collectd
 			if (!execStartShell(executor, port, sessionKey)) {
-				DeployLog.pubLog(sessionKey, "exec DB collectd start shell fail ......");
+				DeployLog.pubLog(sessionKey, "exec collectd start shell fail ......");
 				return false;
 			}
 			
@@ -845,13 +845,13 @@ public class TiDBDeployer implements Deployer {
 				return false;
 			}
 			
-			String info = String.format("deploy DB collectd id:%s %s:%s success ......", id, ip, port);
+			String info = String.format("deploy collectd id:%s %s:%s success ......", id, ip, port);
 			DeployLog.pubSuccessLog(sessionKey, info);
 			
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 
-			String error = String.format("deploy DB collectd id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
+			String error = String.format("deploy collectd id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
 			DeployLog.pubErrorLog(sessionKey, error);
 			
 			result.setRetCode(CONSTS.REVOKE_NOK);
@@ -1141,7 +1141,7 @@ public class TiDBDeployer implements Deployer {
 		return true;
 	}
 	
-	private boolean undeployDBCollectd(InstanceDtlBean collectd, String sessionKey,
+	private boolean undeployCollectd(InstanceDtlBean collectd, String sessionKey,
 			boolean isUndeployService, ResultBean result) {
 		
 		InstanceBean collectdInstance = collectd.getInstance();
@@ -1153,19 +1153,19 @@ public class TiDBDeployer implements Deployer {
 		String pwd  = collectd.getAttribute("OS_PWD").getAttrValue();
 		
 		if (collectdInstance.getIsDeployed().equals(CONSTS.NOT_DEPLOYED)) {
-			String info = String.format("DB collectd id:%s %s:%s is not deployed ......", id, ip, port);
+			String info = String.format("Collectd id:%s %s:%s is not deployed ......", id, ip, port);
 			DeployLog.pubSuccessLog(sessionKey, info);
 			
 			return true;
 		}
 		
-		String deployRootPath = String.format("db_collectd_deploy/%s", port);
+		String deployRootPath = String.format("collectd_deploy/%s", port);
 		JschUserInfo ui = null;
 		SSHExecutor executor = null;
 		boolean connected = false;
 		
 		try {
-			String startInfo = String.format("undeploy DB collectd id:%s %s:%s begin ......", id, ip, port);
+			String startInfo = String.format("undeploy Collectd id:%s %s:%s begin ......", id, ip, port);
 			DeployLog.pubSuccessLog(sessionKey, startInfo);
 			
 			ui = new JschUserInfo(user, pwd, ip, CONSTS.SSH_PORT_DEFAULT);
@@ -1177,10 +1177,10 @@ public class TiDBDeployer implements Deployer {
 			if (executor.isDirExistInCurrPath(deployRootPath, sessionKey)) {
 				executor.cd("$HOME/" + deployRootPath, sessionKey);
 				
-				// stop tidb-server
+				// stop collectd
 				if (executor.isPortUsed(port, sessionKey)) {
 					if (!execStopShell(executor, port, sessionKey)) {
-						DeployLog.pubLog(sessionKey, "exec DB collectd stop shell fail ......");
+						DeployLog.pubLog(sessionKey, "exec collectd stop shell fail ......");
 						return false;
 					}
 				}
@@ -1193,13 +1193,13 @@ public class TiDBDeployer implements Deployer {
 			if (!ConfigDataService.modInstanceDeployFlag(id, CONSTS.NOT_DEPLOYED, result))
 				return false;
 			
-			String info = String.format("undeploy DB collectd id:%s %s:%s success ......", id, ip, port);
+			String info = String.format("undeploy collectd id:%s %s:%s success ......", id, ip, port);
 			DeployLog.pubSuccessLog(sessionKey, info);
 			
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 
-			String error = String.format("undeploy DB collectd id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
+			String error = String.format("undeploy collectd id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
 			DeployLog.pubErrorLog(sessionKey, error);
 			
 			result.setRetCode(CONSTS.REVOKE_NOK);

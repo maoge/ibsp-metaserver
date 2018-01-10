@@ -312,7 +312,7 @@ INSERT  INTO `t_file_deploy`(`FILE_ID`,`HOST_ID`,`FILE_TYPE`,`SERV_CLAZZ`,`FILE_
 ('1', '1', 'DB_TIDB',     'DB', 'tidb_server-1.0.0.tar.gz', '/home/mq1/ftp/', 1456105739394),
 ('2', '1', 'DB_TIKV',     'DB', 'tikv_server-1.0.0.tar.gz', '/home/mq1/ftp/', 1456105739394),
 ('3', '1', 'DB_PD',       'DB', 'pd_server-1.0.0.tar.gz',   '/home/mq1/ftp/', 1456105739394),
-('4', '1', 'DB_COLLECTD', 'DB', 'db_collectd-1.0.0.tar.gz', '/home/mq1/ftp/', 1456105739394);
+('4', '1', 'COLLECTD',    '',   'collectd-1.0.0.tar.gz',    '/home/mq1/ftp/', 1456105739394);
 
 DROP TABLE IF EXISTS `t_monitor_collect`;
 CREATE TABLE `t_monitor_collect` (
