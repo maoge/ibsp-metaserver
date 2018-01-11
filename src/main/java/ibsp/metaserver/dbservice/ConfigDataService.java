@@ -12,16 +12,13 @@ import ibsp.metaserver.bean.SqlBean;
 import ibsp.metaserver.eventbus.EventBean;
 import ibsp.metaserver.eventbus.EventBusMsg;
 import ibsp.metaserver.eventbus.EventType;
-import ibsp.metaserver.eventbus.OperType;
 import ibsp.metaserver.exception.CRUDException;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.schema.Validator;
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.CRUD;
-import ibsp.metaserver.utils.DES3;
 import ibsp.metaserver.utils.FixHeader;
 import ibsp.metaserver.utils.HttpUtils;
-import ibsp.metaserver.utils.UUIDUtils;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
@@ -59,9 +56,6 @@ public class ConfigDataService {
 	private static final String DEL_INSTANCE_ATTR = "delete from t_instance_attr where INST_ID = ?";
 	private static final String MOD_INSTANCE_ATTR = "update t_instance_attr set ATTR_VALUE = ? "
 	                                              + "where INST_ID = ? and ATTR_ID = ?";
-	
-	private static final String INS_SERVICE       = "insert into t_service(INST_ID,SERV_NAME,SERV_TYPE,IS_DEPLOYED,CREATE_TIME,USER,PASSWORD) "
-	                                              + "values(?,?,?,?,?,?,?)";
 	
 	private static final String INS_TOPOLOGY      = "insert into t_topology(INST_ID1,INST_ID2,TOPO_TYPE) "
 	                                              + "values(?,?,?)";
@@ -609,63 +603,8 @@ public class ConfigDataService {
 		return true;
 	}
 	
-	public static boolean addService(Map<String, String> params, ResultBean result) {
-		
-		if (params != null) {
-			String serviceName = params.get("SERVICE_NAME");
-			String serviceType = params.get("SERVICE_TYPE");
-			if (HttpUtils.isNull(serviceName) || HttpUtils.isNull(serviceType)) {
-				result.setRetInfo(CONSTS.ERR_PARAM_INCOMPLETE);
-				return false;
-			}
-			String serviceID = UUIDUtils.genUUID();
-			CRUD curd = new CRUD();
-			long dt = System.currentTimeMillis();
-			Object[] sqlParams = new Object[] {serviceID, serviceName, serviceType, 
-					CONSTS.NOT_DEPLOYED, dt, null, null};
-			
-			//set db root password
-			switch (serviceType) {
-			case CONSTS.SERV_TYPE_DB:
-				String pwd = UUIDUtils.genUUID();
-				sqlParams[sqlParams.length-1] = DES3.encrypt(pwd.substring(pwd.lastIndexOf("-")+1));
-				sqlParams[sqlParams.length-2] = "root";
-				break;
-			case CONSTS.SERV_TYPE_MQ:
-				//TODO
-				break;
-			case CONSTS.SERV_TYPE_CACHE:
-				//TODO
-				break;
-			}
-			
-			SqlBean sqlServBean = new SqlBean(INS_SERVICE);
-			sqlServBean.addParams(sqlParams);
-			curd.putSqlBean(sqlServBean);
 
-			try {
-				boolean res = curd.executeUpdate(true, result);
-				//publish event e6
-				if (res) {
-					JsonObject evJson = new JsonObject();
-					evJson.put("INST_ID", serviceID);
-					
-					EventBean ev = new EventBean(EventType.e6);
-					ev.setUuid(MetaData.get().getUUID());
-					ev.setJsonStr(evJson.toString());	
-					EventBusMsg.publishEvent(ev);
-				}
-				return res;
-			} catch (Exception e) {
-				result.setRetInfo(e.getMessage());
-				return false;
-			}
-		} else {
-			result.setRetInfo(CONSTS.ERR_PARAM_INCOMPLETE);
-			return false;
-		}
-	}
-	
+
 	private static void getPos(JsonObject posJson, PosBean pos) {
 		Integer x = posJson.getInteger(FixHeader.HEADER_X);
 		Integer y = posJson.getInteger(FixHeader.HEADER_Y);
