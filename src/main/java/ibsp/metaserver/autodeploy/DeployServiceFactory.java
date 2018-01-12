@@ -27,9 +27,9 @@ public class DeployServiceFactory {
 	
 	public static Map<String, Class<?>> DEPLOY_FACTORY;
 	
-	private static final String INS_SERVICE       = "insert into t_service(INST_ID,SERV_NAME,SERV_TYPE,IS_DEPLOYED,CREATE_TIME,USER,PASSWORD) "
-            + "values(?,?,?,?,?,?,?)";
-	private static final String MOD_SERVICE       = "update t_service set SERV_NAME = ? where INST_ID = ?";
+	private static final String INS_SERVICE       = "insert into t_service(INST_ID,SERV_NAME,SERV_TYPE,IS_DEPLOYED,IS_PRODUCT,CREATE_TIME,USER,PASSWORD) "
+            + "values(?,?,?,?,?,?,?,?)";
+	private static final String MOD_SERVICE       = "update t_service set SERV_NAME=?, IS_PRODUCT=? where INST_ID=?";
 	
 	static {
 		DEPLOY_FACTORY = new HashMap<String, Class<?>>();
@@ -209,8 +209,9 @@ public class DeployServiceFactory {
 			String serviceID   = params.get("SERVICE_ID");
 			String serviceName = params.get("SERVICE_NAME");
 			String serviceType = params.get("SERVICE_TYPE");
+			String isProduct   = params.get("IS_PRODUCT");
 
-			if (HttpUtils.isNull(serviceName) || HttpUtils.isNull(serviceType)) {
+			if (HttpUtils.isNull(serviceName) || HttpUtils.isNull(serviceType) || HttpUtils.isNull(isProduct)) {
 				result.setRetInfo(CONSTS.ERR_PARAM_INCOMPLETE);
 				return false;
 			}
@@ -221,7 +222,7 @@ public class DeployServiceFactory {
 				serviceID = UUIDUtils.genUUID();
 				long dt = System.currentTimeMillis();
 				Object[] sqlParams = new Object[] {serviceID, serviceName, serviceType, 
-						CONSTS.NOT_DEPLOYED, dt, null, null};
+						CONSTS.NOT_DEPLOYED, isProduct, dt, null, null};
 			
 				//set db root password
 				switch (serviceType) {
@@ -242,7 +243,7 @@ public class DeployServiceFactory {
 				sqlServBean.addParams(sqlParams);
 				curd.putSqlBean(sqlServBean);
 			} else {
-				Object[] sqlParams = new Object[] {serviceName, serviceID};
+				Object[] sqlParams = new Object[] {serviceName, isProduct, serviceID};
 				SqlBean sqlServBean = new SqlBean(MOD_SERVICE);
 				sqlServBean.addParams(sqlParams);
 				curd.putSqlBean(sqlServBean);

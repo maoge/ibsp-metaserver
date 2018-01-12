@@ -111,4 +111,7 @@ public class CONSTS {
 	public static final String TIKV_OFFLINE_STATUS           = "Offline";
 	public static final String TIKV_TOMBSTONE_STATUS         = "Tombstone";
 	
+	public static final int MIN_PD_NUMBER                    = 3;
+	public static final int MIN_TIKV_NUMBER                  = 3;
+	public static final int MIN_TIDB_NUMBER                  = 2;
 }

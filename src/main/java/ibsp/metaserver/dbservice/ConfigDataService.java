@@ -74,6 +74,7 @@ public class ConfigDataService {
 	
 	private static final String SEL_SERVICE_LIST  = "SELECT INST_ID, SERV_NAME, SERV_TYPE, IS_DEPLOYED FROM t_service WHERE 1=1 ";
 	private static final String COUNT_SERVICE_LIST= "SELECT count(0) count FROM t_service WHERE 1=1 ";
+	private static final String GET_IS_PRODUCT    = "SELECT IS_PRODUCT FROM t_service WHERE INST_ID=?";
 	
 	static {
 		SKELETON_SCHEMA_MAPPER = new HashMap<String, String>();
@@ -763,5 +764,22 @@ public class ConfigDataService {
 				sb.append(" and serv_type = '"+serviceType+"' ");
 			}
 		}
+	}
+	
+	public static Boolean getIsProductByServId(String serviceID, ResultBean result) {
+		
+		SqlBean sql = new SqlBean(GET_IS_PRODUCT);
+		sql.addParams(new Object[] {serviceID});
+		CRUD curd = new CRUD();
+		curd.putSqlBean(sql);
+		
+		try {
+			return curd.queryForCount()==1;
+		} catch (CRUDException e) {
+			logger.error(e.getMessage(), e);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(e.getMessage());
+		}
+		return null;
 	}
 }
