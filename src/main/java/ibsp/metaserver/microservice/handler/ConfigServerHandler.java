@@ -172,21 +172,4 @@ public class ConfigServerHandler {
 		
 		HttpUtils.outJsonObject(routeContext, json);
 	}
-	
-	@Service(id = "addService", name = "addService", auth = true, bwswitch = true)
-	public static void addService(RoutingContext routeContext) {
-		JsonObject json = new JsonObject();
-		ResultBean result = new ResultBean();
-		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
-		
-		if (ConfigDataService.addService(params, result)) {
-			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
-			json.put(FixHeader.HEADER_RET_INFO, "");
-		} else {
-			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
-			json.put(FixHeader.HEADER_RET_INFO, result.getRetInfo());
-		}
-		
-		HttpUtils.outJsonObject(routeContext, json);
-	}
 }

@@ -43,6 +43,29 @@ public class TiDBDeployer implements Deployer {
 				tidbServerList, tikvServerList, collectd, result))
 			return false;
 		
+		//check if the service matches minimum condition of TiDB product
+		Boolean isProduct = ConfigDataService.getIsProductByServId(serviceID, result);
+		if (isProduct == null) {
+			return false;
+		}
+		if (isProduct) {
+			if (pdServerList.size()<CONSTS.MIN_PD_NUMBER) {
+				result.setRetCode(CONSTS.REVOKE_NOK);
+				result.setRetInfo("Number of PD is "+pdServerList.size()+", should be at least "+CONSTS.MIN_PD_NUMBER);
+				return false;
+			}
+			if (tikvServerList.size()<CONSTS.MIN_TIKV_NUMBER) {
+				result.setRetCode(CONSTS.REVOKE_NOK);
+				result.setRetInfo("Number of Tikv is "+tikvServerList.size()+", should be at least "+CONSTS.MIN_TIKV_NUMBER);
+				return false;
+			}
+			if (tidbServerList.size()<CONSTS.MIN_TIDB_NUMBER) {
+				result.setRetCode(CONSTS.REVOKE_NOK);
+				result.setRetInfo("Number of Tidb is "+tidbServerList.size()+", should be at least "+CONSTS.MIN_TIDB_NUMBER);
+				return false;
+			}
+		}
+		
 		String pdList = getPDList(pdServerList);
 
 		// deploy pd-server
