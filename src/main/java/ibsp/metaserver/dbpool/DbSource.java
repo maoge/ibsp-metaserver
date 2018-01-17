@@ -139,19 +139,20 @@ public class DbSource {
 	public static void removeBrokenPool(String id) {
 		DbSource dbsource = DbSource.get();
 		synchronized(mtx) {
-			if (dbsource.validIdList.contains(id)) {
+			if (dbsource.validDBMap.contains(id)) {
 				dbsource.validIdList.remove(id);
 				ConnectionPool connPool = dbsource.validDBMap.remove(id);
 				if (connPool != null) {
-					logger.info("db pool:{} broken ......", id);
-					
-					dbsource.invalidDBMap.put(id, connPool);
+					if (dbsource.invalidDBMap.contains(id))
+						return;
 					
 					if (!dbsource.invalidIdList.contains(id)) {
+						logger.info("db pool:{} broken ......", id);
+						dbsource.invalidDBMap.put(id, connPool);
 						dbsource.invalidIdList.add(id);
 					}
 					
-					if (dbsource.invalidDBMap.size() > 0) {
+					if (!dbsource.invalidDBMap.isEmpty()) {
 						startChecker();
 					}
 				}
@@ -162,19 +163,20 @@ public class DbSource {
 	public static void mergeRecoveredPool(String id) {
 		DbSource dbsource = DbSource.get();
 		synchronized(mtx) {
-			if (dbsource.invalidIdList.contains(id)) {
+			if (dbsource.invalidDBMap.contains(id)) {
 				dbsource.invalidIdList.remove(id);
 				ConnectionPool connPool = dbsource.invalidDBMap.remove(id);
 				if (connPool != null) {
-					logger.info("db pool:{} recovered ......", id);
-					
-					dbsource.validDBMap.put(id, connPool);
+					if (dbsource.validDBMap.contains(id))
+						return;
 					
 					if (!dbsource.validIdList.contains(id)) {
+						logger.info("db pool:{} recovered ......", id);
+						dbsource.validDBMap.put(id, connPool);
 						dbsource.validIdList.add(id);
 					}
 					
-					if (dbsource.invalidDBMap.size() == 0) {
+					if (dbsource.invalidDBMap.isEmpty()) {
 						stopChecker();
 					}
 				}
