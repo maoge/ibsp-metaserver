@@ -923,6 +923,8 @@ public class TiDBDeployer implements Deployer {
 			executor.connect();
 			connected = true;
 			
+			executor.cd("$HOME/" + deployRootPath, sessionKey);
+			
 			if (!isUndeployService) {
 				//如果失败，可能是这个pd服务没有起来，尝试其它的pd节点进行pd缩容
 				boolean deletePdMember = executor.pdctlDeletePdMember(ip, port, id, sessionKey);
@@ -950,7 +952,7 @@ public class TiDBDeployer implements Deployer {
 			}
 				
 			// cd deploy dir, exec stop shell, rm deploy dir
-			if (executor.isDirExistInCurrPath(deployRootPath, sessionKey)) {
+			if (executor.isDirExistInCurrPath("$HOME/"+deployRootPath, sessionKey)) {
 				executor.cd("$HOME/" + deployRootPath, sessionKey);
 				
 				// stop pd-server
@@ -979,6 +981,7 @@ public class TiDBDeployer implements Deployer {
 				for(InstanceDtlBean pd : pdServerList) {
 					if(pd.getAttribute("PD_ID").getAttrValue().equals(id)) {
 						pdServerList.remove(pd);
+						break;
 					}
 				}
 				refreshDbCompCmd(pdServerList, tikvServerList, tidbServerList, sessionKey);
@@ -988,6 +991,7 @@ public class TiDBDeployer implements Deployer {
 			DeployLog.pubSuccessLog(sessionKey, info);
 
 		} catch (Exception e) {
+			e.printStackTrace();
 			logger.error(e.getMessage(), e);
 
 			String error = String.format("undeploy pd id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
@@ -1245,7 +1249,7 @@ public class TiDBDeployer implements Deployer {
 			if (instance.getInstance().getIsDeployed().equals("1")) {
 				String ip = instance.getAttribute("IP").getAttrValue();
 				String port = instance.getAttribute("PORT").getAttrValue();
-				result.append(ip+":"+port+",");
+				result.append("http://"+ip+":"+port+",");
 			}
 		}
 		result.deleteCharAt(result.length()-1);
@@ -1587,6 +1591,7 @@ public class TiDBDeployer implements Deployer {
 				+ "    --store=tikv \\\\\n"
 				+ "    --log-file=%s \\\\\n"
 				+ "    --path=%s \\\\\n"
+				+ "    --config=conf/tidb.toml \\\\\n"
 				+ "    --status=%s &",
 				ip, port, logFile, pdList, statPort);
 	}
@@ -1610,6 +1615,7 @@ public class TiDBDeployer implements Deployer {
 				+ "    --advertise-client-urls=%s --advertise-peer-urls=%s \\\\\n"
 				+ "    --data-dir=%s -L info \\\\\n" 
 				+ "    --log-file=%s \\\\\n"
+				+ "    --config=conf/pd.toml \\\\\n"
 				+ "    --initial-cluster=%s &",
 				id, clientUrl, peerUrl, clientUrl, peerUrl, dataDir, logFile, cluster);
 	}
@@ -1620,6 +1626,7 @@ public class TiDBDeployer implements Deployer {
 				+ "    --advertise-client-urls=%s --advertise-peer-urls=%s \\\\\n"
 				+ "    --data-dir=%s -L info \\\\\n" 
 				+ "    --log-file=%s \\\\\n"
+				+ "    --config=conf/pd.toml \\\\\n"
 				+ "    --join=%s &",
 				id, clientUrl, peerUrl, clientUrl, peerUrl, dataDir, logFile, join);
 	}
@@ -1641,6 +1648,7 @@ public class TiDBDeployer implements Deployer {
 		return String.format("bin/tikv-server --addr %s:%s \\\\\n"
 				+ "    --pd %s \\\\\n"
 				+ "    --data-dir %s \\\\\n"
+				+ "    --config conf/tikv.toml \\\\\n"
 				+ "    -L info --log-file %s &",
 				ip, port, pdList, dataDir, logFile);
 	}
