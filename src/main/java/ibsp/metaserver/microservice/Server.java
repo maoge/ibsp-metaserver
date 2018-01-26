@@ -9,6 +9,7 @@ import ibsp.metaserver.microservice.handler.AutoDeployHandler;
 import ibsp.metaserver.microservice.handler.CollectDataHandler;
 import ibsp.metaserver.microservice.handler.ConfigServerHandler;
 import ibsp.metaserver.microservice.handler.MetaServerHandler;
+import ibsp.metaserver.microservice.handler.ResourceServerHandler;
 import ibsp.metaserver.microservice.handler.TiDBHandler;
 import ibsp.metaserver.monitor.ActiveCollect;
 import ibsp.metaserver.singleton.AllServiceMap;
@@ -70,6 +71,7 @@ public class Server extends AbstractVerticle {
 		clazzToReg.add(AutoDeployHandler.class);
 		clazzToReg.add(TiDBHandler.class);
 		clazzToReg.add(CollectDataHandler.class);
+		clazzToReg.add(ResourceServerHandler.class);
 		
 		registerRoute(router, clazzToReg);
 		

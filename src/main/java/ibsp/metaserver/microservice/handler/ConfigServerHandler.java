@@ -172,4 +172,52 @@ public class ConfigServerHandler {
 		
 		HttpUtils.outJsonObject(routeContext, json);
 	}
+	
+	@Service(id = "getTreeMetaDataByInstId", name = "getTreeMetaDataByInstId", auth = true, bwswitch = true)
+	public static void getTreeMetaDataByInstId(RoutingContext routeContext) {
+		JsonObject json = new JsonObject();
+		
+		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
+		if(params == null) {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+			json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+		} else {
+			String sInstID = params.get(FixHeader.HEADER_INSTANCE_ID);
+			if (!HttpUtils.isNotNull(sInstID)) {
+				json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+				json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+			} else {
+				ResultBean result = new ResultBean();
+				JsonArray arr = ConfigDataService.getTreeMetaDataByInstId(sInstID, result);
+				json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+				json.put(FixHeader.HEADER_RET_INFO, arr);
+			}			
+		}
+		
+		HttpUtils.outJsonObject(routeContext, json);
+	}
+	
+	@Service(id = "getMetaDataByInstId", name = "getMetaDataByInstId", auth = true, bwswitch = true)
+	public static void getMetaDataByInstId(RoutingContext routeContext) {
+		JsonObject json = new JsonObject();
+		
+		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
+		if(params == null) {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+			json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+		} else {
+			String sInstID = params.get(FixHeader.HEADER_INSTANCE_ID);
+			if (!HttpUtils.isNotNull(sInstID)) {
+				json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+				json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+			} else {
+				ResultBean result = new ResultBean();
+				JsonObject res = ConfigDataService.getMetaDataByInstId(sInstID, result);
+				json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+				json.put(FixHeader.HEADER_RET_INFO, res);
+			}
+		}
+		
+		HttpUtils.outJsonObject(routeContext, json);
+	}
 }
