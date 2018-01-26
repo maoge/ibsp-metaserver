@@ -18,6 +18,7 @@ import ibsp.metaserver.utils.HttpUtils;
 import ibsp.metaserver.utils.SysConfig;
 import ibsp.metaserver.utils.Topology;
 import ibsp.metaserver.utils.UUIDUtils;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
 import java.util.Iterator;
@@ -607,6 +608,53 @@ public class MetaData {
 	
 	public Topology getTopo() {
 		return topo;
+	}
+	
+	public JsonArray getMetaTreeByInstId(String instId) {
+		JsonArray arr = new JsonArray();
+		getTreeChild(arr,instId);
+		return arr;
+	}
+	
+	public JsonObject getMetaDataByInstId(String instId) {
+		JsonObject json = new JsonObject();
+		JsonArray arr = new JsonArray();
+		
+		InstanceDtlBean insDtlBean = instanceDtlMap.get(instId);
+		int cmptId = insDtlBean.getInstance().getCmptID();
+		Map<String, InstAttributeBean> attrmap = insDtlBean.getAttrMap();
+		attrmap.forEach((attrName,attrValue) -> {
+			JsonObject row = new JsonObject();
+			row.put("ATTR_NAME", attrName);
+			row.put("ATTR_VALUE", attrValue.getAttrValue());
+			MetaAttributeBean maBean = metaAttrMap.get(attrValue.getAttrID());
+			row.put("ATTR_VALUE_CN", maBean.getAttrNameCN());
+			arr.add(row);
+		});
+		
+		MetaComponentBean mcBean = metaCmptMap.get(cmptId);
+		String name = mcBean.getCmptNameCn();
+		
+		json.put(name, arr);
+		
+		return json;
+	}
+	
+	private boolean getTreeChild(JsonArray arr, String instId) {
+		Set<String> childs = topo.get(instId, CONSTS.TOPO_TYPE_CONTAIN);
+		boolean hasChilds = childs != null && !childs.isEmpty();
+		if(hasChilds) {
+			for(String child : childs) {
+				JsonObject json = new JsonObject();
+				json.put("text", child);
+				JsonArray cArr = new JsonArray();
+				if(getTreeChild(cArr,child)) {
+					json.put("nodes", cArr);
+				}
+				arr.add(json);
+			}
+		}
+		return hasChilds;
 	}
 	
 }

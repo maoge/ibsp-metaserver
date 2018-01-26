@@ -227,6 +227,14 @@ public class ConfigDataService {
 		return curd.executeUpdate(true, result);
 	}
 	
+	public static JsonArray getTreeMetaDataByInstId(String sInstID, ResultBean result) {
+		return MetaData.get().getMetaTreeByInstId(sInstID);
+	}
+	
+	public static JsonObject getMetaDataByInstId(String sInstID, ResultBean result) {
+		return MetaData.get().getMetaDataByInstId(sInstID);
+	}
+	
 	private static boolean isPortUsed(JsonObject instance, ResultBean result) {
 		
 		if (!instance.containsKey("IP") || !instance.containsKey("PORT")) return false;
