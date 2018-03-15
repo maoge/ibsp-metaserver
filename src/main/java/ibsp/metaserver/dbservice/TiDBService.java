@@ -395,23 +395,45 @@ public class TiDBService {
 		return jsonarray;
 	}
 	
-	private static String getAddressByServID(String servID, String type) throws Exception {
-		SqlBean sqlBean = new SqlBean(GET_ADDRESS_BY_SERV_ID);
-		sqlBean.addParams(new Object[] { type, servID });
-		CRUD c = new CRUD();
-		c.putSqlBean(sqlBean);
-		JsonArray result = c.queryForJSONArray();
+	public static String getAllAddressByServID(String servID, String type, ResultBean bean) throws Exception {
+		try {
+			SqlBean sqlBean = new SqlBean(GET_ADDRESS_BY_SERV_ID);
+			sqlBean.addParams(new Object[] { type, servID });
+			CRUD c = new CRUD();
+			c.putSqlBean(sqlBean);
+			JsonArray result = c.queryForJSONArray();
 		
-		String address = "";
-		if (result.size()>0 && result.getJsonObject(0).getString("ATTR_NAME").equals("IP")) {
-			address = result.getJsonObject(0).getString("ATTR_VALUE")+":"+
-					result.getJsonObject(1).getString("ATTR_VALUE");
-		} else if (result.size()>0 && result.getJsonObject(1).getString("ATTR_NAME").equals("IP")) {
-			address = result.getJsonObject(1).getString("ATTR_VALUE")+":"+
-					result.getJsonObject(0).getString("ATTR_VALUE");
-		} else {
+			StringBuilder addresses = new StringBuilder("");
+			String address = "";
+			for (Object obj : result) {
+				JsonObject json = (JsonObject) obj;
+				if (address.isEmpty()) {
+					address = json.getString("ATTR_VALUE");
+				} else {
+					if (json.getString("ATTR_NAME").equals("IP")) {
+						address = json.getString("ATTR_VALUE")+":"+address;
+					} else {
+						address = address+":"+json.getString("ATTR_VALUE");
+					}
+					addresses.append(address);
+					addresses.append(",");
+					address = "";
+				}
+			}
+			return addresses.substring(0, addresses.length()-1);
+		} catch (Exception e) {
+			if (bean!=null) {
+				logger.error("Error get address by service ID...", e);
+				bean.setRetInfo(e.getMessage());
+			} else {
+				throw e;
+			}
 			return null;
 		}
+	}
+	
+	private static String getAddressByServID(String servID, String type) throws Exception {
+		String address = getAllAddressByServID(servID, type, null).split(CONSTS.PATH_COMMA)[0];
 		return address;
 	}
 	

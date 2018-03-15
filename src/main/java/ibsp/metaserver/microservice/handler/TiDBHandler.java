@@ -15,6 +15,35 @@ import java.util.Map;
 @App(path = "/tidbsvr")
 public class TiDBHandler {
 
+	@Service(id = "tidbAddressService", name = "tidbAddressService", auth = true, bwswitch = true)
+	public static void tidbAddressService(RoutingContext routeContext) throws Exception {
+		JsonObject json = new JsonObject();
+		
+		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
+		if(params == null) {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+			json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+		} else {
+			String servID = params.get(FixHeader.HEADER_SERV_ID);
+			if (!HttpUtils.isNotNull(servID)) {
+				json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+				json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+			} else {
+				ResultBean result = new ResultBean();
+				String address = TiDBService.getAllAddressByServID(servID, CONSTS.SERV_DB_TIDB, result);
+				if (address!=null) {
+					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+					json.put(FixHeader.HEADER_RET_INFO, address);
+				} else {
+					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+					json.put(FixHeader.HEADER_RET_INFO, result.getRetInfo());
+				}
+			}
+		}
+		
+		HttpUtils.outJsonObject(routeContext, json);
+	}
+	
 	@Service(id = "sqlExplainService", name = "sqlExplainService", auth = true, bwswitch = true)
 	public static void sqlExplainService(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
