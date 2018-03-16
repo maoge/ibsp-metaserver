@@ -653,7 +653,7 @@ public class ConfigDataService {
 		return ret;
 	}
 	
-	private static boolean isServiceExist(String serviceID, ResultBean result) {
+	public static boolean isServiceExist(String serviceID, ResultBean result) {
 		int cnt = 0;
 		CRUD curd = new CRUD();
 		
