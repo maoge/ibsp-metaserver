@@ -5,7 +5,6 @@ import ibsp.metaserver.annotation.Service;
 import ibsp.metaserver.autodeploy.DeployServiceFactory;
 import ibsp.metaserver.autodeploy.utils.DeployLog;
 import ibsp.metaserver.bean.ResultBean;
-import ibsp.metaserver.dbservice.ConfigDataService;
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.FixHeader;
 import ibsp.metaserver.utils.HttpUtils;
