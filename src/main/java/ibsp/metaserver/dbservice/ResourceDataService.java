@@ -49,6 +49,10 @@ public class ResourceDataService {
 			"DELETE FROM t_ssh WHERE SERVER_IP=? AND SSH_NAME IN ";
 	private static final String DELETE_SSH_BY_IP =
 			"DELETE FROM t_ssh WHERE SERVER_IP IN ";
+	
+	private static final String GET_BY_SERVICE_TYPE = 
+			"SELECT t_server.SERVER_IP, SSH_NAME, SSH_PWD FROM t_server JOIN t_ssh ON "
+			+ "t_server.SERVER_IP=t_ssh.SERVER_IP WHERE SERV_TYPE LIKE ?";
 
 	
 	public static JsonArray getServerList(Map<String, String> params, ResultBean result) {
@@ -321,7 +325,59 @@ public class ResourceDataService {
 		}
 	}
 	
+	public static JsonArray getUserByServiceType(Map<String, String> params, ResultBean result) {
+		if (params != null) {
+			String type = params.get("SERVICE_TYPE");
+			if (HttpUtils.isNull(type)) {
+				result.setRetInfo(CONSTS.ERR_PARAM_INCOMPLETE);
+				return null;
+			}
+			
+			CRUD curd = new CRUD();
+			SqlBean sqlServBean = new SqlBean(GET_BY_SERVICE_TYPE);
+			Object[] sqlParams = new Object[] {"%"+type+"%"};
+			sqlServBean.addParams(sqlParams);
+			curd.putSqlBean(sqlServBean);
+			
+			JsonArray res = new JsonArray();
+			JsonArray sshs = new JsonArray();
+			String lastIP = "";
+			JsonObject user = null;
+			
+			try {
+				JsonArray array = curd.queryForJSONArray();
+				for (Object o:array) {
+					JsonObject object = (JsonObject) o;
+					if (!object.getString("SERVER_IP").equals(lastIP)) {
+						if (user!=null) {
+							user.put("SSH_LIST", sshs);
+							res.add(user);
+						}
+						user = new JsonObject();
+						user.put("SERVER_IP", object.getString("SERVER_IP"));
+						sshs = new JsonArray();
+					}
+					JsonObject ssh = new JsonObject();
+					ssh.put("SSH_NAME", object.getString("SSH_NAME"));
+					ssh.put("SSH_PWD", object.getString("SSH_PWD"));
+					sshs.add(ssh);
+				}
+				
+				user.put("SSH_LIST", sshs);
+				res.add(user);
+				return res;
+			} catch (Exception e) {
+				logger.error(e.getMessage(), e);
+				result.setRetInfo(e.getMessage());
+				return null;
+			}
+		} else {
+			result.setRetInfo(CONSTS.ERR_PARAM_INCOMPLETE);
+			return null;
+		}
+	}
 	
+	//private methods
 	private static String checkSSHUser(String IP, String name, String password) throws Exception {
 		JschUserInfo ui = new JschUserInfo(name, password, IP, CONSTS.SSH_PORT_DEFAULT);
 		SSHExecutor executor = new SSHExecutor(ui);

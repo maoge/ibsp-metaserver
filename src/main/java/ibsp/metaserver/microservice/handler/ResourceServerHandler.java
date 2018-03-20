@@ -154,4 +154,22 @@ public class ResourceServerHandler {
 		
 		HttpUtils.outJsonObject(routeContext, json);
 	}
+	
+	@Service(id = "getUserByServiceType", name = "getUserByServiceType", auth = true, bwswitch = true)
+	public static void getUserByServiceType(RoutingContext routeContext) {
+		JsonObject json = new JsonObject();
+		ResultBean result = new ResultBean();
+		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
+		
+		JsonArray userList = ResourceDataService.getUserByServiceType(params, result);
+		if (userList != null) {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+			json.put(FixHeader.HEADER_RET_INFO, userList);
+		} else {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+			json.put(FixHeader.HEADER_RET_INFO, result.getRetInfo());
+		}
+		
+		HttpUtils.outJsonObject(routeContext, json);
+	}
 }
