@@ -73,7 +73,8 @@ insert into `t_meta_attr`(`ATTR_ID`,`ATTR_NAME`,`ATTR_NAME_CN`, `AUTO_GEN`) valu
 (235, 'TIDB_ID',                           'TIDB ID',                 '1'),
 (236, 'TIDB_NAME',                         'TIDB Name',               '0'),
 (237, 'TIKV_ID',                           'TIKV ID',                 '1'),
-(238, 'TIKV_NAME',                         'TIKV Name',               '0');
+(238, 'TIKV_NAME',                         'TIKV Name',               '0'),
+(239, 'CACHE_SLOT',                        'Cache分片信息',           '0');
 
 /*Table structure for component table `t_meta_cmpt` */
 DROP TABLE IF EXISTS `t_meta_cmpt`;
@@ -159,6 +160,7 @@ insert into `t_meta_cmpt_attr`(`CMPT_ID`,`ATTR_ID`) values
 (109, 218),
 (110, 219),
 (110, 220),
+(110, 239),
 (111, 223),
 (111, 224),
 (111, 100),
