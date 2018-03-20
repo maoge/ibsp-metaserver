@@ -74,7 +74,8 @@ insert into `t_meta_attr`(`ATTR_ID`,`ATTR_NAME`,`ATTR_NAME_CN`, `AUTO_GEN`) valu
 (236, 'TIDB_NAME',                         'TIDB Name',               '0'),
 (237, 'TIKV_ID',                           'TIKV ID',                 '1'),
 (238, 'TIKV_NAME',                         'TIKV Name',               '0'),
-(239, 'CACHE_SLOT',                        'Cache分片信息',           '0');
+(239, 'CACHE_SLOT',                        'Cache分片信息',           '0'),
+(240, 'HOST_NAME',                         'host name',              '0');
 
 /*Table structure for component table `t_meta_cmpt` */
 DROP TABLE IF EXISTS `t_meta_cmpt`;
@@ -139,6 +140,7 @@ insert into `t_meta_cmpt_attr`(`CMPT_ID`,`ATTR_ID`) values
 (104, 103),
 (104, 108),
 (104, 109),
+(104, 240),
 (105, 211),
 (105, 212),
 (105, 100),
@@ -312,10 +314,12 @@ CREATE TABLE `t_file_deploy` (
 ) ENGINE=INNODB DEFAULT CHARSET=utf8;
 
 INSERT  INTO `t_file_deploy`(`FILE_ID`,`HOST_ID`,`FILE_TYPE`,`SERV_CLAZZ`,`FILE_NAME`,`FILE_DIR`,`CREATE_TIME`) VALUES 
-('1', '1', 'DB_TIDB',     'DB', 'tidb_server-1.0.0.tar.gz', '/home/mq1/ftp/', 1456105739394),
-('2', '1', 'DB_TIKV',     'DB', 'tikv_server-1.0.0.tar.gz', '/home/mq1/ftp/', 1456105739394),
-('3', '1', 'DB_PD',       'DB', 'pd_server-1.0.0.tar.gz',   '/home/mq1/ftp/', 1456105739394),
-('4', '1', 'COLLECTD',    '',   'collectd-1.0.0.tar.gz',    '/home/mq1/ftp/', 1456105739394);
+('1', '1', 'DB_TIDB',     'DB', 'tidb_server-1.0.0.tar.gz',                  '/home/mq1/ftp/', 1456105739394),
+('2', '1', 'DB_TIKV',     'DB', 'tikv_server-1.0.0.tar.gz',                  '/home/mq1/ftp/', 1456105739394),
+('3', '1', 'DB_PD',       'DB', 'pd_server-1.0.0.tar.gz',                    '/home/mq1/ftp/', 1456105739394),
+('4', '1', 'COLLECTD',    '',   'collectd-1.0.0.tar.gz',                     '/home/mq1/ftp/', 1456105739394),
+('5', '1', 'MQ_RABBIT',   'MQ', 'rabbitmq-server-generic-unix-3.4.3.tar.gz', '/home/mq1/ftp/', 1456105739394),
+('6', '1', 'MQ_ERLANG',   'MQ', 'otp_R15B.tar.gz',                           '/home/mq1/ftp/', 1456105739394);
 
 DROP TABLE IF EXISTS `t_monitor_collect`;
 CREATE TABLE `t_monitor_collect` (
