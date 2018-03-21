@@ -42,29 +42,37 @@
 						"MQ_VBROKER":{
 							"type":"array",
 							"required":true,
-							"properties": {
-								"VBROKER_ID": {"type":"string","required":true,"minLength":36,"description":"VBROKER ID"},
-								"VBROKER_NAME": {"type":"string","required":true,"description":"VBROKER NAME"},
-								"MASTER_ID": {"type":"string","required":false,"description":"主节点ID"},
-								
-								"MQ_BROKER":{
-									"type":"array",
-									"required":true,
-									"properties": {
-										"BROKER_ID": {"type":"string","required":true,"minLength":36,"description":"BROKER ID"},
-										"BROKER_NAME": {"type":"string","required":true,"description":"BROKER NAME"},
-										"IP": {"type":"string","required":true,"description":"IP"},
-										"PORT": {"type":"string","required":true,"description":"服务端口"},
-										"MGR_PORT": {"type":"string","required":true,"description":"管理端口"},
-										"SYNC_PORT": {"type":"string","required":true,"description":"同步端口"},
-										"OS_USER": {"type":"string","required":true,"description":"系统账户"},
-										"OS_PWD": {"type":"string","required":true,"description":"系统密码"},
-										"ROOT_PWD": {"type":"string","required":true,"description":"root密码"},
-										"HOST_NAME": {"type":"string","required":false,"description":"host name"},
-										"ERL_COOKIE": {"type":"string","required":false,"description":"erlang cookie"}
+							"items": {
+								"type":"object",
+								"properties": {
+									"VBROKER_ID": {"type":"string","required":true,"minLength":36,"description":"VBROKER ID"},
+									"VBROKER_NAME": {"type":"string","required":true,"description":"VBROKER NAME"},
+									"MASTER_ID": {"type":"string","required":false,"description":"主节点ID"},
+									
+									"MQ_BROKER":{
+										"type":"array",
+										"required":true,
+										"items": {
+											"type":"object",
+											"properties": {
+												"BROKER_ID": {"type":"string","required":true,"minLength":36,"description":"BROKER ID"},
+												"BROKER_NAME": {"type":"string","required":true,"description":"BROKER NAME"},
+												"IP": {"type":"string","required":true,"description":"IP"},
+												"PORT": {"type":"string","required":true,"description":"服务端口"},
+												"MGR_PORT": {"type":"string","required":true,"description":"管理端口"},
+												"SYNC_PORT": {"type":"string","required":true,"description":"同步端口"},
+												"OS_USER": {"type":"string","required":true,"description":"系统账户"},
+												"OS_PWD": {"type":"string","required":true,"description":"系统密码"},
+												"ROOT_PWD": {"type":"string","required":true,"description":"root密码"},
+												"HOST_NAME": {"type":"string","required":false,"description":"host name"},
+												"ERL_COOKIE": {"type":"string","required":false,"description":"erlang cookie"}
+											}
+										},
+										"minItems":1
 									}
 								}
-							}
+							},
+							"minItems":1
 						}
 					}
 				},
