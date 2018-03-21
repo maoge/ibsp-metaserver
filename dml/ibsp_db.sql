@@ -75,7 +75,9 @@ insert into `t_meta_attr`(`ATTR_ID`,`ATTR_NAME`,`ATTR_NAME_CN`, `AUTO_GEN`) valu
 (237, 'TIKV_ID',                           'TIKV ID',                 '1'),
 (238, 'TIKV_NAME',                         'TIKV Name',               '0'),
 (239, 'CACHE_SLOT',                        'Cache分片信息',           '0'),
-(240, 'HOST_NAME',                         'host name',              '0');
+(240, 'HOST_NAME',                         'host name',              '0'),
+(241, 'ERL_COOKIE',                        'erlang cookie',          '0'),
+(242, 'ROOT_PWD',                          'root密码',                '0');
 
 /*Table structure for component table `t_meta_cmpt` */
 DROP TABLE IF EXISTS `t_meta_cmpt`;
@@ -141,6 +143,8 @@ insert into `t_meta_cmpt_attr`(`CMPT_ID`,`ATTR_ID`) values
 (104, 108),
 (104, 109),
 (104, 240),
+(104, 241),
+(104, 242),
 (105, 211),
 (105, 212),
 (105, 100),
