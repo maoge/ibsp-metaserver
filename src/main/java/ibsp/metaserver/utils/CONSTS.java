@@ -33,6 +33,11 @@ public class CONSTS {
 	public static final String DEPLOY_SINGLE_FAIL_BEGIN_STYLE    = "<span style='color:yellow;'>";
 	public static final String END_STYLE                         = "</span>";
 	
+	public static final String MQ_DEPLOY_ROOT_PATH     = "mq_deploy";
+	public static final String MQ_DEPLOY_PATH          = "rabbitmq_server-3.4.3";
+	public static final long DISK_FREE_LIMIT           = 6000000000L;
+	public static final float VM_MEMORY_HIGH_WATERMARK = 0.2f;
+	
 	public static final int REVOKE_OK                = 0;
 	public static final int REVOKE_NOK               = -1;
 	public static final int REVOKE_NOK_QUEUE_EXIST   = -2;
@@ -77,6 +82,11 @@ public class CONSTS {
 	public static final int TOPO_TYPE_LINK           = 1;
 	public static final int TOPO_TYPE_CONTAIN        = 2;
 	
+	public static final String MQ_DEFAULT_USER       = "mq";
+	public static final String MQ_DEFAULT_PWD        = "ibsp_mq@123321";
+	public static final String MQ_DEFAULT_VHOST      = "/";
+	public static final long   MQ_DEPLOY_MAXTIME     = 60000l;
+	
 	public static final String SERV_TYPE_MQ          = "MQ";
 	public static final String SERV_TYPE_CACHE       = "CACHE";
 	public static final String SERV_TYPE_DB          = "DB";
@@ -84,7 +94,10 @@ public class CONSTS {
 	public static final String SERV_DB_PD            = "DB_PD";
 	public static final String SERV_DB_TIDB          = "DB_TIDB";
 	public static final String SERV_DB_TIKV          = "DB_TIKV";
-	public static final String SERV_COLLECTD      = "COLLECTD";
+	public static final String SERV_COLLECTD         = "COLLECTD";
+	
+	public static final String SERV_MQ_RABBIT        = "RABBIT";
+	public static final String SERV_MQ_ERLANG        = "ERLANG";
 	
 	public static final String SCHEMA_OBJECT         = "\"object\"";
 	public static final String SCHEMA_ARRAY          = "\"array\"";
@@ -97,6 +110,23 @@ public class CONSTS {
 	public static final String ERR_JSONNODE_NOT_COMPLETE = "json node not complete ......";
 	public static final String ERR_SERV_TYPE_NOT_FOUND   = "service type not found ......";
 	public static final String ERR_HOSTINFO_NOT_COMPLETE = "host info not complete ......";
+	public static final String ERR_DEPLOY_CONF_MISS      = "deploy file config missing ......";
+	public static final String ERR_SSH_CONNECT_FAIL      = "ssh connect fail ......";
+	public static final String ERR_EXEC_SHELL_FAIL       = "exec shell fail ......";
+	public static final String ERR_DEPLOY_ERL_FAIL       = "deploy erlang fail ......";
+	public static final String ERR_SET_HOSTS_FAIL        = "set hosts fail ......";
+	public static final String ERR_MQ_PORT_ISUSED        = "MQ port is used ......";
+	public static final String ERR_MQ_NO_BROKER_FUND     = "no broker found ......";
+	public static final String ERR_DEPLOY_MQ_FAIL        = "deploy mq fail ......";
+	public static final String ERR_UNDEPLOY_MQ_FAIL      = "undeploy mq fail ......";
+	public static final String ERR_SET_HOST              = "set hosts fail ......";
+	public static final String ERR_SET_ERLCOOKIE         = "set erlang cookie fail ......";
+	public static final String ERR_RABBITMQ_PORT_USED    = "rabbitmq port is used ......";
+	public static final String ERR_RABBITMQ_MGR_PORT_USED = "rabbitmq manage port is used ......";
+	public static final String ERR_PORT_USED_IN_DB       = "port is used in db ......";
+	public static final String ERR_PWD_INCORRECT         = "login passwd incorrect ......";
+	public static final String ERR_PWD_EXPIRE            = "login passwd expired ......";
+	public static final String ERR_PUT_SESSION           = "put session fail ......";
 	
 	//TIDB consts
 	public static final String ERR_FIND_TIDB_SERVER_ERROR    = "no available tidb server for serv_id ";

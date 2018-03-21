@@ -42,6 +42,9 @@ public class SSHExecutor {
 	private static final String CMD_CHMOD    = "chmod";
 	private static final String CMD_HOSTNAME = "hostname";
 	private static final String CMD_HNAME2IP = "hname2ip";
+	private static final String CMD_ERL      = "erl";
+	
+	private static final String ERL_ROOT_DIR = "ERL_ROOT_DIR";
 
 	private JschUserInfo ui;
 	private JSch jsch;
@@ -418,7 +421,7 @@ public class SSHExecutor {
 			}
 		} while (!bout.catEof());
 
-		cmd = String.format("%s PATH=$HOME/%s/bin:$PATH\n", CMD_EXPORT, path);
+		cmd = String.format("%s PATH=\\$HOME/%s/bin:$PATH\n", CMD_EXPORT, path);
 		commander.print(cmd);
 		do {
 			Thread.sleep(WAIT_TIMEOUT);
@@ -647,6 +650,103 @@ public class SSHExecutor {
 		String lines = context.substring(begin + CONSTS.LINE_SEP.length(), end);
 
 		return !lines.startsWith("0");
+	}
+	
+	public boolean isErlCmdValid(String sessionKey) throws InterruptedException {
+		boolean erlExist = false;
+		String cmd = String.format("%s --version%s", CMD_ERL, CONSTS.LINE_SEP);
+		commander.print(cmd);
+
+		long start = System.currentTimeMillis();
+
+		while (true) {
+			Thread.sleep(WAIT_TIMEOUT);
+
+			if (bout.catEof()) {
+				erlExist = true;
+				break;
+			} else if (bout.sshEof()) {
+				break;
+			}
+
+			long curr = System.currentTimeMillis();
+			if ((curr - start) > CONSTS.SSH_CMD_TIMEOUT) {
+				DeployLog.pubLog(sessionKey, CONSTS.SSH_TIMEOUT_INFO);
+				throw new InterruptedException(CONSTS.SSH_TIMEOUT_INFO);
+			}
+		}
+
+		String context = bout.toString();
+		DeployLog.pubLog(sessionKey, context);
+		bout.reset();
+
+		if (erlExist) {
+			cmd = String.format("q().%s", CONSTS.LINE_SEP);
+			commander.print(cmd);
+			do {
+				Thread.sleep(WAIT_TIMEOUT);
+
+				long curr = System.currentTimeMillis();
+				if ((curr - start) > CONSTS.SSH_CMD_TIMEOUT) {
+					DeployLog.pubLog(sessionKey, CONSTS.SSH_TIMEOUT_INFO);
+					throw new InterruptedException(CONSTS.SSH_TIMEOUT_INFO);
+				}
+			} while (!bout.dollarEof());
+		}
+
+		context = bout.toString();
+		bout.reset();
+		DeployLog.pubLog(sessionKey, context);
+
+		// erl 进程退出比较慢
+		Thread.sleep(3000L);
+
+		return erlExist;
+	}
+	
+	public boolean addErlRootDirEnv(String path, String sessionKey) throws InterruptedException {
+		cdHome(sessionKey);
+
+		String cmd = String.format("%s >> %s << %s%s", CMD_CAT, CONSTS.BASH_PROFILE, CMD_CAT_END, CONSTS.LINE_SEP);
+		commander.print(cmd);
+		long start = System.currentTimeMillis();
+		do {
+			Thread.sleep(WAIT_TIMEOUT);
+
+			long curr = System.currentTimeMillis();
+			if ((curr - start) > CONSTS.SSH_CMD_TIMEOUT) {
+				DeployLog.pubLog(sessionKey, CONSTS.SSH_TIMEOUT_INFO);
+				throw new InterruptedException(CONSTS.SSH_TIMEOUT_INFO);
+			}
+		} while (!bout.catEof());
+
+		cmd = String.format("%s %s=\\$HOME/%s%s", CMD_EXPORT, ERL_ROOT_DIR, path, CONSTS.LINE_SEP);
+		commander.print(cmd);
+		do {
+			Thread.sleep(WAIT_TIMEOUT);
+
+			long curr = System.currentTimeMillis();
+			if ((curr - start) > CONSTS.SSH_CMD_TIMEOUT) {
+				DeployLog.pubLog(sessionKey, CONSTS.SSH_TIMEOUT_INFO);
+				throw new InterruptedException(CONSTS.SSH_TIMEOUT_INFO);
+			}
+		} while (!bout.catEof());
+
+		cmd = String.format("%s%s", CMD_CAT_END, CONSTS.LINE_SEP);
+		commander.print(cmd);
+		do {
+			Thread.sleep(WAIT_TIMEOUT);
+
+			long curr = System.currentTimeMillis();
+			if ((curr - start) > CONSTS.SSH_CMD_TIMEOUT) {
+				DeployLog.pubLog(sessionKey, CONSTS.SSH_TIMEOUT_INFO);
+				throw new InterruptedException(CONSTS.SSH_TIMEOUT_INFO);
+			}
+		} while (!bout.sshEof());
+
+		bout.reset();
+
+		return true;
 	}
 
 	public String getHostname() throws InterruptedException {

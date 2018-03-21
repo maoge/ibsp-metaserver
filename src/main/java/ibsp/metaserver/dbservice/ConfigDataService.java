@@ -300,6 +300,29 @@ public class ConfigDataService {
 		return true;
 	}
 	
+	public static boolean modComponentAttribute(String instID, int attrID,
+			String attrValue, ResultBean result) {
+		
+		CRUD curd = new CRUD();
+		SqlBean sqlAttr = new SqlBean(MOD_INSTANCE_ATTR);
+		sqlAttr.addParams(new Object[]{attrValue, instID, attrID});
+		curd.putSqlBean(sqlAttr);
+		boolean res = curd.executeUpdate(true, result);
+		
+		if (res) {
+			JsonObject evJson = new JsonObject();
+			evJson.put("INST_ID", instID);
+			
+			EventBean ev = new EventBean(EventType.e4);
+			ev.setUuid(MetaData.get().getUUID());
+			ev.setJsonStr(evJson.toString());
+			
+			EventBusMsg.publishEvent(ev);
+		}
+		
+		return res;
+	}
+	
 	private static boolean delInstance(String sInstID, CRUD curd,
 			ResultBean result) {
 		

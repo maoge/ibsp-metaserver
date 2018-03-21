@@ -371,6 +371,10 @@ public class MetaDataService {
 			return null;
 		}
 		
+		if (result.getRetCode() == CONSTS.REVOKE_NOK) {
+			return null;
+		}
+		
 		return new InstanceDtlBean(instanceBean, instanceAttr);
 	}
 	

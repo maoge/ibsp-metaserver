@@ -7,6 +7,7 @@ public class InstanceDtlBean {
 	
 	private InstanceBean instance;
 	private Map<String, InstAttributeBean> attrMap;
+	private Map<String, InstanceDtlBean> subInsts;
 	
 	public InstanceDtlBean() {
 		this.instance = null;
@@ -55,12 +56,36 @@ public class InstanceDtlBean {
 		return attrMap.get(attrName);
 	}
 	
+	public void setAttribute(String attrName, String attrValue) {
+		if (attrMap == null)
+			return;
+		
+		InstAttributeBean attribute = attrMap.get(attrName);
+		if (attribute != null) {
+			attribute.setAttrValue(attrValue);
+		}
+	}
+	
 	public void addAttribute(InstAttributeBean attr) {
 		if (attrMap == null) {
 			attrMap = new HashMap<String, InstAttributeBean>();
 		}
 		
 		attrMap.put(attr.getAttrName(), attr);
+	}
+	
+	public void addSubInstance(InstanceDtlBean subInstance) {
+		if (subInstance == null)
+			return;
+		
+		if (subInsts == null)
+			subInsts = new HashMap<String, InstanceDtlBean>();
+		
+		subInsts.put(subInstance.getInstID(), subInstance);
+	}
+	
+	public Map<String, InstanceDtlBean> getSubInstances() {
+		return subInsts;
 	}
 
 }
