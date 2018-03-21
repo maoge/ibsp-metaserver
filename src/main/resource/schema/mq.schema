@@ -40,7 +40,7 @@
 						"VBROKER_CONTAINER_NAME": {"type":"string","required":true,"description":"VBroker容器名字"},
 						
 						"MQ_VBROKER":{
-							"type":"object",
+							"type":"array",
 							"required":true,
 							"properties": {
 								"VBROKER_ID": {"type":"string","required":true,"minLength":36,"description":"VBROKER ID"},
@@ -48,7 +48,7 @@
 								"MASTER_ID": {"type":"string","required":false,"description":"主节点ID"},
 								
 								"MQ_BROKER":{
-									"type":"object",
+									"type":"array",
 									"required":true,
 									"properties": {
 										"BROKER_ID": {"type":"string","required":true,"minLength":36,"description":"BROKER ID"},
