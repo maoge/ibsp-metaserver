@@ -1,0 +1,58 @@
+{
+	"$schema": "http://json-schema.org/draft-03/schema#",
+	"type":"object",
+	"properties": {
+		"MQ_SERV_CONTAINER":{
+			"type":"object",
+			"required":true,
+			"properties": {
+				"MQ_SVC_CONTAINER_ID": {"type":"string","required":true,"minLength":36,"description":"MQ服务容器ID"},
+				"MQ_SVC_CONTAINER_NAME": {"type":"string","required":true,"description":"MQ服务容器名字"},
+			
+				"MQ_SWITCH_CONTAINER":{
+					"type":"object",
+					"required":false,
+					"properties": {
+						"MQ_SWITCH_CONTAINER_ID": {"type":"string","required":true,"minLength":36,"description":"MQSwitch容器ID"},
+						"MQ_SWITCH_CONTAINER_NAME": {"type":"string","required":true,"description":"MQSwitch容器名字"},
+
+						"POS": {
+							"type":"object",
+							"required":true,
+							"properties": {
+								"x": {"type":"integer","required":true},
+								"y": {"type":"integer","required":true},
+								"width": {"type":"integer"},
+								"height":{"type":"integer"},
+								"row":{"type":"integer"},
+								"col":{"type":"integer"}
+							}
+						}
+					}
+				},
+				
+				"MQ_VBROKER_CONTAINER":{
+					"type":"object",
+					"required":true,
+					"properties": {
+						"VBROKER_CONTAINER_ID": {"type":"string","required":true,"minLength":36,"description":"VBroker容器ID","inputDisabled":true},
+						"VBROKER_CONTAINER_NAME": {"type":"string","required":true,"description":"VBroker容器名字"},
+
+						"POS": {
+							"type":"object",
+							"required":true,
+							"properties": {
+								"x": {"type":"integer","required":true},
+								"y": {"type":"integer","required":true},
+								"width": {"type":"integer"},
+								"height":{"type":"integer"},
+								"row":{"type":"integer"},
+								"col":{"type":"integer"}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
