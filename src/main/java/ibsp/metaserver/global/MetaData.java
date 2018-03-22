@@ -563,7 +563,8 @@ public class MetaData {
 			Integer attrID = it.next();
 			
 			MetaAttributeBean attribute = metaAttrMap.get(attrID);
-			if (attribute.getAttrName().indexOf(ID_INDEX) != -1) {
+			if (attribute.getAttrName().indexOf(ID_INDEX) != -1
+					&& !attribute.getAttrName().equals("MASTER_ID")) {
 				idAttrName = attribute.getAttrName();
 				break;
 			}
