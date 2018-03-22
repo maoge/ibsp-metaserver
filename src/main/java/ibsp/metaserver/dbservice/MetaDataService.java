@@ -686,8 +686,9 @@ public class MetaDataService {
 			((JsonObject) json).put(component.getCmptName(), innerJson);
 		}
 		
-		if (!addCurrAttr(instID, instBean, innerJson, deployFlagArr, skeleton)) {
-			return false;
+		Object subObj = addCurrAttr(instID, instBean, innerJson, deployFlagArr, skeleton);
+		if (subObj == null) {
+			subObj = innerJson;
 		}
 		
 		String subCmptName = component.getSubServType();
@@ -703,7 +704,8 @@ public class MetaDataService {
 		// then add attribute of it related nodes by recursively traversal
 		for (InstanceRelationBean relation : relations) {
 			String toeID = (String) relation.getTOE(instID);
-			if (!addInstanceAttribute(toeID, innerJson, skeleton, deployFlagArr)) {
+			
+			if (!addInstanceAttribute(toeID, subObj, skeleton, deployFlagArr)) {
 				return false;
 			}
 		}
@@ -711,7 +713,7 @@ public class MetaDataService {
 		return true;
 	}
 	
-	private static boolean addCurrAttr(String instID, InstanceBean instBean,
+	private static Object addCurrAttr(String instID, InstanceBean instBean,
 			Object json, JsonArray deployFlagArr, Map<String, String> skeleton) {
 		
 		JsonObject tmpJson = json instanceof JsonObject ? (JsonObject) json : new JsonObject();
@@ -719,7 +721,7 @@ public class MetaDataService {
 		// instance component attributes
 		List<InstAttributeBean> attrs = getInstanceAttribute(instID);
 		if (attrs == null || attrs.size() == 0)
-			return false;
+			return null;
 		
 		for (InstAttributeBean attr : attrs) {
 			tmpJson.put(attr.getAttrName(), attr.getAttrValue());
@@ -733,12 +735,12 @@ public class MetaDataService {
 		
 		int cmptID = instBean.getCmptID();
 		MetaComponentBean component = MetaData.get().getComponentByID(cmptID);
+		Object subObject = null;
 		if (component != null) {
 			String subCmptName = component.getSubServType();
 			
 			if (HttpUtils.isNotNull(subCmptName)) {
 				String subCmptType = skeleton.get(subCmptName);
-				Object subObject = null;
 				
 				if (subCmptType != null) {
 					if (subCmptType.equals(CONSTS.SCHEMA_ARRAY)) {
@@ -760,7 +762,7 @@ public class MetaDataService {
 		deployJson.put(instID, instBean.getIsDeployed());
 		deployFlagArr.add(deployJson);
 		
-		return true;
+		return subObject;
 	}
 	
 	public static JsonObject loadServiceTopoByInstID(String instID, ResultBean result) {
@@ -796,6 +798,8 @@ public class MetaDataService {
 			result.setRetInfo(e.getMessage());
 			return null;
 		}
+		
+		System.out.println(topoJson.toString());
 		
 		return topoJson;
 	}
