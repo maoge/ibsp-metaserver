@@ -38,10 +38,16 @@ public class MQDeployer implements Deployer {
 		if (!MQService.loadServiceInfo(serviceID, vbrokerList, collectd, result))
 			return false;
 		
+		// deploy vbroker
 		if (!deployVBrokerList(serviceID, vbrokerList, sessionKey, result))
 			return false;
 		
+		// deploy collectd
 		if (!deployCollectd(serviceID, collectd, sessionKey, result))
+			return false;
+		
+		// mod t_service.IS_DEPLOYED = 1
+		if (!ConfigDataService.modServiceDeployFlag(serviceID, CONSTS.DEPLOYED, result))
 			return false;
 		
 		return true;

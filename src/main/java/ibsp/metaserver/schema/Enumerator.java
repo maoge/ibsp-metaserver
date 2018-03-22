@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 public class Enumerator {
 	
 	private static final String FIELD_PROPERTIES = "properties";
+	private static final String FIELD_ITEMS = "items";
 	private static final String FIELD_POS = "POS";
 	private static final String TYPE = "type";
 	private static final String STRING = "string";
@@ -18,9 +19,14 @@ public class Enumerator {
 			return;
 		
 		JsonNode propNode = node.get(FIELD_PROPERTIES);
-		if (propNode == null)
-			return;
-		
+		if (propNode == null) {
+			propNode = node.get(FIELD_ITEMS);
+			if (propNode != null) {
+				propNode = propNode.get(FIELD_PROPERTIES);
+			} else {
+				return;
+			}
+		}
 		
 		Iterator<Entry<String, JsonNode>> itFields = propNode.fields();
 		while (itFields.hasNext()) {
@@ -28,8 +34,11 @@ public class Enumerator {
 			
 			JsonNode elemNode = entry.getValue();
 			String nodeName = entry.getKey();
+			JsonNode elemType = elemNode.get(TYPE);
+			if (elemType == null)
+				continue;
 			
-			if (elemNode.get(TYPE).asText().equals(STRING)) {
+			if (elemType.asText().equals(STRING)) {
 				continue;
 			}
 			

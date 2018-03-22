@@ -667,17 +667,15 @@ public class MetaDataService {
 			return false;
 		}
 		
-		String subNodeType = skeleton.get(component.getCmptName());
-		if (subNodeType == null) {
+		String nodeType = skeleton.get(component.getCmptName());
+		if (nodeType == null) {
 			return false;
 		}
 		
 		// first add attributes of it self
 		Object innerJson = null;
-		if (subNodeType.equals(CONSTS.SCHEMA_ARRAY)) {
-			if ((innerJson = ((JsonObject) json).getValue(component.getCmptName())) == null) {
-				innerJson = new JsonArray();
-			}
+		if (nodeType.equals(CONSTS.SCHEMA_ARRAY)) {
+			innerJson = new JsonArray();
 		} else {
 			innerJson = new JsonObject();
 		}
@@ -688,15 +686,17 @@ public class MetaDataService {
 			((JsonObject) json).put(component.getCmptName(), innerJson);
 		}
 		
-		if (!addCurrAttr(instID, instBean, innerJson, deployFlagArr)) {
+		if (!addCurrAttr(instID, instBean, innerJson, deployFlagArr, skeleton)) {
 			return false;
 		}
 		
+		String subCmptName = component.getSubServType();
+		if (HttpUtils.isNull(subCmptName)) {
+			return true;
+		}
+		
 		List<InstanceRelationBean> relations = getInstRelations(instID);
-		if (relations == null || relations.size() == 0) {
-			String subServType = component.getSubServType();
-			if (HttpUtils.isNotNull(subServType))
-				((JsonObject) innerJson).put(subServType, new JsonArray());
+		if (relations == null || relations.isEmpty()) {
 			return true;
 		}
 		
@@ -712,7 +712,7 @@ public class MetaDataService {
 	}
 	
 	private static boolean addCurrAttr(String instID, InstanceBean instBean,
-			Object json, JsonArray deployFlagArr) {
+			Object json, JsonArray deployFlagArr, Map<String, String> skeleton) {
 		
 		JsonObject tmpJson = json instanceof JsonObject ? (JsonObject) json : new JsonObject();
 		
@@ -731,8 +731,30 @@ public class MetaDataService {
 			tmpJson.put(FixHeader.HEADER_POS, posJson);
 		}
 		
-		if (json instanceof JsonArray)
+		int cmptID = instBean.getCmptID();
+		MetaComponentBean component = MetaData.get().getComponentByID(cmptID);
+		if (component != null) {
+			String subCmptName = component.getSubServType();
+			
+			if (HttpUtils.isNotNull(subCmptName)) {
+				String subCmptType = skeleton.get(subCmptName);
+				Object subObject = null;
+				
+				if (subCmptType != null) {
+					if (subCmptType.equals(CONSTS.SCHEMA_ARRAY)) {
+						subObject = new JsonArray();
+					} else {
+						subObject = new JsonObject();
+					}
+					
+					tmpJson.put(subCmptName, subObject);
+				}
+			}
+		}
+		
+		if (json instanceof JsonArray) {
 			((JsonArray) json).add(tmpJson);
+		}
 		
 		JsonObject deployJson = new JsonObject();
 		deployJson.put(instID, instBean.getIsDeployed());
@@ -761,6 +783,7 @@ public class MetaDataService {
 				result.setRetInfo("");
 				return null;
 			}
+			
 			if (!addInstanceAttribute(instID, topoJson, skeleton, deployFlagArr)) {
 				result.setRetCode(CONSTS.REVOKE_NOK);
 				result.setRetInfo(CONSTS.ERR_METADATA_NOT_FOUND);
