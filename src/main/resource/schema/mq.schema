@@ -16,6 +16,19 @@
 						"MQ_SWITCH_CONTAINER_ID": {"type":"string","required":true,"minLength":36,"description":"MQSwitch容器ID"},
 						"MQ_SWITCH_CONTAINER_NAME": {"type":"string","required":true,"description":"MQSwitch容器名字"},
 						
+						"POS": {
+							"type":"object",
+							"required":true,
+							"properties": {
+								"x": {"type":"integer","required":true},
+								"y": {"type":"integer","required":true},
+								"width": {"type":"integer"},
+								"height":{"type":"integer"},
+								"row":{"type":"integer"},
+								"col":{"type":"integer"}
+							}
+						},
+						
 						"MQ_SWITCH":{
 							"type":"object",
 							"required":true,
@@ -38,6 +51,19 @@
 					"properties": {
 						"VBROKER_CONTAINER_ID": {"type":"string","required":true,"minLength":36,"description":"VBroker容器ID"},
 						"VBROKER_CONTAINER_NAME": {"type":"string","required":true,"description":"VBroker容器名字"},
+						
+						"POS": {
+							"type":"object",
+							"required":true,
+							"properties": {
+								"x": {"type":"integer","required":true},
+								"y": {"type":"integer","required":true},
+								"width": {"type":"integer"},
+								"height":{"type":"integer"},
+								"row":{"type":"integer"},
+								"col":{"type":"integer"}
+							}
+						},
 						
 						"MQ_VBROKER":{
 							"type":"array",
@@ -86,7 +112,19 @@
 						"IP": {"type":"string","required":true,"description":"IP"},
 						"PORT": {"type":"string","required":true,"description":"服务端口"},
 						"OS_USER": {"type":"string","required":true,"description":"系统账户"},
-						"OS_PWD": {"type":"string","required":true,"description":"系统密码"}
+						"OS_PWD": {"type":"string","required":true,"description":"系统密码"},
+						"POS": {
+							"type":"object",
+							"required":true,
+							"properties": {
+								"x": {"type":"integer","required":true},
+								"y": {"type":"integer","required":true},
+								"width": {"type":"integer"},
+								"height":{"type":"integer"},
+								"row":{"type":"integer"},
+								"col":{"type":"integer"}
+							}
+						}
 					}
 				}
 			}
