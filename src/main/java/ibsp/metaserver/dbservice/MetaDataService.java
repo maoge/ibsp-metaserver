@@ -655,7 +655,7 @@ public class MetaDataService {
 		return result;
 	}
 	
-	private static boolean addInstanceAttribute(String instID, Object json, Map<String, String> skeleton, JsonArray deployFlagArr) {
+	private static boolean addInstanceAttribute(String instID, JsonObject parentJson, Map<String, String> skeleton, JsonArray deployFlagArr) {
 		ResultBean resultBean = new ResultBean();
 		InstanceBean instBean = MetaDataService.getInstance(instID, resultBean);
 		if (instBean == null)
@@ -667,33 +667,41 @@ public class MetaDataService {
 			return false;
 		}
 		
-		String nodeType = skeleton.get(component.getCmptName());
-		if (nodeType == null) {
-			return false;
+		JsonObject deployJson = new JsonObject();
+		deployJson.put(instID, instBean.getIsDeployed());
+		deployFlagArr.add(deployJson);
+		
+		//JsonObject attrJson = getInstAttr(instID, instBean);
+		//parentJson.put(component.getCmptName(), attrJson);
+		
+		List<InstAttributeBean> attrs = getInstanceAttribute(instID);
+		for (InstAttributeBean attr : attrs) {
+			parentJson.put(attr.getAttrName(), attr.getAttrValue());
 		}
 		
-		// first add attributes of it self
-		Object innerJson = null;
-		if (nodeType.equals(CONSTS.SCHEMA_ARRAY)) {
-			innerJson = new JsonArray();
-		} else {
-			innerJson = new JsonObject();
+		// instance POS
+		JsonObject posJson = instBean.getPosAsJson();
+		if (posJson != null) {
+			parentJson.put(FixHeader.HEADER_POS, posJson);
 		}
 		
-		if (json instanceof JsonArray) {
-			((JsonArray) json).add(innerJson);
-		} else {
-			((JsonObject) json).put(component.getCmptName(), innerJson);
-		}
-		
-		Object subObj = addCurrAttr(instID, instBean, innerJson, deployFlagArr, skeleton);
-		if (subObj == null) {
-			subObj = innerJson;
-		}
-		
-		String subCmptName = component.getSubServType();
-		if (HttpUtils.isNull(subCmptName)) {
+		// sub containers
+		String subComponents = component.getSubServType();
+		// have recursive to end point
+		if (HttpUtils.isNull(subComponents)) {
 			return true;
+		}
+		String[] subCmptArr = subComponents.split(",");
+		for (String subCmpt : subCmptArr) {
+			String subNodeType = skeleton.get(subCmpt);
+			//attrJson
+			if (subNodeType.equals(CONSTS.SCHEMA_ARRAY)) {
+				//attrJson.put(subCmpt, new JsonArray());
+				parentJson.put(subCmpt, new JsonArray());
+			} else {
+				//attrJson.put(subCmpt, new JsonObject());
+				parentJson.put(subCmpt, new JsonObject());
+			}
 		}
 		
 		List<InstanceRelationBean> relations = getInstRelations(instID);
@@ -705,64 +713,30 @@ public class MetaDataService {
 		for (InstanceRelationBean relation : relations) {
 			String toeID = (String) relation.getTOE(instID);
 			
-			if (!addInstanceAttribute(toeID, subObj, skeleton, deployFlagArr)) {
+			InstanceBean subInstBean = MetaDataService.getInstance(toeID, resultBean);
+			MetaComponentBean subComponent = MetaData.get().getComponentByID(subInstBean.getCmptID());
+			if (subComponent == null) {
 				return false;
 			}
-		}
-		
-		return true;
-	}
-	
-	private static Object addCurrAttr(String instID, InstanceBean instBean,
-			Object json, JsonArray deployFlagArr, Map<String, String> skeleton) {
-		
-		JsonObject tmpJson = json instanceof JsonObject ? (JsonObject) json : new JsonObject();
-		
-		// instance component attributes
-		List<InstAttributeBean> attrs = getInstanceAttribute(instID);
-		if (attrs == null || attrs.size() == 0)
-			return null;
-		
-		for (InstAttributeBean attr : attrs) {
-			tmpJson.put(attr.getAttrName(), attr.getAttrValue());
-		}
-		
-		// instance POS
-		JsonObject posJson = instBean.getPosAsJson();
-		if (posJson != null) {
-			tmpJson.put(FixHeader.HEADER_POS, posJson);
-		}
-		
-		int cmptID = instBean.getCmptID();
-		MetaComponentBean component = MetaData.get().getComponentByID(cmptID);
-		Object subObject = null;
-		if (component != null) {
-			String subCmptName = component.getSubServType();
 			
-			if (HttpUtils.isNotNull(subCmptName)) {
-				String subCmptType = skeleton.get(subCmptName);
+			if (skeleton.get(subComponent.getCmptName()).equals(CONSTS.SCHEMA_ARRAY)) {
+				JsonArray subCmptJson = parentJson.getJsonArray(subComponent.getCmptName());
+				JsonObject tmpJson = new JsonObject();
+				if (addInstanceAttribute(toeID, tmpJson, skeleton, deployFlagArr)) {
+					subCmptJson.add(tmpJson);
+				} else {
+					return false;
+				}
 				
-				if (subCmptType != null) {
-					if (subCmptType.equals(CONSTS.SCHEMA_ARRAY)) {
-						subObject = new JsonArray();
-					} else {
-						subObject = new JsonObject();
-					}
-					
-					tmpJson.put(subCmptName, subObject);
+			} else {
+				JsonObject subCmptJson = parentJson.getJsonObject(subComponent.getCmptName());
+				if (!addInstanceAttribute(toeID, subCmptJson, skeleton, deployFlagArr)) {
+					return false;
 				}
 			}
 		}
 		
-		if (json instanceof JsonArray) {
-			((JsonArray) json).add(tmpJson);
-		}
-		
-		JsonObject deployJson = new JsonObject();
-		deployJson.put(instID, instBean.getIsDeployed());
-		deployFlagArr.add(deployJson);
-		
-		return subObject;
+		return true;
 	}
 	
 	public static JsonObject loadServiceTopoByInstID(String instID, ResultBean result) {
@@ -774,23 +748,35 @@ public class MetaDataService {
 		String name = SERVICE_TYPE_MAPPER.get(servType);
 		Map<String, String> skeleton = null;
 		JsonObject topoJson = null;
+		JsonObject attrJson = null;
 		try {
 			skeleton = Validator.getSkeleton(name);
 			
 			topoJson = new JsonObject();
+			attrJson = new JsonObject();
+			
 			JsonArray deployFlagArr = new JsonArray();
 			//if service itself is null, return not init
-			if (MetaDataService.getInstance(instID, result) == null) {
+			InstanceBean instBean = MetaDataService.getInstance(instID, result);
+			if (instBean == null) {
 				result.setRetCode(CONSTS.SERVICE_NOT_INIT);
 				result.setRetInfo("");
 				return null;
 			}
-			
-			if (!addInstanceAttribute(instID, topoJson, skeleton, deployFlagArr)) {
+			MetaComponentBean component = MetaData.get().getComponentByID(instBean.getCmptID());
+			if (component == null) {
 				result.setRetCode(CONSTS.REVOKE_NOK);
 				result.setRetInfo(CONSTS.ERR_METADATA_NOT_FOUND);
 				return null;
 			}
+			
+			if (!addInstanceAttribute(instID, attrJson, skeleton, deployFlagArr)) {
+				result.setRetCode(CONSTS.REVOKE_NOK);
+				result.setRetInfo(CONSTS.ERR_METADATA_NOT_FOUND);
+				return null;
+			}
+			
+			topoJson.put(component.getCmptName(), attrJson);
 			topoJson.put(FixHeader.HEADER_DEPLOY_FLAG, deployFlagArr);
 		} catch (IOException e) {
 			logger.error(e.getMessage(), e);
