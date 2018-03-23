@@ -785,8 +785,6 @@ public class MetaDataService {
 			return null;
 		}
 		
-		System.out.println(topoJson.toString());
-		
 		return topoJson;
 	}
 	
