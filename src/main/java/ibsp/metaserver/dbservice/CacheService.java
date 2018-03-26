@@ -94,9 +94,6 @@ public class CacheService {
 			result.setRetInfo(e.getMessage());
 			return null;
 		}
-		
-
-		System.out.println(res);
 		return res;
 	}
 	
