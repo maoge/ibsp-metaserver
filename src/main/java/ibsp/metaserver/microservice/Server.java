@@ -6,6 +6,7 @@ import ibsp.metaserver.dbpool.DbSource;
 import ibsp.metaserver.eventbus.SysEventHandler;
 import ibsp.metaserver.global.ServiceData;
 import ibsp.metaserver.microservice.handler.AutoDeployHandler;
+import ibsp.metaserver.microservice.handler.CacheHandler;
 import ibsp.metaserver.microservice.handler.CollectDataHandler;
 import ibsp.metaserver.microservice.handler.ConfigServerHandler;
 import ibsp.metaserver.microservice.handler.MetaServerHandler;
@@ -70,6 +71,7 @@ public class Server extends AbstractVerticle {
 		clazzToReg.add(ConfigServerHandler.class);
 		clazzToReg.add(AutoDeployHandler.class);
 		clazzToReg.add(TiDBHandler.class);
+		clazzToReg.add(CacheHandler.class);
 		clazzToReg.add(CollectDataHandler.class);
 		clazzToReg.add(ResourceServerHandler.class);
 		
