@@ -12,6 +12,8 @@ import ibsp.metaserver.bean.InstanceDtlBean;
 import ibsp.metaserver.bean.ResultBean;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.utils.CONSTS;
+import ibsp.metaserver.utils.HttpUtils;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
 public class CacheService {
@@ -45,6 +47,56 @@ public class CacheService {
 			}
 			res.put("NAME", instID);
 		}
+		return res;
+	}
+	
+	public static JsonArray getNodeClusterInfo(String servID, ResultBean result) {
+		JsonArray res = new JsonArray();
+		JsonObject serviceInfo = MetaDataService.loadServiceTopoByInstID(servID, result);
+		if (result.getRetCode() == CONSTS.REVOKE_NOK) {
+			return null;
+		}
+		
+		//analyze json
+		JsonArray clusters = null;
+		try {
+			clusters = serviceInfo.getJsonObject("CACHE_SERV_CONTAINER")
+					.getJsonObject("CACHE_NODE_CONTAINER")
+					.getJsonArray("CACHE_NODE_CLUSTER");
+			
+			for (int i=0; i<clusters.size(); i++) {
+				JsonObject cluster = clusters.getJsonObject(i);
+				if (HttpUtils.isNull(cluster.getString("MASTER_ID")) || 
+						HttpUtils.isNull(cluster.getString("CACHE_SLOT"))) {
+					result.setRetCode(CONSTS.REVOKE_NOK);
+					result.setRetInfo("Node cluster is not initialized!");
+					return null;
+				}
+				JsonArray nodes = cluster.getJsonArray("CACHE_NODE");
+				JsonArray newNodes = new JsonArray();
+				for (int j=0; j<nodes.size(); j++) {
+					JsonObject node = nodes.getJsonObject(j);
+					node.remove("OS_USER");
+					node.remove("OS_PWD");
+					if (node.getString("CACHE_NODE_ID").equals(cluster.getString("MASTER_ID"))) {
+						node.put("TYPE", "M");
+					} else {
+						node.put("TYPE", "S");
+					}
+					newNodes.add(node);
+				}
+				cluster.remove("MASTER_ID");
+				cluster.put("CACHE_NODE", newNodes);
+				res.add(cluster);
+			}
+		} catch (Exception e) {
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(e.getMessage());
+			return null;
+		}
+		
+
+		System.out.println(res);
 		return res;
 	}
 	
