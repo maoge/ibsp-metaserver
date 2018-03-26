@@ -315,7 +315,7 @@ CREATE TABLE `t_file_deploy` (
   `HOST_ID`      varchar(16)  NOT NULL COMMENT '主机标识ID',
   `FILE_TYPE`    varchar(32)  NOT NULL COMMENT '文件类型',
   `SERV_CLAZZ`   varchar(32)  NOT NULL COMMENT '服务分类',
-  `FILE_NAME`    varchar(32)  NOT NULL COMMENT '文件名',
+  `FILE_NAME`    varchar(256) NOT NULL COMMENT '文件名',
   `FILE_DIR`     varchar(255) NOT NULL COMMENT '文件所在目录',
   `CREATE_TIME`  bigint(14)   NOT NULL COMMENT '添加时间',
   PRIMARY KEY (`FILE_ID`)
