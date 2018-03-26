@@ -15,7 +15,7 @@ public class CONSTS {
 	
 	public static final String COLLECT_DATA_API      = "getCollectData";
 	
-	public static final String LINE_SEP              = "\n";
+	public static final String LINE_SEP              = System.lineSeparator();
 	public static final String HOSTS_FILE            = "/etc/hosts";
 	public static final String BASH_PROFILE          = ".bash_profile";
 	public static final String NO_SUCH_FILE          = "No such file or directory";
