@@ -271,7 +271,7 @@ public class MQDeployer implements Deployer {
 	private boolean deployErlang(SSHExecutor executor, 
 			String sessionKey, ResultBean result) throws InterruptedException {
 		
-		String deployErlPath = "erl_otp/";
+		String deployErlPath = "erl_otp";
 		String otpFile = "otp_R15B";
 		
 		DeployFileBean erlangFile = MetaData.get().getDeployFile(CONSTS.SERV_MQ_ERLANG);
