@@ -347,16 +347,11 @@ public class MQDeployer implements Deployer {
 				rabbitMQFile.getFtpHost(), rabbitSrcFile, rabbitDesPath,
 				rabbitMQFile.getSshPort(), sessionKey);
 		
-		// make mq deploy dir
-		if (!executor.isDirExistInCurrPath(deployMQPath, sessionKey)) {
-			executor.mkdir(deployMQPath, sessionKey);
-		}
-		
 		executor.tgzUnpack(rabbitMQFile.getFileName(), sessionKey);
 		executor.rm(rabbitMQFile.getFileName(), false, sessionKey);
 		
 		String startContext = String.format(
-				"ERL_COOKIE=%s RABBITMQ_NODE_PORT=%d RABBITMQ_NODENAME=%s DISK_FREE_LIMIT=%s VM_MEMORY_HIGH_WATERMARK=%s MANAGEMENT_LISTEN_PORT=%d ./%s/sbin/rabbitmq-server -detached ",
+				"ERL_COOKIE=%s RABBITMQ_NODE_PORT=%s RABBITMQ_NODENAME=%s DISK_FREE_LIMIT=%s VM_MEMORY_HIGH_WATERMARK=%s MANAGEMENT_LISTEN_PORT=%s ./%s/sbin/rabbitmq-server -detached ",
 				erlCookie, port, mqSName, "" + CONSTS.DISK_FREE_LIMIT, "" + CONSTS.VM_MEMORY_HIGH_WATERMARK,
 				mgrPort, CONSTS.MQ_DEPLOY_PATH);
 		executor.createStartShell(startContext);
@@ -364,7 +359,6 @@ public class MQDeployer implements Deployer {
 		String stopContext = String.format("ERL_COOKIE=%s ./%s/sbin/rabbitmqctl -n %s stop ", erlCookie,
 				CONSTS.MQ_DEPLOY_PATH, mqSName);
 		executor.createStopShell(stopContext);
-		
 		
 		if (!executor.isPortUsed(port, sessionKey)) {
 			executor.execStartShell(sessionKey);
