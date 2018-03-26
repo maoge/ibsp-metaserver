@@ -78,6 +78,7 @@ insert into `t_meta_attr`(`ATTR_ID`,`ATTR_NAME`,`ATTR_NAME_CN`, `AUTO_GEN`) valu
 (240, 'HOST_NAME',                         'host name',              '0'),
 (241, 'ERL_COOKIE',                        'erlang cookie',          '0'),
 (242, 'ROOT_PWD',                          'root密码',                '0');
+(243, 'MAX_MEMORY',                        '最大内存限制',                '0');
 
 /*Table structure for component table `t_meta_cmpt` */
 DROP TABLE IF EXISTS `t_meta_cmpt`;
@@ -168,6 +169,7 @@ insert into `t_meta_cmpt_attr`(`CMPT_ID`,`ATTR_ID`) values
 (110, 220),
 (110, 239),
 (110, 208),
+(110, 243),
 (111, 223),
 (111, 224),
 (111, 100),
@@ -178,6 +180,7 @@ insert into `t_meta_cmpt_attr`(`CMPT_ID`,`ATTR_ID`) values
 (112, 222),
 (112, 100),
 (112, 101),
+(112, 104),
 (112, 108),
 (112, 109),
 (113, 105),
