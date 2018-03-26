@@ -96,8 +96,8 @@ public class CONSTS {
 	public static final String SERV_DB_TIKV          = "DB_TIKV";
 	public static final String SERV_COLLECTD         = "COLLECTD";
 	
-	public static final String SERV_MQ_RABBIT        = "RABBIT";
-	public static final String SERV_MQ_ERLANG        = "ERLANG";
+	public static final String SERV_MQ_RABBIT        = "MQ_RABBIT";
+	public static final String SERV_MQ_ERLANG        = "MQ_ERLANG";
 	
 	public static final String SCHEMA_OBJECT         = "\"object\"";
 	public static final String SCHEMA_ARRAY          = "\"array\"";
