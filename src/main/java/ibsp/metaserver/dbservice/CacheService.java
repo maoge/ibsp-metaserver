@@ -42,6 +42,9 @@ public class CacheService {
 			case "STAT_PORT":
 				res.put("STAT_PORT", attr.getAttrValue());
 				break;
+			case "RW_SEPARATE":
+				res.put("RW_SEPARATE", attr.getAttrValue());
+				break;
 			default:
 				break;
 			}
