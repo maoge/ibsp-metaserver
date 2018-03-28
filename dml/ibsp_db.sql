@@ -281,7 +281,8 @@ CREATE TABLE `t_service` (
   `CREATE_TIME`   bigint(14)  NOT NULL COMMENT '创建时间',
   `USER`          varchar(32) DEFAULT NULL COMMENT '服务默认用户',
   `PASSWORD`      varchar(64) DEFAULT NULL COMMENT '服务默认密码',
-  PRIMARY KEY (`INST_ID`)
+  PRIMARY KEY (`INST_ID`),
+  UNIQUE KEY `SERV_NAME` (`SERV_NAME`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
