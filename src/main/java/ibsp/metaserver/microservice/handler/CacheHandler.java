@@ -45,6 +45,34 @@ public class CacheHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 	
+	@Service(id = "getProxyByService", name = "getProxyByService", auth = true, bwswitch = true)
+	public static void getProxyByService(RoutingContext routeContext) throws Exception {
+		JsonObject json = new JsonObject();
+		
+		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
+		if(params == null) {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+			json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+		} else {
+			String servID = params.get(FixHeader.HEADER_SERV_ID);
+			if (!HttpUtils.isNotNull(servID)) {
+				json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+				json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+			} else {
+				ResultBean result = new ResultBean();
+				JsonArray proxyInfo = CacheService.getProxyByService(servID, result);
+				if (proxyInfo!=null) {
+					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+					json.put(FixHeader.HEADER_RET_INFO, proxyInfo);
+				} else {
+					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+					json.put(FixHeader.HEADER_RET_INFO, result.getRetInfo());
+				}
+			}
+		}
+		
+		HttpUtils.outJsonObject(routeContext, json);
+	}
 	
 	@Service(id = "getNodeClusterInfo", name = "getNodeClusterInfo", auth = true, bwswitch = true)
 	public static void getNodeClusterInfo(RoutingContext routeContext) throws Exception {

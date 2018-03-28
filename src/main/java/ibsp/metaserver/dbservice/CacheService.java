@@ -1,5 +1,6 @@
 package ibsp.metaserver.dbservice;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -10,8 +11,10 @@ import org.slf4j.LoggerFactory;
 import ibsp.metaserver.bean.InstAttributeBean;
 import ibsp.metaserver.bean.InstanceDtlBean;
 import ibsp.metaserver.bean.ResultBean;
+import ibsp.metaserver.bean.SqlBean;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.utils.CONSTS;
+import ibsp.metaserver.utils.CRUD;
 import ibsp.metaserver.utils.HttpUtils;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -19,6 +22,13 @@ import io.vertx.core.json.JsonObject;
 public class CacheService {
 	
 	private static Logger logger = LoggerFactory.getLogger(CacheService.class);
+	private static final String GET_PROXY_BY_SERVICE = 
+			"SELECT att.INST_ID, ATTR_NAME, ATTR_VALUE FROM "+ 
+			"t_instance_attr att JOIN t_instance ins ON att.INST_ID=ins.INST_ID "+ 
+			"JOIN t_meta_cmpt cmpt ON ins.CMPT_ID=cmpt.CMPT_ID "+
+			"JOIN t_topology top1 ON ins.INST_ID=top1.INST_ID2 "+ 
+			"JOIN t_topology top2 ON top1.INST_ID1=top2.INST_ID2 "+
+			"WHERE cmpt.CMPT_NAME='CACHE_PROXY' AND top2.INST_ID1=?";
 	
 	public static JsonObject getProxyInfoByID(String instID, ResultBean result) {
 		JsonObject res = new JsonObject();
@@ -50,6 +60,60 @@ public class CacheService {
 			}
 			res.put("NAME", instID);
 		}
+		return res;
+	}
+	
+	public static JsonArray getProxyByService(String servID, ResultBean result) {
+		
+		JsonArray res = new JsonArray();
+		SqlBean sqlBean = new SqlBean(GET_PROXY_BY_SERVICE);
+		sqlBean.addParams(new Object[] {servID});
+		CRUD c = new CRUD();
+		c.putSqlBean(sqlBean);
+		
+		try {
+			JsonArray proxyArray = c.queryForJSONArray();
+			if (proxyArray == null || proxyArray.size()==0) {
+				result.setRetCode(CONSTS.REVOKE_NOK);
+				result.setRetInfo("No proxy found in service "+servID);
+				return null;
+			}
+			
+			//analyze query result
+			Map<String, JsonObject> tmp = new HashMap<String, JsonObject>();
+			for (int i=0; i<proxyArray.size(); i++) {
+				JsonObject obj = proxyArray.getJsonObject(i);
+				String instID = obj.getString("INST_ID");
+				if (!tmp.containsKey(instID)) {
+					tmp.put(instID, new JsonObject());
+				}
+				switch (obj.getString("ATTR_NAME")) {
+				case "IP":
+					tmp.get(instID).put("IP", obj.getString("ATTR_VALUE"));
+					break;
+				case "PORT":
+					tmp.get(instID).put("PORT", obj.getString("ATTR_VALUE"));
+					break;
+				case "CACHE_PROXY_ID":
+					tmp.get(instID).put("ID", obj.getString("ATTR_VALUE"));
+					break;
+				case "CACHE_PROXY_NAME":
+					tmp.get(instID).put("NAME", obj.getString("ATTR_VALUE"));
+					break;
+				default:
+					break;
+				}
+			}
+			for (JsonObject obj : tmp.values()) {
+				res.add(obj);
+			}
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(e.getMessage());
+			return null;
+		}
+		
 		return res;
 	}
 	
