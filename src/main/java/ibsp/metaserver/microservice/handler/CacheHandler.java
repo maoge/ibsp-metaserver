@@ -45,8 +45,8 @@ public class CacheHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 	
-	@Service(id = "getProxyByService", name = "getProxyByService", auth = true, bwswitch = true)
-	public static void getProxyByService(RoutingContext routeContext) throws Exception {
+	@Service(id = "getProxyByServiceName", name = "getProxyByServiceName", auth = true, bwswitch = true)
+	public static void getProxyByServiceName(RoutingContext routeContext) throws Exception {
 		JsonObject json = new JsonObject();
 		
 		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
@@ -54,13 +54,13 @@ public class CacheHandler {
 			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
 			json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
 		} else {
-			String servID = params.get(FixHeader.HEADER_SERV_ID);
-			if (!HttpUtils.isNotNull(servID)) {
+			String servName = params.get(FixHeader.HEADER_SERV_NAME);
+			if (!HttpUtils.isNotNull(servName)) {
 				json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
 				json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
 			} else {
 				ResultBean result = new ResultBean();
-				JsonArray proxyInfo = CacheService.getProxyByService(servID, result);
+				JsonArray proxyInfo = CacheService.getProxyByServiceName(servName, result);
 				if (proxyInfo!=null) {
 					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
 					json.put(FixHeader.HEADER_RET_INFO, proxyInfo);

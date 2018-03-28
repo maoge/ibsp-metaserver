@@ -185,6 +185,7 @@ public class FixHeader {
 	public static final String HEADER_SERV_CLAZZ               = "SERV_CLAZZ";
 	public static final String HEADER_SERV_TYPE                = "SERV_TYPE";
 	public static final String HEADER_SERV_ID                  = "SERV_ID";
+	public static final String HEADER_SERV_NAME                = "SERV_NAME";
 	public static final String HEADER_SUB_SERV_TYPE            = "SUB_SERV_TYPE";
 	
 	public static final String HEADER_TIDB_JSON                = "TIDB_JSON";

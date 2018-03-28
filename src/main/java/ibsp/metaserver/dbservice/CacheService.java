@@ -28,7 +28,8 @@ public class CacheService {
 			"JOIN t_meta_cmpt cmpt ON ins.CMPT_ID=cmpt.CMPT_ID "+
 			"JOIN t_topology top1 ON ins.INST_ID=top1.INST_ID2 "+ 
 			"JOIN t_topology top2 ON top1.INST_ID1=top2.INST_ID2 "+
-			"WHERE cmpt.CMPT_NAME='CACHE_PROXY' AND top2.INST_ID1=?";
+			"JOIN t_service serv ON top2.INST_ID1=serv.INST_ID "+
+			"WHERE cmpt.CMPT_NAME='CACHE_PROXY' AND serv.SERV_NAME=?";
 	
 	public static JsonObject getProxyInfoByID(String instID, ResultBean result) {
 		JsonObject res = new JsonObject();
@@ -63,11 +64,11 @@ public class CacheService {
 		return res;
 	}
 	
-	public static JsonArray getProxyByService(String servID, ResultBean result) {
+	public static JsonArray getProxyByServiceName(String servName, ResultBean result) {
 		
 		JsonArray res = new JsonArray();
 		SqlBean sqlBean = new SqlBean(GET_PROXY_BY_SERVICE);
-		sqlBean.addParams(new Object[] {servID});
+		sqlBean.addParams(new Object[] {servName});
 		CRUD c = new CRUD();
 		c.putSqlBean(sqlBean);
 		
@@ -75,7 +76,7 @@ public class CacheService {
 			JsonArray proxyArray = c.queryForJSONArray();
 			if (proxyArray == null || proxyArray.size()==0) {
 				result.setRetCode(CONSTS.REVOKE_NOK);
-				result.setRetInfo("No proxy found in service "+servID);
+				result.setRetInfo("No proxy found in service "+servName);
 				return null;
 			}
 			
