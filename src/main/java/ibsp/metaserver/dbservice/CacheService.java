@@ -22,6 +22,13 @@ import io.vertx.core.json.JsonObject;
 public class CacheService {
 	
 	private static Logger logger = LoggerFactory.getLogger(CacheService.class);
+	
+	private static final String GET_SERVICE_NAME_BY_PROXY_ID = 
+			"select serv.INST_ID, serv.SERV_NAME FROM "
+			+ "t_service serv JOIN t_topology top1 ON serv.INST_ID=top1.INST_ID1 "
+			+ "JOIN t_topology top2 ON top1.INST_ID2=top2.INST_ID1 "
+			+ "WHERE top2.INST_ID2=?";
+	
 	private static final String GET_PROXY_BY_SERVICE = 
 			"SELECT att.INST_ID, ATTR_NAME, ATTR_VALUE FROM "+ 
 			"t_instance_attr att JOIN t_instance ins ON att.INST_ID=ins.INST_ID "+ 
@@ -60,6 +67,21 @@ public class CacheService {
 				break;
 			}
 			res.put("NAME", instID);
+			
+			SqlBean sqlBean = new SqlBean(GET_SERVICE_NAME_BY_PROXY_ID);
+			sqlBean.addParams(new Object[] {instID});
+			CRUD c = new CRUD();
+			c.putSqlBean(sqlBean);
+			try {
+				JsonObject object = c.queryForJSONObject();
+				res.put("SERV_ID", object.getString("INST_ID"));
+				res.put("SERV_NAME", object.getString("SERV_NAME"));
+			} catch (Exception e) {
+				logger.error(e.getMessage(), e);
+				result.setRetCode(CONSTS.REVOKE_NOK);
+				result.setRetInfo(e.getMessage());
+				return null;
+			}
 		}
 		return res;
 	}
