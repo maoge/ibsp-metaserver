@@ -1,18 +1,51 @@
-package ibsp.metaserver.autodeploy;
+ package ibsp.metaserver.autodeploy;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import ibsp.metaserver.autodeploy.utils.DeployLog;
+import ibsp.metaserver.autodeploy.utils.JschUserInfo;
+import ibsp.metaserver.autodeploy.utils.SCPFileUtils;
+import ibsp.metaserver.autodeploy.utils.SSHExecutor;
+import ibsp.metaserver.bean.DeployFileBean;
+import ibsp.metaserver.bean.InstanceBean;
+import ibsp.metaserver.bean.InstanceDtlBean;
 import ibsp.metaserver.bean.ResultBean;
+import ibsp.metaserver.dbservice.CacheService;
+import ibsp.metaserver.dbservice.ConfigDataService;
 import ibsp.metaserver.dbservice.MetaDataService;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.Topology;
-
+ 
 public class CacheDeployer implements Deployer {
 
+	private static Logger logger = LoggerFactory.getLogger(CacheDeployer.class);
+	
 	@Override
 	public boolean deployService(String serviceID, String user, String pwd, String sessionKey, ResultBean result) {
-		// TODO Auto-generated method stub
+		
+		List<InstanceDtlBean> nodeClusterList = new LinkedList<InstanceDtlBean>();
+		List<InstanceDtlBean> proxyList = new LinkedList<InstanceDtlBean>();
+		InstanceDtlBean collectd = new InstanceDtlBean();
+		
+		if (!CacheService.loadServiceInfo(serviceID, nodeClusterList, proxyList, collectd, result))
+			return false;
+		
+		// deploy cache node
+//		if (!deployNodeClusterList(serviceID, nodeClusterList, sessionKey, result))
+//			return false;
+
+		// deploy proxy
+		if (!deployProxyList(serviceID, proxyList, sessionKey, result))
+			return false;
+		
 		return false;
 	}
 
@@ -82,5 +115,162 @@ public class CacheDeployer implements Deployer {
 		// TODO Auto-generated method stub
 		return false;
 	}
+	
+	
+	private boolean deployProxyList(String serviceID, List<InstanceDtlBean> proxyList, 
+			String sessionKey, ResultBean result) {
 
+		for (int i = 0; i < proxyList.size(); i++) {
+			InstanceDtlBean proxyDtl = proxyList.get(i);
+			if (!deployProxy(serviceID, proxyDtl, sessionKey, result))
+				return false;
+		}
+		return true;
+	}
+	
+	private boolean deployProxy(String serviceID, InstanceDtlBean instanceDtl,
+			String sessionKey, ResultBean result) {
+		
+		InstanceBean proxy = instanceDtl.getInstance();
+		
+		String id    = instanceDtl.getAttribute("CACHE_PROXY_ID").getAttrValue();
+		String ip    = instanceDtl.getAttribute("IP").getAttrValue();
+		String port  = instanceDtl.getAttribute("PORT").getAttrValue();
+		String user  = instanceDtl.getAttribute("OS_USER").getAttrValue();
+		String pwd   = instanceDtl.getAttribute("OS_PWD").getAttrValue();
+		
+		if (proxy.getIsDeployed().equals(CONSTS.DEPLOYED)) {
+			String info = String.format("proxy id:%s %s:%s is deployed ......", id, ip, port);
+			DeployLog.pubSuccessLog(sessionKey, info);
+			return true;
+		}
+		
+		DeployFileBean proxyFile = MetaData.get().getDeployFile(CONSTS.SERV_CACHE_PROXY);
+		String deployRootPath = String.format("cache_proxy_deploy/%s", port);
+		JschUserInfo ui = null;
+		SSHExecutor executor = null;
+		boolean connected = false;
+		
+		try {
+			String infoBegin = String.format("deploy cache proxy id:%s %s:%s begin ......", id, ip, port);
+			DeployLog.pubSuccessLog(sessionKey, infoBegin);
+			
+			ui = new JschUserInfo(user, pwd, ip, CONSTS.SSH_PORT_DEFAULT);
+			executor = new SSHExecutor(ui);
+			executor.connect();
+			connected = true;
+			
+			if (executor.isPortUsed(Integer.parseInt(port))) {
+				DeployLog.pubLog(sessionKey, "port "+port+" is already in use......");
+				return false;
+			}
+			
+			// make deploy dir
+			if (!executor.isDirExistInCurrPath(deployRootPath, sessionKey)) {
+				executor.mkdir(deployRootPath, sessionKey);
+			}
+
+			executor.cd("$HOME/" + deployRootPath, sessionKey);
+			
+			// fetch deploy file
+			String srcFile = String.format("%s%s", proxyFile.getFtpDir(), proxyFile.getFileName());
+			String desPath = ".";
+			executor.scp(proxyFile.getFtpUser(), proxyFile.getFtpPwd(),
+					proxyFile.getFtpHost(), srcFile, desPath,
+					proxyFile.getSshPort(), sessionKey);
+			
+			// unpack deploy file
+			executor.tgzUnpack(proxyFile.getFileName(), sessionKey);
+			executor.rm(proxyFile.getFileName(), false, sessionKey);
+			
+			// modify access.sh and init.properties
+			String homeDir = executor.getHome();
+			SCPFileUtils scp = new SCPFileUtils(ip, user, pwd, CONSTS.SSH_PORT_DEFAULT);
+			
+			scp.getFile(homeDir + "/" + deployRootPath + "/bin/" + CONSTS.PROXY_SHELL);
+			BufferedReader reader = new BufferedReader(new FileReader("./"+CONSTS.PROXY_SHELL));
+			StringBuilder sb = new StringBuilder();
+			String line;
+			while ((line = reader.readLine()) != null) {
+				if (line.indexOf("COMMAND=")!=-1) {
+					line = line.substring(0, "COMMAND=".length())+id;
+				}
+				sb.append(line).append("\n");
+			}
+			scp.putFile(sb.toString(), CONSTS.PROXY_SHELL, homeDir + "/" + deployRootPath + "/bin");
+			reader.close();
+			scp.deleteLocalFile(CONSTS.PROXY_SHELL);
+			
+			scp.getFile(homeDir + "/" + deployRootPath + "/conf/" + CONSTS.PROXY_PROPERTIES);
+			reader = new BufferedReader(new FileReader("./"+CONSTS.PROXY_PROPERTIES));
+			sb = new StringBuilder();
+			while ((line = reader.readLine()) != null) {
+				if (line.indexOf("proxy.id=")!=-1) {
+					line = line.substring(0, "proxy.id=".length())+id;
+				}
+				if (line.indexOf("metasvr.rooturl=")!=-1) {
+					//TODO metaserver address
+					line = line.substring(0, "metasvr.rooturl=".length())+CONSTS.METASVR_URL;
+				}
+				sb.append(line).append("\n");
+			}
+			scp.putFile(sb.toString(), CONSTS.PROXY_PROPERTIES, homeDir + "/" + deployRootPath + "/conf");
+			reader.close();
+			scp.deleteLocalFile(CONSTS.PROXY_PROPERTIES);
+			
+			//start cache proxy
+			executor.cd("./bin", sessionKey);
+			if (!startProxy(executor, port, sessionKey))
+				return false;
+			
+			// mod t_instance.IS_DEPLOYED = 1
+			if (!ConfigDataService.modInstanceDeployFlag(id, CONSTS.DEPLOYED, result))
+				return false;
+
+			String info = String.format("deploy cache proxy id:%s %s:%s success ......", id, ip, port);
+			DeployLog.pubSuccessLog(sessionKey, info);
+
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+
+			String error = String.format("deploy pd id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
+			DeployLog.pubErrorLog(sessionKey, error);
+
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(error);
+
+			return false;
+		} finally {
+			if (connected) {
+				executor.close();
+			}
+		}
+		
+		return false;
+	}
+
+	
+	private boolean startProxy(SSHExecutor executor, String port, String sessionKey) {
+		boolean ret = true;
+		try {
+			executor.execSingleLine("./"+CONSTS.PROXY_SHELL+" start", sessionKey);
+			long beginTs = System.currentTimeMillis();
+			long currTs = beginTs;
+			long maxTs = 30000L;
+			
+			do {
+				Thread.sleep(CONSTS.DEPLOY_CHECK_INTERVAL);
+				currTs = System.currentTimeMillis();
+				if ((currTs - beginTs) > maxTs) {
+					ret = false;
+					break;
+				}
+				executor.echo("......");
+			} while (!executor.isPortUsed(port, sessionKey));
+		} catch (Exception e) {
+			ret = false;
+		}
+		
+		return ret;
+	}
 }

@@ -2,6 +2,9 @@ package ibsp.metaserver.utils;
 
 public class CONSTS {
 	
+	//TODO read url from database
+	public static final String METASVR_URL           = "192.168.14.206:19991";
+	
 	public static final String CONF_PATH             = "conf";
 	public static final String INIT_PROP_FILE        = "conf/init";
 	public static final String LOG4J_CONF            = "conf/log4j";
@@ -25,6 +28,8 @@ public class CONSTS {
 	public static final String NO_MAPPING_IN_HOSTS   = "gethostbyname error!";
 	public static final String START_SHELL           = "start.sh";
 	public static final String STOP_SHELL            = "stop.sh";
+	public static final String PROXY_SHELL           = "access.sh";
+	public static final String PROXY_PROPERTIES      = "init.properties";
 	public static final String SHELL_MACRO           = "#!/bin/sh";
 	public static final String SQUARE_BRACKET_LEFT   = "[";
 	public static final String SQUARE_BRACKET_RIGHT  = "]";
@@ -98,6 +103,9 @@ public class CONSTS {
 	
 	public static final String SERV_MQ_RABBIT        = "MQ_RABBIT";
 	public static final String SERV_MQ_ERLANG        = "MQ_ERLANG";
+	
+	public static final String SERV_CACHE_PROXY      = "CACHE_PROXY";
+	public static final String SERV_CACHE_NODE       = "CACHE_NODE";
 	
 	public static final String SCHEMA_OBJECT         = "\"object\"";
 	public static final String SCHEMA_ARRAY          = "\"array\"";

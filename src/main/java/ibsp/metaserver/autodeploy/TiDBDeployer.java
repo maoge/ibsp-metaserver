@@ -795,7 +795,7 @@ public class TiDBDeployer implements Deployer {
 //		String logFile = "log/collectd.log";
 		
 		//TODO log file and metaserver address
-		String startContext = getCollectdStartCmd(id, ip, port, "http://192.168.14.206:19991", serviceID);
+		String startContext = getCollectdStartCmd(id, ip, port, CONSTS.METASVR_URL, serviceID);
 		
 		String stopContext = getCollectdStopCmd(id);
 		

@@ -141,6 +141,12 @@ public class SSHExecutor {
 		cd("$HOME", sessionKey);
 		return true;
 	}
+	
+	public String getHome() throws InterruptedException {
+		String cmd = String.format("%s %s \n", CMD_ECHO, "$HOME");
+		String result = generalCommand(cmd);
+		return result.split(System.lineSeparator())[1];
+	}
 
 	public boolean cp(String srcFile, String destDir, String sessionKey) throws InterruptedException {
 		String cmd = String.format("%s %s %s\n", CMD_CP, srcFile, destDir);
