@@ -17,16 +17,25 @@ import ibsp.metaserver.bean.DeployFileBean;
 import ibsp.metaserver.bean.InstanceBean;
 import ibsp.metaserver.bean.InstanceDtlBean;
 import ibsp.metaserver.bean.ResultBean;
+import ibsp.metaserver.bean.SqlBean;
 import ibsp.metaserver.dbservice.CacheService;
 import ibsp.metaserver.dbservice.ConfigDataService;
 import ibsp.metaserver.dbservice.MetaDataService;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.utils.CONSTS;
+import ibsp.metaserver.utils.CRUD;
+import ibsp.metaserver.utils.HttpUtils;
 import ibsp.metaserver.utils.Topology;
  
 public class CacheDeployer implements Deployer {
 
 	private static Logger logger = LoggerFactory.getLogger(CacheDeployer.class);
+	private static final String UPDATE_CACHE_SLOT = 
+			"UPDATE t_instance_attr SET ATTR_VALUE=? "
+			+ "WHERE INST_ID=? AND attr_id=239";
+	private static final String UPDATE_MASTER_ID = 
+			"UPDATE t_instance_attr SET ATTR_VALUE=? "
+			+ "WHERE INST_ID=? AND attr_id=208";
 	
 	@Override
 	public boolean deployService(String serviceID, String user, String pwd, String sessionKey, ResultBean result) {
@@ -36,6 +45,10 @@ public class CacheDeployer implements Deployer {
 		InstanceDtlBean collectd = new InstanceDtlBean();
 		
 		if (!CacheService.loadServiceInfo(serviceID, nodeClusterList, proxyList, collectd, result))
+			return false;
+		
+		//check hash slot
+		if (!checkHashSlot(serviceID, nodeClusterList, sessionKey, result))
 			return false;
 		
 		// deploy cache node
@@ -125,6 +138,48 @@ public class CacheDeployer implements Deployer {
 	}
 	
 	
+	private boolean checkHashSlot(String serviceID, List<InstanceDtlBean> nodeClusterList, String sessionKey,
+			ResultBean result) {
+		boolean slotComplete = true, slotEmpty = true;
+		for (int i = 0; i < nodeClusterList.size(); i++) {
+			InstanceDtlBean clusterDtl = nodeClusterList.get(i);
+			String slot = clusterDtl.getAttribute("CACHE_SLOT").getAttrValue();
+			if (HttpUtils.isNull(slot)) {
+				slotComplete = false;
+			} else {
+				slotEmpty = false;
+			}
+		}
+		if (slotEmpty) {
+			int key = (CONSTS.MAX_CACHE_SLOT+1) / nodeClusterList.size();
+
+			CRUD c = new CRUD();
+			for (int i = 0; i < nodeClusterList.size(); i++) {
+				InstanceDtlBean clusterDtl = nodeClusterList.get(i);
+				String slot = "["+(key*i)+","+(key*(i+1)-1)+"]";
+				clusterDtl.setAttribute("CACHE_SLOT", slot);
+				SqlBean sqlBean = new SqlBean(UPDATE_CACHE_SLOT);
+				sqlBean.addParams(new Object[] {slot, clusterDtl.getInstID()});
+				c.putSqlBean(sqlBean);
+			}
+			try {
+				c.executeUpdate();
+			} catch (Exception e) {
+				logger.error(e.getMessage(), e);
+				result.setRetCode(CONSTS.REVOKE_NOK);
+				result.setRetInfo(e.getMessage());
+				return false;
+			}
+			return true;
+		} else if (slotComplete) {
+			return true;
+		} else {
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo("Cache slot info not compelete...");
+			return false;
+		}
+	}
+	
 	private boolean deployNodeClusterList(String serviceID, List<InstanceDtlBean> nodeClusterList, 
 			String sessionKey, ResultBean result) {
 
@@ -139,8 +194,23 @@ public class CacheDeployer implements Deployer {
 	private boolean deployNodeCluster(String serviceID, InstanceDtlBean clusterDtl, 
 			String sessionKey, ResultBean result) {
 		
-		//TODO allocate slot and masterID
 		String masterID = clusterDtl.getAttribute("MASTER_ID").getAttrValue();
+		if (HttpUtils.isNull(masterID) || masterID.equals("null")) {
+			masterID = (String)clusterDtl.getSubInstances().keySet().toArray()[0];
+			CRUD c = new CRUD();
+			SqlBean sqlBean = new SqlBean(UPDATE_MASTER_ID);
+			sqlBean.addParams(new Object[] {masterID, clusterDtl.getInstID()});
+			c.putSqlBean(sqlBean);
+			try {
+				c.executeUpdate();
+			} catch (Exception e) {
+				logger.error(e.getMessage(), e);
+				result.setRetCode(CONSTS.REVOKE_NOK);
+				result.setRetInfo(e.getMessage());
+				return false;
+			}
+		}
+		
 		int maxMemory = Integer.parseInt(clusterDtl.getAttribute("MAX_MEMORY").getAttrValue());
 		
 		InstanceDtlBean masterDtl = clusterDtl.getSubInstances().get(masterID);

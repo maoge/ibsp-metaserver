@@ -99,14 +99,14 @@ insert into `t_meta_cmpt`(`CMPT_ID`,`CMPT_NAME`,`CMPT_NAME_CN`,`IS_NEED_DEPLOY`,
 (100, 'MQ_SERV_CONTAINER',     'MQ服务容器',             '0', 'MQ',    'MQ_SERV_CONTAINER',     'MQ_VBROKER_CONTAINER,MQ_SWITCH_CONTAINER,MQ_COLLECTD'),
 (101, 'MQ_VBROKER_CONTAINER',  'VBroker容器',            '0', 'MQ',    'MQ_VBROKER_CONTAINER',  'MQ_VBROKER'),
 (102, 'MQ_SWITCH_CONTAINER',   'MQSwitch容器',           '0', 'MQ',    'MQ_SWITCH_CONTAINER',   'MQ_SWITCH'),
-(103, 'MQ_VBROKER',            'VBroker',                '0', 'MQ',    'MQ_VBROKER',            'MQ_BROKER'),
+(103, 'MQ_VBROKER',            'VBroker',                '1', 'MQ',    'MQ_VBROKER',            'MQ_BROKER'),
 (104, 'MQ_BROKER',             'Broker',                 '1', 'MQ',    'MQ_BROKER',             ''),
 (105, 'MQ_SWITCH',             'MQ交换机',               '1', 'MQ',    'MQ_SWITCH',             ''),
 (106, 'MQ_COLLECTD',           'MQ采集器',               '1', 'MQ',    'MQ_COLLECTD',           ''),       
 (107, 'CACHE_SERV_CONTAINER',  'Cache服务容器',          '0', 'CACHE', 'CACHE_SERV_CONTAINER',  'CACHE_PROXY_CONTAINER,CACHE_NODE_CONTAINER,CACHE_COLLECTD'),
 (108, 'CACHE_PROXY_CONTAINER', 'Cache Proxy容器',        '0', 'CACHE', 'CACHE_PROXY_CONTAINER', 'CACHE_PROXY'),
 (109, 'CACHE_NODE_CONTAINER',  'Cache Node Cluster容器', '0', 'CACHE', 'CACHE_NODE_CONTAINER',  'CACHE_NODE_CLUSTER'),
-(110, 'CACHE_NODE_CLUSTER',    'Cache Node Cluster',     '0', 'CACHE', 'CACHE_NODE_CLUSTER',    'CACHE_NODE'),
+(110, 'CACHE_NODE_CLUSTER',    'Cache Node Cluster',     '1', 'CACHE', 'CACHE_NODE_CLUSTER',    'CACHE_NODE'),
 (111, 'CACHE_NODE',            'Cache Node',             '1', 'CACHE', 'CACHE_NODE',            ''),
 (112, 'CACHE_PROXY',           'Cache接入机',            '1', 'CACHE', 'CACHE_PROXY',           ''),
 (113, 'CACHE_COLLECTD',        'Cache采集器',            '1', 'CACHE', 'CACHE_COLLECTD',        ''),
@@ -330,7 +330,9 @@ INSERT  INTO `t_file_deploy`(`FILE_ID`,`HOST_ID`,`FILE_TYPE`,`SERV_CLAZZ`,`FILE_
 ('3', '1', 'DB_PD',       'DB', 'pd_server-1.0.0.tar.gz',                    '/home/mq1/ftp/', 1456105739394),
 ('4', '1', 'COLLECTD',    '',   'collectd-1.0.0.tar.gz',                     '/home/mq1/ftp/', 1456105739394),
 ('5', '1', 'MQ_RABBIT',   'MQ', 'rabbitmq-server-generic-unix-3.4.3.tar.gz', '/home/mq1/ftp/', 1456105739394),
-('6', '1', 'MQ_ERLANG',   'MQ', 'otp_R15B.tar.gz',                           '/home/mq1/ftp/', 1456105739394);
+('6', '1', 'MQ_ERLANG',   'MQ', 'otp_R15B.tar.gz',                           '/home/mq1/ftp/', 1456105739394),
+('7', '1', 'CACHE_PROXY', 'CACHE', 'cache_proxy-1.2.0.tar.gz',               '/home/mq1/ftp/', 1456105739394),
+('8', '1', 'CACHE_NODE',  'CACHE', 'redis_ffcs-2.8.19.tar.gz',               '/home/mq1/ftp/', 1456105739394);
 
 DROP TABLE IF EXISTS `t_monitor_collect`;
 CREATE TABLE `t_monitor_collect` (

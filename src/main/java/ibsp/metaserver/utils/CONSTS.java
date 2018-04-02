@@ -156,4 +156,6 @@ public class CONSTS {
 	public static final int MIN_PD_NUMBER                    = 3;
 	public static final int MIN_TIKV_NUMBER                  = 3;
 	public static final int MIN_TIDB_NUMBER                  = 2;
+	
+	public static final int MAX_CACHE_SLOT                   = 16383;
 }
