@@ -143,6 +143,8 @@ public class CacheService {
 			return false;
 		}
 		
+		collectd.setInstance(collectdInstance.getInstance());
+		collectd.setAttrMap(collectdInstance.getAttrMap());
 		return true;
 	}
 	

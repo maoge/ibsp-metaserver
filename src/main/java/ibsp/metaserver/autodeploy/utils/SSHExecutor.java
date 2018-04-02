@@ -21,6 +21,7 @@ public class SSHExecutor {
 
 	private static int CONN_TIMEOUT = 3000;
 	private static long WAIT_TIMEOUT = 10L;
+	private static long WAIT_PORT_TIMEOUT = 30000L;
 
 	private static final String CMD_SETH_PLUS= "set +H";
 	private static final String CMD_CD       = "cd";
@@ -775,7 +776,29 @@ public class SSHExecutor {
 
 		return fund ? hostname : null;
 	}
-
+	
+	public boolean waitProcessStart(String port, String sessionKey) {
+		boolean ret = true;
+		try {
+			long beginTs = System.currentTimeMillis();
+			long currTs = beginTs;
+			
+			do {
+				Thread.sleep(CONSTS.DEPLOY_CHECK_INTERVAL);
+				currTs = System.currentTimeMillis();
+				if ((currTs - beginTs) > WAIT_PORT_TIMEOUT) {
+					ret = false;
+					break;
+				}
+				this.echo("......");
+			} while (!this.isPortUsed(port, sessionKey));
+		} catch (Exception e) {
+			ret = false;
+		}
+		
+		return ret;
+	}
+	
 	public JschUserInfo getUserInfo() {
 		return ui;
 	}

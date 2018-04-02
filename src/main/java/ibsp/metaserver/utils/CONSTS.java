@@ -14,6 +14,7 @@ public class CONSTS {
 	public static final String SYS_EVENT_QUEUE       = "sys.event";
 	
 	public static final long SSH_CMD_TIMEOUT         = 15000;
+	public static final long SSH_MAKE_TIMEOUT        = 100000;
 	public static final String SSH_TIMEOUT_INFO      = "exec remote ssh cmd timeout!";
 	
 	public static final String COLLECT_DATA_API      = "getCollectData";
@@ -26,10 +27,13 @@ public class CONSTS {
 	public static final String ERR_COMMAND_NOT_FOUND = "command '%s' not found";
 	public static final String FILE_DIR_NOT_EXISTS   = "No such file or directory";
 	public static final String NO_MAPPING_IN_HOSTS   = "gethostbyname error!";
+	
 	public static final String START_SHELL           = "start.sh";
 	public static final String STOP_SHELL            = "stop.sh";
 	public static final String PROXY_SHELL           = "access.sh";
 	public static final String PROXY_PROPERTIES      = "init.properties";
+	public static final String REDIS_PROPERTIES      = "redis.conf";
+	
 	public static final String SHELL_MACRO           = "#!/bin/sh";
 	public static final String SQUARE_BRACKET_LEFT   = "[";
 	public static final String SQUARE_BRACKET_RIGHT  = "]";

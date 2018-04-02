@@ -34,4 +34,8 @@ public class SCPFileUtils {
 			return;
 		file.delete();
 	}
+	
+	public void close() {
+		this.connection.close();
+	}
 }

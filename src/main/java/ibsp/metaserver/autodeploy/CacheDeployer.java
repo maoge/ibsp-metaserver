@@ -39,14 +39,22 @@ public class CacheDeployer implements Deployer {
 			return false;
 		
 		// deploy cache node
-//		if (!deployNodeClusterList(serviceID, nodeClusterList, sessionKey, result))
-//			return false;
+		if (!deployNodeClusterList(serviceID, nodeClusterList, sessionKey, result))
+			return false;
 
 		// deploy proxy
 		if (!deployProxyList(serviceID, proxyList, sessionKey, result))
 			return false;
 		
-		return false;
+		// deploy collectd
+//		if (!deployCollectd(serviceID, collectd, sessionKey, result))
+//			return false;
+		
+		// mod t_service.IS_DEPLOYED = 1
+		if (!ConfigDataService.modServiceDeployFlag(serviceID, CONSTS.DEPLOYED, result))
+			return false;
+		
+		return true;
 	}
 
 	@Override
@@ -117,6 +125,43 @@ public class CacheDeployer implements Deployer {
 	}
 	
 	
+	private boolean deployNodeClusterList(String serviceID, List<InstanceDtlBean> nodeClusterList, 
+			String sessionKey, ResultBean result) {
+
+		for (int i = 0; i < nodeClusterList.size(); i++) {
+			InstanceDtlBean clusterDtl = nodeClusterList.get(i);
+			if (!deployNodeCluster(serviceID, clusterDtl, sessionKey, result))
+				return false;
+		}
+		return true;
+	}
+	
+	private boolean deployNodeCluster(String serviceID, InstanceDtlBean clusterDtl, 
+			String sessionKey, ResultBean result) {
+		
+		//TODO allocate slot and masterID
+		String masterID = clusterDtl.getAttribute("MASTER_ID").getAttrValue();
+		int maxMemory = Integer.parseInt(clusterDtl.getAttribute("MAX_MEMORY").getAttrValue());
+		
+		InstanceDtlBean masterDtl = clusterDtl.getSubInstances().get(masterID);
+		String masterAddress = masterDtl.getAttribute("IP").getAttrValue()+" "+masterDtl.getAttribute("PORT").getAttrValue();
+		if (!deployCacheNode(serviceID, masterDtl, maxMemory, null, sessionKey, result))
+			return false;
+		
+		for (String instID : clusterDtl.getSubInstances().keySet()) {
+			if (instID.equals(masterID))
+				continue;
+			InstanceDtlBean slaveDtl = clusterDtl.getSubInstances().get(instID);
+			if (!deployCacheNode(serviceID, slaveDtl, maxMemory, masterAddress, sessionKey, result))
+				return false;
+		}
+		
+		if (!ConfigDataService.modInstanceDeployFlag(clusterDtl.getInstID(), CONSTS.DEPLOYED, result))
+			return false;
+		
+		return true;
+	}
+	
 	private boolean deployProxyList(String serviceID, List<InstanceDtlBean> proxyList, 
 			String sessionKey, ResultBean result) {
 
@@ -125,6 +170,129 @@ public class CacheDeployer implements Deployer {
 			if (!deployProxy(serviceID, proxyDtl, sessionKey, result))
 				return false;
 		}
+		return true;
+	}
+	
+	private boolean deployCacheNode(String serviceID, InstanceDtlBean instanceDtl, int maxMemory, String master, 
+			String sessionKey, ResultBean result) {
+		
+		InstanceBean node = instanceDtl.getInstance();
+		
+		String id    = instanceDtl.getAttribute("CACHE_NODE_ID").getAttrValue();
+		String ip    = instanceDtl.getAttribute("IP").getAttrValue();
+		String port  = instanceDtl.getAttribute("PORT").getAttrValue();
+		String user  = instanceDtl.getAttribute("OS_USER").getAttrValue();
+		String pwd   = instanceDtl.getAttribute("OS_PWD").getAttrValue();
+		
+		if (node.getIsDeployed().equals(CONSTS.DEPLOYED)) {
+			String info = String.format("cache node id:%s %s:%s is deployed ......", id, ip, port);
+			DeployLog.pubSuccessLog(sessionKey, info);
+			return true;
+		}
+		
+		DeployFileBean proxyFile = MetaData.get().getDeployFile(CONSTS.SERV_CACHE_NODE);
+		String deployRootPath = String.format("cache_node_deploy/%s", port);;
+		JschUserInfo ui = null;
+		SSHExecutor executor = null;
+		boolean connected = false;
+		
+		try {
+			String infoBegin = String.format("deploy cache node id:%s %s:%s begin ......", id, ip, port);
+			DeployLog.pubSuccessLog(sessionKey, infoBegin);
+			
+			ui = new JschUserInfo(user, pwd, ip, CONSTS.SSH_PORT_DEFAULT);
+			executor = new SSHExecutor(ui);
+			executor.connect();
+			connected = true;
+			
+			if (executor.isPortUsed(Integer.parseInt(port))) {
+				DeployLog.pubLog(sessionKey, "port "+port+" is already in use......");
+				return false;
+			}
+			
+			// make deploy dir and make redis source file
+			if (!executor.isDirExistInCurrPath(deployRootPath, sessionKey)) {
+				executor.mkdir(deployRootPath, sessionKey);
+				executor.cd("$HOME/" + deployRootPath, sessionKey);
+			}
+				
+			// fetch and unpack deploy file
+			executor.cd("$HOME/" + deployRootPath, sessionKey);
+			String srcFile = String.format("%s%s", proxyFile.getFtpDir(), proxyFile.getFileName());
+			String desPath = ".";
+			executor.scp(proxyFile.getFtpUser(), proxyFile.getFtpPwd(),
+					proxyFile.getFtpHost(), srcFile, desPath,
+					proxyFile.getSshPort(), sessionKey);
+			executor.tgzUnpack(proxyFile.getFileName(), sessionKey);
+			executor.rm(proxyFile.getFileName(), false, sessionKey);
+				
+			//modify redis.conf
+			String homeDir = executor.getHome();
+			SCPFileUtils scp = new SCPFileUtils(ip, user, pwd, CONSTS.SSH_PORT_DEFAULT);
+				
+			scp.getFile(homeDir + "/" + deployRootPath + "/conf/" + CONSTS.REDIS_PROPERTIES);
+			BufferedReader reader = new BufferedReader(new FileReader("./"+CONSTS.REDIS_PROPERTIES));
+			StringBuilder sb = new StringBuilder();
+			String line;
+			while ((line = reader.readLine()) != null) {
+				String header = line.split(" ")[0];
+				switch (header) {
+				case "maxmemory":
+					line = line.substring(0, "maxmemory".length()+1)+maxMemory+"gb";
+					break;
+				case "logfile":
+					line = line.substring(0, "logfile".length()+1)+"log_"+port+".log";
+					break;
+				case "port":
+					line = line.substring(0, "port".length()+1)+port;
+					break;
+				case "dir":
+					line = line.substring(0, "dir".length()+1)+homeDir+"/"+deployRootPath+"/data";
+					break;
+				case "pidfile":
+					line = line.substring(0, "pidfile".length()+1)+homeDir+"/"+deployRootPath+"/data/redis"+port+".pid";
+					break;
+				default:
+					break;
+				}
+				sb.append(line).append("\n");
+			}
+			if (master != null) {
+				sb.append("slaveof ").append(master).append("\n");
+			}
+			scp.putFile(sb.toString(), CONSTS.REDIS_PROPERTIES, homeDir + "/" + deployRootPath + "/conf");
+			reader.close();
+			scp.deleteLocalFile(CONSTS.REDIS_PROPERTIES);
+			scp.close();
+			
+			//start redis instance
+			executor.execSingleLine("bin/redis-server conf/redis.conf", sessionKey);
+			if (!executor.waitProcessStart(port, sessionKey))
+				return false;
+			
+			// mod t_instance.IS_DEPLOYED = 1
+			if (!ConfigDataService.modInstanceDeployFlag(id, CONSTS.DEPLOYED, result))
+				return false;
+
+			String info = String.format("deploy cache node id:%s %s:%s success ......", id, ip, port);
+			DeployLog.pubSuccessLog(sessionKey, info);
+
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+
+			String error = String.format("deploy cache node id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
+			DeployLog.pubErrorLog(sessionKey, error);
+
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(error);
+
+			return false;
+		} finally {
+			if (connected) {
+				executor.close();
+			}
+		}
+		
 		return true;
 	}
 	
@@ -217,10 +385,12 @@ public class CacheDeployer implements Deployer {
 			scp.putFile(sb.toString(), CONSTS.PROXY_PROPERTIES, homeDir + "/" + deployRootPath + "/conf");
 			reader.close();
 			scp.deleteLocalFile(CONSTS.PROXY_PROPERTIES);
+			scp.close();
 			
 			//start cache proxy
 			executor.cd("./bin", sessionKey);
-			if (!startProxy(executor, port, sessionKey))
+			executor.execSingleLine("./"+CONSTS.PROXY_SHELL+" start", sessionKey);
+			if (!executor.waitProcessStart(port, sessionKey))
 				return false;
 			
 			// mod t_instance.IS_DEPLOYED = 1
@@ -246,31 +416,7 @@ public class CacheDeployer implements Deployer {
 			}
 		}
 		
-		return false;
+		return true;
 	}
-
 	
-	private boolean startProxy(SSHExecutor executor, String port, String sessionKey) {
-		boolean ret = true;
-		try {
-			executor.execSingleLine("./"+CONSTS.PROXY_SHELL+" start", sessionKey);
-			long beginTs = System.currentTimeMillis();
-			long currTs = beginTs;
-			long maxTs = 30000L;
-			
-			do {
-				Thread.sleep(CONSTS.DEPLOY_CHECK_INTERVAL);
-				currTs = System.currentTimeMillis();
-				if ((currTs - beginTs) > maxTs) {
-					ret = false;
-					break;
-				}
-				executor.echo("......");
-			} while (!executor.isPortUsed(port, sessionKey));
-		} catch (Exception e) {
-			ret = false;
-		}
-		
-		return ret;
-	}
 }
