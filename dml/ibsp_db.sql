@@ -334,8 +334,17 @@ INSERT  INTO `t_file_deploy`(`FILE_ID`,`HOST_ID`,`FILE_TYPE`,`SERV_CLAZZ`,`FILE_
 ('7', '1', 'CACHE_PROXY', 'CACHE', 'cache_proxy-1.2.0.tar.gz',               '/home/mq1/ftp/', 1456105739394),
 ('8', '1', 'CACHE_NODE',  'CACHE', 'redis_ffcs-2.8.19.tar.gz',               '/home/mq1/ftp/', 1456105739394);
 
-DROP TABLE IF EXISTS `t_monitor_collect`;
-CREATE TABLE `t_monitor_collect` (
+DROP TABLE IF EXISTS `t_monitor_history`;
+CREATE TABLE `t_monitor_history` (
+  `INST_ID`      varchar(36) NOT NULL,
+  `TS`           bigint(14)  NOT NULL COMMENT '采集时间',
+  `QUOTA_CODE`   tinyint     NOT NULL COMMENT '指标编码',
+  `QUOTA_MEAN`   varchar(16) NOT NULL COMMENT '指标值',
+  KEY `IDX_MONITOR_COLLECT` (`INST_ID`,`TS`)
+) ENGINE=INNODB DEFAULT CHARSET=utf8;
+
+DROP TABLE IF EXISTS `t_monitor_current`;
+CREATE TABLE `t_monitor_current` (
   `INST_ID`      varchar(36) NOT NULL,
   `TS`           bigint(14)  NOT NULL COMMENT '采集时间',
   `QUOTA_CODE`   tinyint     NOT NULL COMMENT '指标编码',
