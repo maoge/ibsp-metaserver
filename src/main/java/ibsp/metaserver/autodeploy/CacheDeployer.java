@@ -72,8 +72,30 @@ public class CacheDeployer implements Deployer {
 
 	@Override
 	public boolean undeployService(String serviceID, String sessionKey, ResultBean result) {
-		// TODO Auto-generated method stub
-		return false;
+		List<InstanceDtlBean> nodeClusterList = new LinkedList<InstanceDtlBean>();
+		List<InstanceDtlBean> proxyList = new LinkedList<InstanceDtlBean>();
+		InstanceDtlBean collectd = new InstanceDtlBean();
+		
+		if (!CacheService.loadServiceInfo(serviceID, nodeClusterList, proxyList, collectd, result))
+			return false;
+		
+		// undeploy collectd
+//		if (!undeployCollectd(serviceID, collectd, sessionKey, result))
+//			return false;
+		
+		// undeploy proxy
+		if (!undeployProxyList(serviceID, proxyList, sessionKey, result))
+			return false;
+		
+		// undeploy cache node
+		if (!undeployNodeClusterList(serviceID, nodeClusterList, sessionKey, result))
+			return false;
+		
+		// mod t_service.IS_DEPLOYED = 0
+		if (!ConfigDataService.modServiceDeployFlag(serviceID, CONSTS.NOT_DEPLOYED, result))
+			return false;
+		
+		return true;
 	}
 
 	@Override
@@ -133,7 +155,6 @@ public class CacheDeployer implements Deployer {
 	@Override
 	public boolean deleteInstance(String serviceID, String instID,
 			String sessionKey, ResultBean result) {
-		// TODO Auto-generated method stub
 		return false;
 	}
 	
@@ -180,6 +201,7 @@ public class CacheDeployer implements Deployer {
 		}
 	}
 	
+	//deploy and undeploy node cluster list
 	private boolean deployNodeClusterList(String serviceID, List<InstanceDtlBean> nodeClusterList, 
 			String sessionKey, ResultBean result) {
 
@@ -191,6 +213,41 @@ public class CacheDeployer implements Deployer {
 		return true;
 	}
 	
+	private boolean undeployNodeClusterList(String serviceID, List<InstanceDtlBean> nodeClusterList, 
+			String sessionKey, ResultBean result) {
+
+		for (int i = 0; i < nodeClusterList.size(); i++) {
+			InstanceDtlBean clusterDtl = nodeClusterList.get(i);
+			if (!undeployNodeCluster(serviceID, clusterDtl, sessionKey, result))
+				return false;
+		}
+		return true;
+	}
+	
+	//deploy and undeploy proxy list
+	private boolean deployProxyList(String serviceID, List<InstanceDtlBean> proxyList, 
+			String sessionKey, ResultBean result) {
+
+		for (int i = 0; i < proxyList.size(); i++) {
+			InstanceDtlBean proxyDtl = proxyList.get(i);
+			if (!deployProxy(serviceID, proxyDtl, sessionKey, result))
+				return false;
+		}
+		return true;
+	}
+	
+	private boolean undeployProxyList(String serviceID, List<InstanceDtlBean> proxyList, 
+			String sessionKey, ResultBean result) {
+
+		for (int i = 0; i < proxyList.size(); i++) {
+			InstanceDtlBean proxyDtl = proxyList.get(i);
+			if (!undeployProxy(serviceID, proxyDtl, sessionKey, result))
+				return false;
+		}
+		return true;
+	}
+	
+	//deploy and undeploy cache node cluster
 	private boolean deployNodeCluster(String serviceID, InstanceDtlBean clusterDtl, 
 			String sessionKey, ResultBean result) {
 		
@@ -232,17 +289,34 @@ public class CacheDeployer implements Deployer {
 		return true;
 	}
 	
-	private boolean deployProxyList(String serviceID, List<InstanceDtlBean> proxyList, 
+	private boolean undeployNodeCluster(String serviceID, InstanceDtlBean clusterDtl, 
 			String sessionKey, ResultBean result) {
-
-		for (int i = 0; i < proxyList.size(); i++) {
-			InstanceDtlBean proxyDtl = proxyList.get(i);
-			if (!deployProxy(serviceID, proxyDtl, sessionKey, result))
+		
+		String masterID = clusterDtl.getAttribute("MASTER_ID").getAttrValue();
+		if (HttpUtils.isNull(masterID) || masterID.equals("null")) {
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo("No master node found in cluster: "+clusterDtl.getInstID());
+			return false;
+		}
+		
+		for (String instID : clusterDtl.getSubInstances().keySet()) {
+			if (instID.equals(masterID))
+				continue;
+			InstanceDtlBean slaveDtl = clusterDtl.getSubInstances().get(instID);
+			if (!undeployCacheNode(serviceID, slaveDtl, sessionKey, result))
 				return false;
 		}
+		InstanceDtlBean masterDtl = clusterDtl.getSubInstances().get(masterID);
+		if (!undeployCacheNode(serviceID, masterDtl, sessionKey, result))
+			return false;
+		
+		if (!ConfigDataService.modInstanceDeployFlag(clusterDtl.getInstID(), CONSTS.NOT_DEPLOYED, result))
+			return false;
+		
 		return true;
 	}
 	
+	//deploy and undeploy cache node(redis)
 	private boolean deployCacheNode(String serviceID, InstanceDtlBean instanceDtl, int maxMemory, String master, 
 			String sessionKey, ResultBean result) {
 		
@@ -283,7 +357,6 @@ public class CacheDeployer implements Deployer {
 			// make deploy dir and make redis source file
 			if (!executor.isDirExistInCurrPath(deployRootPath, sessionKey)) {
 				executor.mkdir(deployRootPath, sessionKey);
-				executor.cd("$HOME/" + deployRootPath, sessionKey);
 			}
 				
 			// fetch and unpack deploy file
@@ -366,6 +439,75 @@ public class CacheDeployer implements Deployer {
 		return true;
 	}
 	
+	private boolean undeployCacheNode(String serviceID, InstanceDtlBean instanceDtl, 
+			String sessionKey, ResultBean result) {
+		
+		InstanceBean node = instanceDtl.getInstance();
+		
+		String id    = instanceDtl.getAttribute("CACHE_NODE_ID").getAttrValue();
+		String ip    = instanceDtl.getAttribute("IP").getAttrValue();
+		String port  = instanceDtl.getAttribute("PORT").getAttrValue();
+		String user  = instanceDtl.getAttribute("OS_USER").getAttrValue();
+		String pwd   = instanceDtl.getAttribute("OS_PWD").getAttrValue();
+		
+		if (node.getIsDeployed().equals(CONSTS.NOT_DEPLOYED)) {
+			String info = String.format("cache node id:%s %s:%s is not deployed ......", id, ip, port);
+			DeployLog.pubSuccessLog(sessionKey, info);
+			return true;
+		}
+		
+		String deployRootPath = String.format("cache_node_deploy/%s", port);;
+		JschUserInfo ui = null;
+		SSHExecutor executor = null;
+		boolean connected = false;
+		
+		try {
+			String infoBegin = String.format("undeploy cache node id:%s %s:%s begin ......", id, ip, port);
+			DeployLog.pubSuccessLog(sessionKey, infoBegin);
+			
+			ui = new JschUserInfo(user, pwd, ip, CONSTS.SSH_PORT_DEFAULT);
+			executor = new SSHExecutor(ui);
+			executor.connect();
+			connected = true;
+			
+			if (executor.isDirExistInCurrPath(deployRootPath, sessionKey)) {
+				executor.cd("$HOME/" + deployRootPath, sessionKey);
+				if (executor.isPortUsed(Integer.parseInt(port))) {
+					executor.execSingleLine("bin/redis-cli -p "+port+" shutdown", sessionKey);
+				}
+				if (!executor.waitProcessStop(port, sessionKey))
+					return false;
+				
+				executor.cd("$HOME", sessionKey);
+				executor.rm(deployRootPath, true, sessionKey);
+			}
+
+			if (!ConfigDataService.modInstanceDeployFlag(id, CONSTS.NOT_DEPLOYED, result))
+				return false;
+
+			String info = String.format("undeploy cache node id:%s %s:%s success ......", id, ip, port);
+			DeployLog.pubSuccessLog(sessionKey, info);
+
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+
+			String error = String.format("undeploy cache node id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
+			DeployLog.pubErrorLog(sessionKey, error);
+
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(error);
+
+			return false;
+		} finally {
+			if (connected) {
+				executor.close();
+			}
+		}
+		
+		return true;
+	}
+	
+	//deploy and undeploy cache proxy
 	private boolean deployProxy(String serviceID, InstanceDtlBean instanceDtl,
 			String sessionKey, ResultBean result) {
 		
@@ -474,6 +616,74 @@ public class CacheDeployer implements Deployer {
 			logger.error(e.getMessage(), e);
 
 			String error = String.format("deploy pd id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
+			DeployLog.pubErrorLog(sessionKey, error);
+
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(error);
+
+			return false;
+		} finally {
+			if (connected) {
+				executor.close();
+			}
+		}
+		
+		return true;
+	}
+	
+	private boolean undeployProxy(String serviceID, InstanceDtlBean instanceDtl,
+			String sessionKey, ResultBean result) {
+		
+		InstanceBean proxy = instanceDtl.getInstance();
+		
+		String id    = instanceDtl.getAttribute("CACHE_PROXY_ID").getAttrValue();
+		String ip    = instanceDtl.getAttribute("IP").getAttrValue();
+		String port  = instanceDtl.getAttribute("PORT").getAttrValue();
+		String user  = instanceDtl.getAttribute("OS_USER").getAttrValue();
+		String pwd   = instanceDtl.getAttribute("OS_PWD").getAttrValue();
+		
+		if (proxy.getIsDeployed().equals(CONSTS.NOT_DEPLOYED)) {
+			String info = String.format("proxy id:%s %s:%s is not deployed ......", id, ip, port);
+			DeployLog.pubSuccessLog(sessionKey, info);
+			return true;
+		}
+		
+		String deployRootPath = String.format("cache_proxy_deploy/%s", port);
+		JschUserInfo ui = null;
+		SSHExecutor executor = null;
+		boolean connected = false;
+		
+		try {
+			String infoBegin = String.format("undeploy cache proxy id:%s %s:%s begin ......", id, ip, port);
+			DeployLog.pubSuccessLog(sessionKey, infoBegin);
+			
+			ui = new JschUserInfo(user, pwd, ip, CONSTS.SSH_PORT_DEFAULT);
+			executor = new SSHExecutor(ui);
+			executor.connect();
+			connected = true;
+			
+			if (executor.isDirExistInCurrPath(deployRootPath, sessionKey)) {
+				if (executor.isPortUsed(Integer.parseInt(port))) {
+					executor.cd("$HOME/" + deployRootPath + "/bin", sessionKey);
+					executor.execSingleLine("./access.sh stop", sessionKey);
+				}
+				if (!executor.waitProcessStop(port, sessionKey))
+					return false;
+				
+				executor.cd("$HOME", sessionKey);
+				executor.rm(deployRootPath, true, sessionKey);
+			}
+			
+			if (!ConfigDataService.modInstanceDeployFlag(id, CONSTS.NOT_DEPLOYED, result))
+				return false;
+
+			String info = String.format("undeploy cache proxy id:%s %s:%s success ......", id, ip, port);
+			DeployLog.pubSuccessLog(sessionKey, info);
+
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+
+			String error = String.format("undeploy pd id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
 			DeployLog.pubErrorLog(sessionKey, error);
 
 			result.setRetCode(CONSTS.REVOKE_NOK);

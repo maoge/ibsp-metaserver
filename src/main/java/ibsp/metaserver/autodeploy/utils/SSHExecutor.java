@@ -647,7 +647,7 @@ public class SSHExecutor {
 	public boolean isPortUsed(String port, String sessionKey) throws InterruptedException {
 		bout.reset();
 
-		String cmd = String.format("%s -an | awk '{print $4}' | grep :%s$ | wc -l\n", CMD_NETSTAT, port);
+		String cmd = String.format("%s -an | awk '{print $4}' | grep :%s$ | grep LISTEN | wc -l\n", CMD_NETSTAT, port);
 		String context = generalCommand(cmd);
 		
 		DeployLog.pubLog(sessionKey, context);
@@ -792,6 +792,28 @@ public class SSHExecutor {
 				}
 				this.echo("......");
 			} while (!this.isPortUsed(port, sessionKey));
+		} catch (Exception e) {
+			ret = false;
+		}
+		
+		return ret;
+	}
+	
+	public boolean waitProcessStop(String port, String sessionKey) {
+		boolean ret = true;
+		try {
+			long beginTs = System.currentTimeMillis();
+			long currTs = beginTs;
+			
+			do {
+				Thread.sleep(CONSTS.DEPLOY_CHECK_INTERVAL);
+				currTs = System.currentTimeMillis();
+				if ((currTs - beginTs) > WAIT_PORT_TIMEOUT) {
+					ret = false;
+					break;
+				}
+				this.echo("......");
+			} while (this.isPortUsed(port, sessionKey));
 		} catch (Exception e) {
 			ret = false;
 		}
