@@ -28,6 +28,9 @@ public class CONSTS {
 	public static final String FILE_DIR_NOT_EXISTS   = "No such file or directory";
 	public static final String NO_MAPPING_IN_HOSTS   = "gethostbyname error!";
 	
+	public static final String PAGE_SIZE             = "pageSize";
+	public static final String PAGE_NUMBER           = "pageNumber";
+	
 	public static final String START_SHELL           = "start.sh";
 	public static final String STOP_SHELL            = "stop.sh";
 	public static final String PROXY_SHELL           = "access.sh";
@@ -158,4 +161,34 @@ public class CONSTS {
 	public static final int MIN_TIDB_NUMBER                  = 2;
 	
 	public static final int MAX_CACHE_SLOT                   = 16383;
+	
+	//rabbit
+	public static final String NOT_CLUSTER  = "0";
+	public static final String CLUSTER      = "1";
+	public static final String IS_CLUSTER   = "1";
+	public static final String NOT_DURABLE  = "0";
+	public static final String DURABLE      = "1";
+	public static final String TYPE_QUEUE   = "1";
+	public static final String TYPE_TOPIC   = "2";
+	public static final String NOT_WRITABLE = "0";
+	public static final String WRITABLE     = "1";
+	public static final String NOT_VALABLE  = "-1";
+	public static final String NOT_RUNNING  = "0";
+	public static final String RUNNING      = "1";
+	public static final String BIND_TYPE_PERM = "1";
+	public static final String BIND_TYPE_WILD = "2";
+	public static final String NOT_GLOBAL_ORDERED = "0";
+	public static final String GLOBAL_ORDERED = "1";
+	
+	public static final String ERR_CREATE_QUEUE_ON_DB = "create queue/topic error on db .....";
+	public static final String ERR_QUEUE_EXISTS = "queue/topic allready exists .....";
+	public static final String ERR_QUEUE_TYPE_ERROR = "queue/topic type is [1,2]";
+	public static final String ERR_DURABLE_TYPE_ERROR = "durable type is [0,1]";
+	public static final String ERR_ORDERED_TYPE_ERROR = "ordered type is [0,1]";
+	public static final String ERR_QUEUE_ALLREADY_DEPLOYED = "queue/topic allready deployed ......";
+	public static final String ERR_QUEUE_NOT_EXISTS = "queue/topic not exists .....";
+	public static final String ERR_TOPIC_BINDED = "topic has been binded, please unbind first ......";
+	public static final String ERR_DECLARE_ON_BROKER = "declare queue/topic error on broker ......";
+	public static final String ERR_DELETE_FROM_RABBIT = "delete error on rabbit ......";
+	public static final String ERR_DELETE_FROM_DB = "delete error on database ......";
 }

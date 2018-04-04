@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import ibsp.metaserver.dbpool.DbSource;
 import ibsp.metaserver.global.MetaData;
+import ibsp.metaserver.global.ServiceData;
 import ibsp.metaserver.threadpool.WorkerPool;
 
 import com.hazelcast.config.Config;
@@ -45,6 +46,7 @@ public class BootStrap {
 		WorkerPool.get();
 		DbSource.get();
 		MetaData.get();
+		ServiceData.get();
 		ActiveCollect.get();
 	}
 	
