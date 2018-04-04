@@ -2,6 +2,8 @@ package ibsp.metaserver.bean;
 
 import java.util.Map;
 
+import io.vertx.core.json.JsonObject;
+
 public abstract class BeanMapper {
 	
 	public static Object getFixDataAsObject(Map<String, Object> mapper, String fixHeader) {
@@ -73,6 +75,11 @@ public abstract class BeanMapper {
 		Object obj = mapper.get(fixHeader);
 		Double value = obj instanceof Double ? (Double) obj : Double.valueOf(String.valueOf(obj));
 		return value != null ? value.doubleValue() : 0;
+	}
+	
+	
+	public static String toJsonString(Object obj) {
+		return JsonObject.mapFrom(obj).toString();
 	}
 	
 }

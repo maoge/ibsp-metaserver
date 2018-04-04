@@ -20,6 +20,9 @@ public class FixHeader {
 	public static final String HEADER_START_TS                 = "START_TS";
 	public static final String HEADER_END_TS                   = "END_TS";
 	
+	public static final String HEADER_SERVICE_ID               = "SERV_ID";
+	public static final String HEADER_SERVICE_NAME             = "SERV_NAME";
+	
 	public static final String HEADER_VBROKER_ID               = "VBROKER_ID";
 	public static final String HEADER_VBROKER_IDS              = "VBROKER_IDS";
 	public static final String HEADER_VBROKER_NAME             = "VBROKER_NAME";
@@ -48,8 +51,7 @@ public class FixHeader {
 	public static final String HEADER_QUEUE_ID                 = "QUEUE_ID";
 	public static final String HEADER_QUEUE_NAME               = "QUEUE_NAME";
 	public static final String HEADER_IS_DURABLE               = "IS_DURABLE";
-	public static final String HEADER_IS_ORDERED               = "IS_ORDERED";
-	public static final String HEADER_GLOBAL_ORDERED           = "GLOBAL_ORDERED";
+	public static final String HEADER_GLOBAL_ORDERED           = "IS_ORDERED";
 	public static final String HEADER_QUEUE_TYPE               = "QUEUE_TYPE";
 	public static final String HEADER_IS_DEPLOY                = "IS_DEPLOY";
 	public static final String HEADER_ERL_COOKIE               = "ERL_COOKIE";

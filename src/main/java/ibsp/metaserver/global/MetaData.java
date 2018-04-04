@@ -21,6 +21,7 @@ import ibsp.metaserver.utils.UUIDUtils;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -658,4 +659,43 @@ public class MetaData {
 		return hasChilds;
 	}
 	
+	public String getServiceName(String servId) {
+		if(HttpUtils.isNotNull(servId)) {
+			ServiceBean service = serviceMap.get(servId);
+			if(service != null) {
+				return service.getServName();
+			}
+		}
+		return "";
+	}
+	
+	public List<InstanceDtlBean> getVbrokerByServId(String servId) {
+		ServiceBean servBean = serviceMap.get(servId);
+		int vbrokerContainerCmptID = MetaData.get().getComponentID("MQ_VBROKER_CONTAINER");
+		
+		if(servBean == null || servBean.getServType() != CONSTS.SERV_TYPE_MQ) {
+			return null;
+		}
+		
+		Set<String> childs = topo.get(servId, CONSTS.TOPO_TYPE_CONTAIN);
+		if(childs != null && !childs.isEmpty()) {
+			return null;
+		}	
+
+		List<InstanceDtlBean> list = new ArrayList<>();
+		
+		for(String child : childs) {
+			InstanceDtlBean insDtlBean = instanceDtlMap.get(child);
+			int cmptId = insDtlBean.getInstance().getCmptID();
+			if(cmptId == vbrokerContainerCmptID) {
+				Set<String> vbrokers = topo.get(child, CONSTS.TOPO_TYPE_CONTAIN);
+				for(String vbroker : vbrokers) {
+					list.add(instanceDtlMap.get(vbroker));
+				}
+				break;
+			}
+		}
+		
+		return list;
+	}
 }
