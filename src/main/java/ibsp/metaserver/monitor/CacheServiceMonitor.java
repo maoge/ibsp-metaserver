@@ -45,8 +45,8 @@ public class CacheServiceMonitor implements Runnable {
 					//check master
 					InstanceDtlBean master = cluster.getSubInstances().get(masterID);
 					
-					if (!isServerAlive(master.getAttribute("IP").getAttrValue(), 
-							master.getAttribute("PORT").getAttrValue())) {
+					if (master.getInstance().getIsDeployed().equals(CONSTS.DEPLOYED) &&
+							!isServerAlive(master.getAttribute("IP").getAttrValue(), master.getAttribute("PORT").getAttrValue())) {
 						
 						if (cluster.getSubInstances().size()==1) {
 				            logger.info("该主节点没有从节点！尝试拉起该实例！");
@@ -78,8 +78,8 @@ public class CacheServiceMonitor implements Runnable {
 							continue;
 						
 						InstanceDtlBean slave = cluster.getSubInstances().get(slaveID);
-						if (!isServerAlive(slave.getAttribute("IP").getAttrValue(), 
-								slave.getAttribute("PORT").getAttrValue())) {
+						if (slave.getInstance().getIsDeployed().equals(CONSTS.DEPLOYED) &&
+								!isServerAlive(slave.getAttribute("IP").getAttrValue(), slave.getAttribute("PORT").getAttrValue())) {
 							this.pullUpInstance(slave, master);
 						}
 					}
