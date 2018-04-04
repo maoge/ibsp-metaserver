@@ -21,9 +21,9 @@ import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.HttpUtils;
 import ibsp.metaserver.utils.RedisUtils;
 
-public class CacheServiceCollect implements Runnable {
+public class CacheServiceMonitor implements Runnable {
 	
-	private static Logger logger = LoggerFactory.getLogger(CacheServiceCollect.class);
+	private static Logger logger = LoggerFactory.getLogger(CacheServiceMonitor.class);
 	private static Map<String, Integer> replicationCountMap = new HashMap<String, Integer>(); //check for replication status
 
 	@Override
@@ -65,6 +65,7 @@ public class CacheServiceCollect implements Runnable {
 								logger.info("主从切换失败，尝试直接拉起主节点！");
 								this.pullUpInstance(master, null);
 							} else {
+								//TODO publish HA switched event
 								//pull up old master as slave
 								this.pullUpInstance(master, slave);
 							}
@@ -128,6 +129,7 @@ public class CacheServiceCollect implements Runnable {
 		} catch (IOException e) {
 			rstbool = false;
 			logger.warn("redis进程不存在：" + host+":"+port);
+			//TODO publish cache node down event
 		} finally {
 			try {
 				if (socket != null)
