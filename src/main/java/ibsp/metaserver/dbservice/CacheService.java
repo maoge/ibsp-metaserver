@@ -37,6 +37,14 @@ public class CacheService {
 			"JOIN t_topology top2 ON top1.INST_ID1=top2.INST_ID2 "+
 			"JOIN t_service serv ON top2.INST_ID1=serv.INST_ID "+
 			"WHERE cmpt.CMPT_NAME='CACHE_PROXY' AND serv.SERV_NAME=?";
+	
+	private static final String UPDATE_MASTER_ID = 
+			"UPDATE t_instance_attr SET ATTR_VALUE=? "
+			+ "WHERE INST_ID=? AND attr_id=208";
+	
+	private static final String UPDATE_CACHE_SLOT = 
+			"UPDATE t_instance_attr SET ATTR_VALUE=? "
+			+ "WHERE INST_ID=? AND attr_id=239";
 
 	
 	public static boolean loadServiceInfo(String serviceID, List<InstanceDtlBean> nodeClusterList,
@@ -295,5 +303,39 @@ public class CacheService {
 			return null;
 		}
 		return res;
+	}
+	
+	public static boolean updateMasterID(String masterID, String clusterID, ResultBean result) {
+		CRUD c = new CRUD();
+		SqlBean sqlBean = new SqlBean(UPDATE_MASTER_ID);
+		sqlBean.addParams(new Object[] {masterID, clusterID});
+		c.putSqlBean(sqlBean);
+		try {
+			c.executeUpdate();
+			return true;
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(e.getMessage());
+			return false;
+		}
+	}
+	
+	public static boolean updateHashSlotByCluster(Map<String, String> slots, ResultBean result) {
+		CRUD c = new CRUD();
+		for (String clusterID : slots.keySet()) {
+			SqlBean sqlBean = new SqlBean(UPDATE_CACHE_SLOT);
+			sqlBean.addParams(new Object[] {slots.get(clusterID), clusterID});
+			c.putSqlBean(sqlBean);
+		}
+		try {
+			c.executeUpdate();
+			return true;
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(e.getMessage());
+			return false;
+		}
 	}
 }
