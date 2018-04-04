@@ -647,7 +647,7 @@ public class SSHExecutor {
 	public boolean isPortUsed(String port, String sessionKey) throws InterruptedException {
 		bout.reset();
 
-		String cmd = String.format("%s -an | awk '{print $4}' | grep :%s$ | grep LISTEN | wc -l\n", CMD_NETSTAT, port);
+		String cmd = String.format("%s -an | grep LISTEN | awk '{print $4}' | grep :%s$ | wc -l\n", CMD_NETSTAT, port);
 		String context = generalCommand(cmd);
 		
 		DeployLog.pubLog(sessionKey, context);

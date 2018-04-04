@@ -2,8 +2,10 @@
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -17,25 +19,17 @@ import ibsp.metaserver.bean.DeployFileBean;
 import ibsp.metaserver.bean.InstanceBean;
 import ibsp.metaserver.bean.InstanceDtlBean;
 import ibsp.metaserver.bean.ResultBean;
-import ibsp.metaserver.bean.SqlBean;
 import ibsp.metaserver.dbservice.CacheService;
 import ibsp.metaserver.dbservice.ConfigDataService;
 import ibsp.metaserver.dbservice.MetaDataService;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.utils.CONSTS;
-import ibsp.metaserver.utils.CRUD;
 import ibsp.metaserver.utils.HttpUtils;
 import ibsp.metaserver.utils.Topology;
  
 public class CacheDeployer implements Deployer {
 
 	private static Logger logger = LoggerFactory.getLogger(CacheDeployer.class);
-	private static final String UPDATE_CACHE_SLOT = 
-			"UPDATE t_instance_attr SET ATTR_VALUE=? "
-			+ "WHERE INST_ID=? AND attr_id=239";
-	private static final String UPDATE_MASTER_ID = 
-			"UPDATE t_instance_attr SET ATTR_VALUE=? "
-			+ "WHERE INST_ID=? AND attr_id=208";
 	
 	@Override
 	public boolean deployService(String serviceID, String user, String pwd, String sessionKey, ResultBean result) {
@@ -173,25 +167,18 @@ public class CacheDeployer implements Deployer {
 		}
 		if (slotEmpty) {
 			int key = (CONSTS.MAX_CACHE_SLOT+1) / nodeClusterList.size();
-
-			CRUD c = new CRUD();
+			Map<String, String> slots = new HashMap<String, String>();
 			for (int i = 0; i < nodeClusterList.size(); i++) {
 				InstanceDtlBean clusterDtl = nodeClusterList.get(i);
 				String slot = "["+(key*i)+","+(key*(i+1)-1)+"]";
 				clusterDtl.setAttribute("CACHE_SLOT", slot);
-				SqlBean sqlBean = new SqlBean(UPDATE_CACHE_SLOT);
-				sqlBean.addParams(new Object[] {slot, clusterDtl.getInstID()});
-				c.putSqlBean(sqlBean);
+				slots.put(clusterDtl.getInstID(), slot);
 			}
-			try {
-				c.executeUpdate();
-			} catch (Exception e) {
-				logger.error(e.getMessage(), e);
-				result.setRetCode(CONSTS.REVOKE_NOK);
-				result.setRetInfo(e.getMessage());
+			if (!CacheService.updateHashSlotByCluster(slots, result)) {
 				return false;
+			} else {
+				return true;
 			}
-			return true;
 		} else if (slotComplete) {
 			return true;
 		} else {
@@ -254,18 +241,8 @@ public class CacheDeployer implements Deployer {
 		String masterID = clusterDtl.getAttribute("MASTER_ID").getAttrValue();
 		if (HttpUtils.isNull(masterID) || masterID.equals("null")) {
 			masterID = (String)clusterDtl.getSubInstances().keySet().toArray()[0];
-			CRUD c = new CRUD();
-			SqlBean sqlBean = new SqlBean(UPDATE_MASTER_ID);
-			sqlBean.addParams(new Object[] {masterID, clusterDtl.getInstID()});
-			c.putSqlBean(sqlBean);
-			try {
-				c.executeUpdate();
-			} catch (Exception e) {
-				logger.error(e.getMessage(), e);
-				result.setRetCode(CONSTS.REVOKE_NOK);
-				result.setRetInfo(e.getMessage());
+			if (!CacheService.updateMasterID(masterID, clusterDtl.getInstID(), result))
 				return false;
-			}
 		}
 		
 		int maxMemory = Integer.parseInt(clusterDtl.getAttribute("MAX_MEMORY").getAttrValue());
