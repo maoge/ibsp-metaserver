@@ -776,6 +776,7 @@ public class MetaDataService {
 				return null;
 			}
 			
+			topoJson.put(FixHeader.HEADER_SERV_CLAZZ, component.getServClazz());
 			topoJson.put(component.getCmptName(), attrJson);
 			topoJson.put(FixHeader.HEADER_DEPLOY_FLAG, deployFlagArr);
 		} catch (IOException e) {
