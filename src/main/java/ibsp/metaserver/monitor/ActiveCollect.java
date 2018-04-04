@@ -31,6 +31,7 @@ public class ActiveCollect {
 	
 	private ScheduledExecutorService taskInventor;
 	private ActiveCollectTaskInventor activeCollectTaskInventor;
+	private CacheServiceMonitor cacheServiceCollect;
 	
 	private static Object mtx = null;
 	private static ActiveCollect theInstance;
@@ -44,8 +45,10 @@ public class ActiveCollect {
 			int execInterval = SysConfig.get().getActiveCollectInterval();
 			
 			activeCollectTaskInventor = new ActiveCollectTaskInventor();
-			taskInventor = Executors.newSingleThreadScheduledExecutor();
+			cacheServiceCollect = new CacheServiceMonitor();
+			taskInventor = Executors.newScheduledThreadPool(2);
 			taskInventor.scheduleAtFixedRate(activeCollectTaskInventor, execInterval, execInterval, TimeUnit.MILLISECONDS);
+			taskInventor.scheduleAtFixedRate(cacheServiceCollect, execInterval, execInterval, TimeUnit.MILLISECONDS);
 		}
 	}
 	

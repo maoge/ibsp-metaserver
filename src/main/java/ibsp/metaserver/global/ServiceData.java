@@ -1,7 +1,16 @@
 package ibsp.metaserver.global;
 
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
+import ibsp.metaserver.bean.InstanceDtlBean;
+import ibsp.metaserver.bean.QueueBean;
+import ibsp.metaserver.dbservice.MQService;
 import ibsp.metaserver.utils.UUIDUtils;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.MessageConsumer;
@@ -26,6 +35,9 @@ public class ServiceData {
 	private static ReentrantLock intanceLock = null;
 	private static Object mtx = null;
 	
+	private Map<String, QueueBean>   queueMap;
+	private Map<String, String>      queueName2IdMap;
+	
 	static {
 		intanceLock = new ReentrantLock();
 	}
@@ -33,6 +45,13 @@ public class ServiceData {
 	public ServiceData() {
 		mtx = new Object();
 		uuid = UUIDUtils.genUUID();
+		
+		queueMap   = new ConcurrentHashMap<String, QueueBean>();
+		queueName2IdMap   = new ConcurrentHashMap<String, String>();
+	}
+	
+	public void initData() {
+		loadQueue();
 	}
 	
 	public static ServiceData get() {
@@ -42,6 +61,7 @@ public class ServiceData {
 				return theInstance;
 			} else {
 				theInstance = new ServiceData();
+				theInstance.initData();
 			}
 		} finally {
 			intanceLock.unlock();
@@ -82,4 +102,77 @@ public class ServiceData {
 		this.sharedData = sharedData;
 	}
 
+	private void loadQueue() {
+		List<QueueBean> queueList = MQService.getAllQueues();
+		if (queueList == null) {
+			logger.info("LoadQueue: no data loaded ......");
+			return;
+		}
+		
+		Iterator<QueueBean> iter = queueList.iterator();
+		while (iter.hasNext()) {
+			QueueBean queue = iter.next();
+			queueMap.put(queue.getQueueId(), queue);
+		}
+		
+		genQueueName2IdMap();
+	}
+	
+	private void genQueueName2IdMap() {
+		if (queueMap == null)
+			return;
+		
+		synchronized(mtx) {
+			queueName2IdMap.clear();
+			
+			Set<Entry<String, QueueBean>> queueEntrySet = queueMap.entrySet();
+			for (Entry<String, QueueBean> queueEntry : queueEntrySet) {
+				QueueBean queueBean = queueEntry.getValue();
+				if (queueBean == null)
+					continue;
+				
+				queueName2IdMap.put(queueBean.getQueueName(), queueBean.getQueueId());
+			}
+		}
+	}
+	
+	public boolean isQueueNameExists(String queueName) {
+		boolean exists = false;
+		
+		synchronized(mtx) {
+			if (queueName2IdMap == null) {
+				return false;
+			}
+			exists = queueName2IdMap.containsKey(queueName);
+		}
+		
+		return exists;
+	}
+	
+	public boolean saveQueue(String queueId, QueueBean queueBean) {
+		if (queueMap != null) {
+			synchronized(mtx) {
+				QueueBean oldQueue = queueMap.get(queueId);
+				queueMap.put(queueId, queueBean);
+				
+				if(oldQueue != null) {
+					queueName2IdMap.remove(oldQueue.getQueueName());
+				}
+				
+				queueName2IdMap.put(queueBean.getQueueName(), queueId);
+			}
+			return true;
+		}
+		
+		return false;
+	}
+	
+	
+	public boolean isServContainSingleVBroker(String servId) {
+		List<InstanceDtlBean> list = MetaData.get().getVbrokerByServId(servId);
+		if(list != null && list.size() > 1) {
+			return false;
+		}
+		return true;
+	}
 }
