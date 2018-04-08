@@ -22,9 +22,12 @@ import ibsp.metaserver.bean.ResultBean;
 import ibsp.metaserver.dbservice.CacheService;
 import ibsp.metaserver.dbservice.ConfigDataService;
 import ibsp.metaserver.dbservice.MetaDataService;
+import ibsp.metaserver.dbservice.TiDBService;
 import ibsp.metaserver.global.MetaData;
+import ibsp.metaserver.monitor.CacheServiceMonitor;
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.HttpUtils;
+import ibsp.metaserver.utils.RedisUtils;
 import ibsp.metaserver.utils.Topology;
  
 public class CacheDeployer implements Deployer {
@@ -95,15 +98,143 @@ public class CacheDeployer implements Deployer {
 	@Override
 	public boolean deployInstance(String serviceID, String instID,
 			String sessionKey, ResultBean result) {
-		// TODO Auto-generated method stub
-		return false;
+		
+		InstanceDtlBean instDtl = MetaDataService.getInstanceDtl(instID, result);
+		if (instDtl == null) {
+			String err = String.format("instance id:%s not found!", instID);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(err);
+			return false;
+		}
+		
+		int cmptID = instDtl.getInstance().getCmptID();
+		boolean deployRet = false;
+		switch (cmptID) {
+		case 112:    // cache proxy
+			deployRet = deployProxy(serviceID, instDtl, sessionKey, result);
+			//TODO publish add proxy event to cache client
+			break;
+		case 110:    // cache node cluster
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo("Sorry, add cache node cluster online is not supported yet...");
+			break;
+		case 111:    // cache node
+			List<InstanceDtlBean> nodeClusterList = new LinkedList<InstanceDtlBean>();
+			if (!CacheService.getNodeClustersByServIdOrServiceStub(serviceID, null, nodeClusterList, result)) {
+				return false;
+			}
+				
+			InstanceDtlBean cluster = null;
+			for (InstanceDtlBean dtl : nodeClusterList) {
+				if (dtl.getSubInstances().containsKey(instID)) {
+					cluster = dtl;
+					break;
+				}
+			}
+			if (cluster==null) {
+				result.setRetCode(CONSTS.REVOKE_NOK);
+				result.setRetInfo("no cluster contains node "+instID+" found!");
+				return false;
+			}
+			
+			if (cluster.getSubInstances().size()==1) {
+				//only one node in this cluster and not deployed
+				result.setRetCode(CONSTS.REVOKE_NOK);
+				result.setRetInfo("Sorry, add cache node cluster online is not supported yet...");
+				return false;
+			} else if (cluster.getSubInstances().size()>2) {
+				//more than one slave is not supported
+				result.setRetCode(CONSTS.REVOKE_NOK);
+				result.setRetInfo("Sorry, more than one slave is not supported yet...");
+				return false;
+			} else {
+				String masterID = cluster.getAttribute("MASTER_ID").getAttrValue();
+				String masterIp = cluster.getSubInstances().get(masterID).getAttribute("IP").getAttrValue();
+				String masterPort = cluster.getSubInstances().get(masterID).getAttribute("PORT").getAttrValue();
+				
+				if (!RedisUtils.setConfigForReplication(masterIp, masterPort))
+					return false;
+				deployRet = deployCacheNode(serviceID, instDtl, 
+						Integer.parseInt(cluster.getAttribute("MAX_MEMORY").getAttrValue()),
+						masterIp+" "+masterPort, sessionKey, result);
+				CacheServiceMonitor.addReplicationCheckSlave(
+						instDtl.getAttribute("IP").getAttrValue()+":"+instDtl.getAttribute("PORT").getAttrValue());
+			}
+			break;
+		case 113:    // CACHE_COLLECTD
+//			deployRet = deployCollectd(serviceID, instDtl, sessionKey, result);
+			break;
+		default:
+			break;
+		}
+		
+		return deployRet;
 	}
 
 	@Override
 	public boolean undeployInstance(String serviceID, String instID,
 			String sessionKey, ResultBean result) {
-		// TODO Auto-generated method stub
-		return false;
+		
+		InstanceDtlBean instDtl = MetaDataService.getInstanceDtl(instID, result);
+		if (instDtl == null) {
+			String err = String.format("instance id:%s not found!", instID);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(err);
+			return false;
+		}
+		
+		int cmptID = instDtl.getInstance().getCmptID();
+		boolean deployRet = false;
+		switch (cmptID) {
+		case 112:    // cache proxy
+			deployRet = undeployProxy(serviceID, instDtl, sessionKey, result);
+			//TODO publish remove proxy event to cache client
+			break;
+		case 110:    // cache node cluster
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo("Sorry, remove cache node cluster online is not supported yet...");
+			break;
+		case 111:    // cache node
+			List<InstanceDtlBean> nodeClusterList = new LinkedList<InstanceDtlBean>();
+			if (!CacheService.getNodeClustersByServIdOrServiceStub(serviceID, null, nodeClusterList, result)) {
+				return false;
+			}
+				
+			InstanceDtlBean cluster = null;
+			for (InstanceDtlBean dtl : nodeClusterList) {
+				if (dtl.getSubInstances().containsKey(instID)) {
+					cluster = dtl;
+					break;
+				}
+			}
+			if (cluster==null) {
+				result.setRetCode(CONSTS.REVOKE_NOK);
+				result.setRetInfo("no cluster contains node "+instID+" found!");
+				return false;
+			}
+			
+			if (cluster.getSubInstances().size()==1) {
+				//only one node in this cluster and not deployed
+				result.setRetCode(CONSTS.REVOKE_NOK);
+				result.setRetInfo("Sorry, remove cache node cluster online is not supported yet...");
+				return false;
+			} else if (instID.equals(cluster.getAttribute("MASTER_ID").getAttrValue())) {
+				//can not delete master, do switch first
+				result.setRetCode(CONSTS.REVOKE_NOK);
+				result.setRetInfo("Cannot undeploy master, please do switch first!");
+				return false;
+			} else {
+				deployRet = undeployCacheNode(serviceID, instDtl, sessionKey, result);
+			}
+			break;
+		case 113:    // CACHE_COLLECTD
+//			deployRet = undeployCollectd(serviceID, instDtl, sessionKey, result);
+			break;
+		default:
+			break;
+		}
+		
+		return deployRet;
 	}
 
 	@Override
