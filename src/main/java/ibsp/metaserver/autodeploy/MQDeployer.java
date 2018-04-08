@@ -37,35 +37,86 @@ public class MQDeployer implements Deployer {
 	public boolean deployService(String serviceID, String user, String pwd, String sessionKey, ResultBean result) {
 		List<InstanceDtlBean> vbrokerList = new LinkedList<InstanceDtlBean>();
 		InstanceDtlBean collectd = new InstanceDtlBean();
+		
 		if (!MQService.loadServiceInfo(serviceID, vbrokerList, collectd, result))
 			return false;
+		
+		boolean isServDeployed = MetaData.get().isServDepplyed(serviceID);
 		
 		// deploy vbroker
 		if (!deployVBrokerList(serviceID, vbrokerList, sessionKey, result))
 			return false;
 		
 		// deploy collectd
-		if (!deployCollectd(serviceID, collectd, sessionKey, result))
+		if (!DeployUtils.deployCollectd(serviceID, collectd, sessionKey, result))
 			return false;
 		
-		// mod t_service.IS_DEPLOYED = 1
-		if (!ConfigDataService.modServiceDeployFlag(serviceID, CONSTS.DEPLOYED, result))
-			return false;
+		if (!isServDeployed) {
+			// mod t_service.IS_DEPLOYED = 1
+			if (!ConfigDataService.modServiceDeployFlag(serviceID, CONSTS.DEPLOYED, result))
+				return false;
+		}
 		
 		return true;
 	}
 	
 	@Override
 	public boolean undeployService(String serviceID, String sessionKey, ResultBean result) {
-		// TODO Auto-generated method stub
-		return false;
+		List<InstanceDtlBean> vbrokerList = new LinkedList<InstanceDtlBean>();
+		InstanceDtlBean collectd = new InstanceDtlBean();
+		
+		if (!MQService.loadServiceInfo(serviceID, vbrokerList, collectd, result))
+			return false;
+		
+		// undeploy collectd
+		if (!DeployUtils.undeployCollectd(collectd, sessionKey, true, result))
+			return false;
+		
+		// undeploy vbroker list
+		if (!undeployVBrokerList(serviceID, vbrokerList, sessionKey, result))
+			return false;
+		
+		//  t_service.IS_DEPLOYED = 0
+		if (!ConfigDataService.modServiceDeployFlag(serviceID, CONSTS.NOT_DEPLOYED, result))
+			return false;
+		
+		return true;
 	}
 
 	@Override
 	public boolean deployInstance(String serviceID, String instID,
 			String sessionKey, ResultBean result) {
-		// TODO Auto-generated method stub
-		return false;
+		
+		InstanceDtlBean instDtl = MetaDataService.getInstanceDtlWithSubInfo(instID, result);
+		if (instDtl == null) {
+			String err = String.format("instance id:%s not found!", instID);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(err);
+			return false;
+		}
+		
+		int cmptID = instDtl.getInstance().getCmptID();
+		boolean deployRet = false;
+		switch (cmptID) {
+		case 103:  // MQ_VBROKER
+			deployRet = deployVBroker(serviceID, instDtl, sessionKey, result);
+			break;
+		case 104:  // MQ_BROKER
+			// can't deploy broker alone
+			deployRet = true;
+			break;
+		case 105:  // MQ_SWITCH
+			// TODO
+			deployRet = true;
+			break;
+		case 106:  // MQ_COLLECTD
+			deployRet = DeployUtils.deployCollectd(serviceID, instDtl, sessionKey, result);
+			break;
+		default:
+			break;
+		}
+		
+		return deployRet;
 	}
 
 	@Override
@@ -135,6 +186,45 @@ public class MQDeployer implements Deployer {
 		return true;
 	}
 	
+	private boolean undeployVBrokerList(String serviceID, List<InstanceDtlBean> vbrokerList,
+			String sessionKey, ResultBean result) {
+		
+		for (int i = 0; i < vbrokerList.size(); i++) {
+			InstanceDtlBean vbrokerInstanceDtl = vbrokerList.get(i);
+			
+			if (!undeployVBroker(serviceID, vbrokerInstanceDtl, sessionKey, result))
+				return false;
+		}
+		
+		return true;
+	}
+	
+	private boolean undeployVBroker(String serviceID, InstanceDtlBean vbrokerInstanceDtl,
+			String sessionKey, ResultBean result) {
+		String vbrokerId = vbrokerInstanceDtl.getAttribute("VBROKER_ID").getAttrValue();
+		
+		if (vbrokerInstanceDtl.getInstance().getIsDeployed().equals(CONSTS.NOT_DEPLOYED)) {
+			String info = String.format("mq vbroker id:%s %s:%s is deployed ......", vbrokerId);
+			DeployLog.pubSuccessLog(sessionKey, info);
+
+			return true;
+		}
+		
+		boolean allOk = true;
+		
+		Map<String, InstanceDtlBean> brokers = vbrokerInstanceDtl.getSubInstances();
+		Set<Entry<String, InstanceDtlBean>> entrySet = brokers.entrySet();
+		for (Entry<String, InstanceDtlBean> entry : entrySet) {
+			InstanceDtlBean brokerInstanceDtl = entry.getValue();
+			
+			allOk &= undeployRabbit(brokerInstanceDtl, sessionKey, result);
+			if (!allOk)
+				break;
+		}
+		
+		return allOk;
+	}
+	
 	private boolean deployVBroker(String serviceID, InstanceDtlBean vbrokerInstanceDtl,
 			String sessionKey, ResultBean result) {
 		
@@ -165,7 +255,7 @@ public class MQDeployer implements Deployer {
 		
 		// set host name
 		if (isCluster) {
-			setHostName(brokers, sessionKey, result);
+			DeployUtils.setHostName(brokers, sessionKey, result);
 		}
 		
 		Set<Entry<String, InstanceDtlBean>> entrySet = brokers.entrySet();
@@ -260,12 +350,6 @@ public class MQDeployer implements Deployer {
 		success.clear();
 		
 		return allOk;
-	}
-	
-	private boolean deployCollectd(String serviceID, InstanceDtlBean collectd,
-			String sessionKey, ResultBean result) {
-		// TODO
-		return true;
 	}
 	
 	private boolean deployErlang(SSHExecutor executor, 
@@ -501,94 +585,6 @@ public class MQDeployer implements Deployer {
 		// write back deploy flag
 		if (!ConfigDataService.modInstanceDeployFlag(id, CONSTS.NOT_DEPLOYED, result)) {
 			return false;
-		}
-		
-		return true;
-	}
-	
-	private boolean setHostName(Map<String, InstanceDtlBean> brokers,
-			String sessionKey, ResultBean result) {
-		
-		Map<String, String> ip2host = new HashMap<String, String>();
-		
-		// first loop get all broker hostname
-		Set<Entry<String, InstanceDtlBean>> entrySet = brokers.entrySet();
-		for (Entry<String, InstanceDtlBean> entry : entrySet) {
-			InstanceDtlBean brokerInstanceDtl = entry.getValue();
-			
-			String id   = brokerInstanceDtl.getAttribute("BROKER_ID").getAttrValue();
-			String ip   = brokerInstanceDtl.getAttribute("IP").getAttrValue();
-			String user = brokerInstanceDtl.getAttribute("OS_USER").getAttrValue();
-			String pwd  = brokerInstanceDtl.getAttribute("OS_PWD").getAttrValue();
-			
-			JschUserInfo ui = null;
-			SSHExecutor executor = null;
-			boolean connected = false;
-			
-			try {
-				ui = new JschUserInfo(user, pwd, ip, CONSTS.SSH_PORT_DEFAULT);
-				executor = new SSHExecutor(ui);
-				executor.connect();
-				connected = true;
-				
-				String host = executor.getHostname();
-				brokerInstanceDtl.setAttribute("HOST_NAME", host);
-				
-				int hostAttrID = brokerInstanceDtl.getAttribute("HOST_NAME").getAttrID();
-				ConfigDataService.modComponentAttribute(id, hostAttrID, host, result);
-				
-				ip2host.put(ip, host);
-			} catch (Exception e) {
-				logger.error(e.getMessage(), e);
-				return false;
-			} finally {
-				if (connected) {
-					executor.close();
-				}
-			}
-		}
-		
-		// second loop set /etc/hosts
-		for (Entry<String, InstanceDtlBean> entry : entrySet) {
-			InstanceDtlBean brokerInstanceDtl = entry.getValue();
-			
-			String ip      = brokerInstanceDtl.getAttribute("IP").getAttrValue();
-			String rootPwd = brokerInstanceDtl.getAttribute("ROOT_PWD").getAttrValue();
-			
-			JschUserInfo ui = null;
-			SSHExecutor executor = null;
-			boolean connected = false;
-			
-			try {
-				ui = new JschUserInfo("root", rootPwd, ip, CONSTS.SSH_PORT_DEFAULT);
-				executor = new SSHExecutor(ui);
-				executor.connect();
-				connected = true;
-				
-				Vector<String> hostLines = new Vector<String>();
-				Set<Entry<String, String>> ipEntrySet = ip2host.entrySet();
-				for (Entry<String, String> ipEntry : ipEntrySet) {
-					String ip2set = ipEntry.getKey();
-					String host2set = ipEntry.getValue();
-					
-					if (!executor.checkHostExist(host2set)) {
-						String line = String.format("%s   %s", ip2set, host2set);
-						hostLines.add(line);
-					}
-				}
-				
-				if (hostLines.size() != 0) {
-					executor.addHosts(hostLines, sessionKey);
-				}
-			
-			} catch (Exception e) {
-				logger.error(e.getMessage(), e);
-				return false;
-			} finally {
-				if (connected) {
-					executor.close();
-				}
-			}
 		}
 		
 		return true;

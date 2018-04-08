@@ -22,7 +22,6 @@ import ibsp.metaserver.bean.ResultBean;
 import ibsp.metaserver.dbservice.CacheService;
 import ibsp.metaserver.dbservice.ConfigDataService;
 import ibsp.metaserver.dbservice.MetaDataService;
-import ibsp.metaserver.dbservice.TiDBService;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.monitor.CacheServiceMonitor;
 import ibsp.metaserver.utils.CONSTS;
@@ -44,6 +43,8 @@ public class CacheDeployer implements Deployer {
 		if (!CacheService.loadServiceInfo(serviceID, nodeClusterList, proxyList, collectd, result))
 			return false;
 		
+		boolean isServDeployed = MetaData.get().isServDepplyed(serviceID);
+		
 		//check hash slot
 		if (!checkHashSlot(serviceID, nodeClusterList, sessionKey, result))
 			return false;
@@ -57,12 +58,14 @@ public class CacheDeployer implements Deployer {
 			return false;
 		
 		// deploy collectd
-//		if (!deployCollectd(serviceID, collectd, sessionKey, result))
-//			return false;
-		
-		// mod t_service.IS_DEPLOYED = 1
-		if (!ConfigDataService.modServiceDeployFlag(serviceID, CONSTS.DEPLOYED, result))
+		if (!DeployUtils.deployCollectd(serviceID, collectd, sessionKey, result))
 			return false;
+		
+		if (!isServDeployed) {
+			// mod t_service.IS_DEPLOYED = 1
+			if (!ConfigDataService.modServiceDeployFlag(serviceID, CONSTS.DEPLOYED, result))
+				return false;
+		}
 		
 		return true;
 	}
@@ -77,8 +80,8 @@ public class CacheDeployer implements Deployer {
 			return false;
 		
 		// undeploy collectd
-//		if (!undeployCollectd(serviceID, collectd, sessionKey, result))
-//			return false;
+		if (!DeployUtils.undeployCollectd(collectd, sessionKey, true, result))
+			return false;
 		
 		// undeploy proxy
 		if (!undeployProxyList(serviceID, proxyList, sessionKey, result))
@@ -162,7 +165,7 @@ public class CacheDeployer implements Deployer {
 			}
 			break;
 		case 113:    // CACHE_COLLECTD
-//			deployRet = deployCollectd(serviceID, instDtl, sessionKey, result);
+			deployRet = DeployUtils.deployCollectd(serviceID, instDtl, sessionKey, result);
 			break;
 		default:
 			break;
@@ -228,7 +231,7 @@ public class CacheDeployer implements Deployer {
 			}
 			break;
 		case 113:    // CACHE_COLLECTD
-//			deployRet = undeployCollectd(serviceID, instDtl, sessionKey, result);
+			deployRet = DeployUtils.undeployCollectd(instDtl, sessionKey, false, result);
 			break;
 		default:
 			break;

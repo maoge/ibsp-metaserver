@@ -378,6 +378,25 @@ public class MetaDataService {
 		return new InstanceDtlBean(instanceBean, instanceAttr);
 	}
 	
+	public static InstanceDtlBean getInstanceDtlWithSubInfo(String instId, ResultBean result) {
+		InstanceDtlBean instDtl = MetaDataService.getInstanceDtl(instId, result);
+		
+		if (instDtl == null) {
+			return null;
+		}
+		
+		Set<String> subIds = MetaDataService.getSubNodes(instId, result);
+		for (String id : subIds) {
+			InstanceDtlBean subInstance = MetaDataService.getInstanceDtl(id, result);
+			if (subInstance == null)
+				continue;
+			
+			instDtl.addSubInstance(subInstance);
+		}
+		
+		return instDtl;
+	}
+	
 	public static ServiceBean getService(String instID) {
 		String sql = "select INST_ID, SERV_NAME, SERV_TYPE, IS_DEPLOYED, CREATE_TIME, USER, PASSWORD from t_service where INST_ID = ?";
 		ServiceBean serviceBean = null;

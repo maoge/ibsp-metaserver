@@ -1,8 +1,13 @@
 package ibsp.metaserver.autodeploy;
 
+import ibsp.metaserver.autodeploy.utils.DeployLog;
+import ibsp.metaserver.autodeploy.utils.JschUserInfo;
 import ibsp.metaserver.autodeploy.utils.SSHExecutor;
+import ibsp.metaserver.bean.DeployFileBean;
+import ibsp.metaserver.bean.InstanceBean;
 import ibsp.metaserver.bean.InstanceDtlBean;
 import ibsp.metaserver.bean.ResultBean;
+import ibsp.metaserver.dbservice.ConfigDataService;
 import ibsp.metaserver.eventbus.EventBean;
 import ibsp.metaserver.eventbus.EventBusMsg;
 import ibsp.metaserver.eventbus.EventType;
@@ -14,6 +19,11 @@ import io.vertx.core.json.JsonObject;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.Vector;
+import java.util.Map.Entry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +31,189 @@ import org.slf4j.LoggerFactory;
 public class DeployUtils {
 	
 	private static Logger logger = LoggerFactory.getLogger(DeployUtils.class);
+	
+	public static boolean deployCollectd(String serviceID, InstanceDtlBean instanceDtl,
+			String sessionKey, ResultBean result) {
+		
+		InstanceBean collectdInstance = instanceDtl.getInstance();
+		
+		String id   = instanceDtl.getAttribute("COLLECTD_ID").getAttrValue();
+		String ip   = instanceDtl.getAttribute("IP").getAttrValue();
+		String port = instanceDtl.getAttribute("PORT").getAttrValue();
+		String user = instanceDtl.getAttribute("OS_USER").getAttrValue();
+		String pwd  = instanceDtl.getAttribute("OS_PWD").getAttrValue();
+		
+//		String logFile = "log/collectd.log";
+		
+		//TODO log file and metaserver address
+		String startContext = getCollectdStartCmd(id, ip, port, CONSTS.METASVR_URL, serviceID);
+		
+		String stopContext = getCollectdStopCmd(id);
+		
+		if (collectdInstance.getIsDeployed().equals(CONSTS.DEPLOYED)) {
+			String info = String.format("Collectd id:%s %s:%s is deployed ......", id, ip, port);
+			DeployLog.pubSuccessLog(sessionKey, info);
+			return true;
+		}
+		
+		String deployRootPath = String.format("collectd_deploy/%s", port);
+		JschUserInfo ui = null;
+		SSHExecutor executor = null;
+		boolean connected = false;
+		
+		DeployFileBean collectdFile = MetaData.get().getDeployFile(CONSTS.SERV_COLLECTD);
+		
+		try {
+			String startInfo = String.format("deploy collectd id:%s %s:%s begin ......", id, ip, port);
+			DeployLog.pubSuccessLog(sessionKey, startInfo);
+			
+			ui = new JschUserInfo(user, pwd, ip, CONSTS.SSH_PORT_DEFAULT);
+			executor = new SSHExecutor(ui);
+			executor.connect();
+			connected = true;
+			
+			if (executor.isPortUsed(Integer.parseInt(port))) {
+				DeployLog.pubLog(sessionKey, "port "+port+" is already in use......");
+				return false;
+			}
+			
+			// make deploy dir
+			if (!executor.isDirExistInCurrPath(deployRootPath, sessionKey)) {
+				executor.mkdir(deployRootPath, sessionKey);
+			}
+
+			executor.cd("$HOME/" + deployRootPath, sessionKey);
+			executor.mkdir("log", sessionKey);
+			
+			// fetch deploy file
+			String srcFile = String.format("%s%s", collectdFile.getFtpDir(), collectdFile.getFileName());
+			String desPath = ".";
+			executor.scp(collectdFile.getFtpUser(), collectdFile.getFtpPwd(),
+					collectdFile.getFtpHost(), srcFile, desPath,
+					collectdFile.getSshPort(), sessionKey);
+			
+			// unpack deploy file
+			executor.tgzUnpack(collectdFile.getFileName(), sessionKey);
+			executor.rm(collectdFile.getFileName(), false, sessionKey);
+			
+			// create start shell
+			if (!executor.createStartShell(startContext)) {
+				DeployLog.pubLog(sessionKey, "create collectd start shell fail ......");
+				return false;
+			}
+			
+			// create stop shell
+			if (!executor.createStopShell(stopContext)) {
+				DeployLog.pubLog(sessionKey, "create collectd stop shell fail ......");
+				return false;
+			}
+			
+			// start collectd
+			if (!DeployUtils.execStartShell(executor, port, sessionKey)) {
+				DeployLog.pubLog(sessionKey, "exec collectd start shell fail ......");
+				return false;
+			}
+			
+			// mod t_instance.IS_DEPLOYED = 1
+			if (!ConfigDataService.modInstanceDeployFlag(id, CONSTS.DEPLOYED, result)) {
+				return false;
+			}
+			
+			String info = String.format("deploy collectd id:%s %s:%s success ......", id, ip, port);
+			DeployLog.pubSuccessLog(sessionKey, info);
+			
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+
+			String error = String.format("deploy collectd id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
+			DeployLog.pubErrorLog(sessionKey, error);
+			
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(error);
+
+			return false;
+		} finally {
+			if (connected) {
+				executor.close();
+			}
+		}
+		
+		return true;
+	}
+	
+	public static boolean undeployCollectd(InstanceDtlBean collectd, String sessionKey,
+			boolean isUndeployService, ResultBean result) {
+		
+		InstanceBean collectdInstance = collectd.getInstance();
+		
+		String id   = collectd.getAttribute("COLLECTD_ID").getAttrValue();
+		String ip   = collectd.getAttribute("IP").getAttrValue();
+		String port = collectd.getAttribute("PORT").getAttrValue();
+		String user = collectd.getAttribute("OS_USER").getAttrValue();
+		String pwd  = collectd.getAttribute("OS_PWD").getAttrValue();
+		
+		if (collectdInstance.getIsDeployed().equals(CONSTS.NOT_DEPLOYED)) {
+			String info = String.format("Collectd id:%s %s:%s is not deployed ......", id, ip, port);
+			DeployLog.pubSuccessLog(sessionKey, info);
+			
+			return true;
+		}
+		
+		String deployRootPath = String.format("collectd_deploy/%s", port);
+		JschUserInfo ui = null;
+		SSHExecutor executor = null;
+		boolean connected = false;
+		
+		try {
+			String startInfo = String.format("undeploy Collectd id:%s %s:%s begin ......", id, ip, port);
+			DeployLog.pubSuccessLog(sessionKey, startInfo);
+			
+			ui = new JschUserInfo(user, pwd, ip, CONSTS.SSH_PORT_DEFAULT);
+			executor = new SSHExecutor(ui);
+			executor.connect();
+			connected = true;
+			
+			// cd deploy dir, exec stop shell, rm deploy dir
+			if (executor.isDirExistInCurrPath(deployRootPath, sessionKey)) {
+				executor.cd("$HOME/" + deployRootPath, sessionKey);
+				
+				// stop collectd
+				if (executor.isPortUsed(port, sessionKey)) {
+					if (!DeployUtils.execStopShell(executor, port, sessionKey)) {
+						DeployLog.pubLog(sessionKey, "exec collectd stop shell fail ......");
+						return false;
+					}
+				}
+				
+				executor.cd("$HOME", sessionKey);
+				executor.rm(deployRootPath, true, sessionKey);
+			}
+			
+			// mod t_instance.IS_DEPLOYED = 0
+			if (!ConfigDataService.modInstanceDeployFlag(id, CONSTS.NOT_DEPLOYED, result))
+				return false;
+			
+			String info = String.format("undeploy collectd id:%s %s:%s success ......", id, ip, port);
+			DeployLog.pubSuccessLog(sessionKey, info);
+			
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+
+			String error = String.format("undeploy collectd id:%s %s:%s caught error:%s", id, ip, port, e.getMessage());
+			DeployLog.pubErrorLog(sessionKey, error);
+			
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(error);
+
+			return false;
+		} finally {
+			if (connected) {
+				executor.close();
+			}
+		}
+		
+		return true;
+	}
 	
 	public static boolean execStartShell(SSHExecutor executor, String port, String sessionKey) {
 		boolean ret = true;
@@ -132,6 +325,94 @@ public class DeployUtils {
 		}
 		
 		return ret;
+	}
+	
+	public static boolean setHostName(Map<String, InstanceDtlBean> brokers,
+			String sessionKey, ResultBean result) {
+		
+		Map<String, String> ip2host = new HashMap<String, String>();
+		
+		// first loop get all broker hostname
+		Set<Entry<String, InstanceDtlBean>> entrySet = brokers.entrySet();
+		for (Entry<String, InstanceDtlBean> entry : entrySet) {
+			InstanceDtlBean brokerInstanceDtl = entry.getValue();
+			
+			String id   = brokerInstanceDtl.getAttribute("BROKER_ID").getAttrValue();
+			String ip   = brokerInstanceDtl.getAttribute("IP").getAttrValue();
+			String user = brokerInstanceDtl.getAttribute("OS_USER").getAttrValue();
+			String pwd  = brokerInstanceDtl.getAttribute("OS_PWD").getAttrValue();
+			
+			JschUserInfo ui = null;
+			SSHExecutor executor = null;
+			boolean connected = false;
+			
+			try {
+				ui = new JschUserInfo(user, pwd, ip, CONSTS.SSH_PORT_DEFAULT);
+				executor = new SSHExecutor(ui);
+				executor.connect();
+				connected = true;
+				
+				String host = executor.getHostname();
+				brokerInstanceDtl.setAttribute("HOST_NAME", host);
+				
+				int hostAttrID = brokerInstanceDtl.getAttribute("HOST_NAME").getAttrID();
+				ConfigDataService.modComponentAttribute(id, hostAttrID, host, result);
+				
+				ip2host.put(ip, host);
+			} catch (Exception e) {
+				logger.error(e.getMessage(), e);
+				return false;
+			} finally {
+				if (connected) {
+					executor.close();
+				}
+			}
+		}
+		
+		// second loop set /etc/hosts
+		for (Entry<String, InstanceDtlBean> entry : entrySet) {
+			InstanceDtlBean brokerInstanceDtl = entry.getValue();
+			
+			String ip      = brokerInstanceDtl.getAttribute("IP").getAttrValue();
+			String rootPwd = brokerInstanceDtl.getAttribute("ROOT_PWD").getAttrValue();
+			
+			JschUserInfo ui = null;
+			SSHExecutor executor = null;
+			boolean connected = false;
+			
+			try {
+				ui = new JschUserInfo("root", rootPwd, ip, CONSTS.SSH_PORT_DEFAULT);
+				executor = new SSHExecutor(ui);
+				executor.connect();
+				connected = true;
+				
+				Vector<String> hostLines = new Vector<String>();
+				Set<Entry<String, String>> ipEntrySet = ip2host.entrySet();
+				for (Entry<String, String> ipEntry : ipEntrySet) {
+					String ip2set = ipEntry.getKey();
+					String host2set = ipEntry.getValue();
+					
+					if (!executor.checkHostExist(host2set)) {
+						String line = String.format("%s   %s", ip2set, host2set);
+						hostLines.add(line);
+					}
+				}
+				
+				if (hostLines.size() != 0) {
+					executor.addHosts(hostLines, sessionKey);
+				}
+			
+			} catch (Exception e) {
+				logger.error(e.getMessage(), e);
+				return false;
+			} finally {
+				if (connected) {
+					executor.close();
+				}
+			}
+		}
+		
+		return true;
 	}
 	
 	public static String getTidbStartCmd(String ip, String port, String logFile, String pdList, String statPort) {
