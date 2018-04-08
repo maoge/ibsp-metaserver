@@ -105,4 +105,28 @@ public class MQHandle {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 	
+	@Service(id = "delQueue", name = "delQueue", auth = true, bwswitch = true)
+	public static void delQueue(RoutingContext routeContext) {
+		ResultBean resultBean = new ResultBean();
+		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
+		MQService.delQueue(params, resultBean);
+		
+		JsonObject json = new JsonObject();
+		json.put(FixHeader.HEADER_RET_CODE, resultBean.getRetCode());
+		json.put(FixHeader.HEADER_RET_INFO, resultBean.getRetInfo());
+		
+		HttpUtils.outJsonObject(routeContext, json);
+	}
+	
+	@Service(id = "releaseQueue", name = "releaseQueue")
+	public static void releaseQueue(RoutingContext routeContext) {
+		ResultBean resultBean = new ResultBean();
+		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
+		MQService.releaseQueue(params, resultBean);
+		
+		JsonObject json = new JsonObject();
+		json.put(FixHeader.HEADER_RET_CODE, resultBean.getRetCode());
+		json.put(FixHeader.HEADER_RET_INFO, resultBean.getRetInfo());
+		HttpUtils.outJsonObject(routeContext, json);
+	}
 }

@@ -11,6 +11,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import ibsp.metaserver.bean.InstanceDtlBean;
 import ibsp.metaserver.bean.QueueBean;
 import ibsp.metaserver.dbservice.MQService;
+import ibsp.metaserver.utils.HttpUtils;
 import ibsp.metaserver.utils.UUIDUtils;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.MessageConsumer;
@@ -136,7 +137,7 @@ public class ServiceData {
 		}
 	}
 	
-	public boolean isQueueNameExists(String queueName) {
+	public boolean isQueueNameExistsByName(String queueName) {
 		boolean exists = false;
 		
 		synchronized(mtx) {
@@ -144,6 +145,19 @@ public class ServiceData {
 				return false;
 			}
 			exists = queueName2IdMap.containsKey(queueName);
+		}
+		
+		return exists;
+	}
+	
+	public boolean isQueueNameExistsById(String queueId) {
+		boolean exists = false;
+		
+		synchronized(mtx) {
+			if (queueName2IdMap == null) {
+				return false;
+			}
+			exists = queueMap.containsKey(queueId);
 		}
 		
 		return exists;
@@ -167,6 +181,42 @@ public class ServiceData {
 		return false;
 	}
 	
+	public boolean delQueue(String queueId) {
+		if (queueMap != null) {
+			synchronized(mtx) {
+				QueueBean qb = queueMap.get(queueId);
+				if(qb != null) {
+					queueName2IdMap.remove(qb.getQueueName());
+					queueMap.remove(queueId);	
+					return true;
+				}		
+			}
+		}
+		return false;
+	}
+	
+	public QueueBean getQueueBeanByName(String queueName) {
+		if (queueMap != null) {
+			synchronized(mtx) {
+				String queueId = queueName2IdMap.get(queueName);
+				if(HttpUtils.isNotNull(queueId)) {
+					return queueMap.get(queueId);
+				}
+			}
+		}
+		return null;
+	}
+	
+	public QueueBean getQueueBeanById(String queueId) {
+		if (queueMap != null) {
+			synchronized(mtx) {
+				if(HttpUtils.isNotNull(queueId)) {
+					return queueMap.get(queueId);
+				}
+			}
+		}
+		return null;
+	}
 	
 	public boolean isServContainSingleVBroker(String servId) {
 		List<InstanceDtlBean> list = MetaData.get().getVbrokerByServId(servId);

@@ -7,6 +7,8 @@ import ibsp.metaserver.bean.SqlBean;
 import ibsp.metaserver.exception.CRUDException;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.global.ServiceData;
+import ibsp.metaserver.rabbitmq.IMQClient;
+import ibsp.metaserver.rabbitmq.MQClientImpl;
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.CRUD;
 import ibsp.metaserver.utils.FixHeader;
@@ -144,11 +146,21 @@ public class MQService {
 			String pageSizeString = params.get(CONSTS.PAGE_SIZE);
 			String pageNumString = params.get(CONSTS.PAGE_NUMBER);
 			String servId = params.get(FixHeader.HEADER_SERV_ID);
+			String queueType = params.get(FixHeader.HEADER_QUEUE_TYPE);
+			String queueName = params.get(FixHeader.HEADER_QUEUE_NAME);
 			
 			if(HttpUtils.isNull(servId)) {
 				resultBean.setRetCode(CONSTS.REVOKE_NOK);
 				resultBean.setRetInfo(CONSTS.ERR_PARAM_INCOMPLETE);
 				return null;
+			}
+			
+			if(HttpUtils.isNotNull(queueName)) {
+				sql += " and q.queue_name like '%" + queueName +  "%' ";
+			}
+			
+			if(HttpUtils.isNotNull(queueType)) {
+				sql += " and q.queue_type = '"+queueType+"' ";
 			}
 			
 			if(HttpUtils.isNotNull(pageSizeString)&&HttpUtils.isNotNull(pageNumString)){
@@ -225,6 +237,13 @@ public class MQService {
 			String ordered = params.get(FixHeader.HEADER_GLOBAL_ORDERED);
 			String _ordered = HttpUtils.isNull(ordered) ? CONSTS.NOT_GLOBAL_ORDERED : ordered;
 			
+			if(HttpUtils.isNull(_qname) || HttpUtils.isNull(_qtype) || HttpUtils.isNull(_durable) || 
+					HttpUtils.isNull(_servid)) {
+				resultBean.setRetCode(CONSTS.REVOKE_NOK);
+				resultBean.setRetInfo(CONSTS.ERR_PARAM_INCOMPLETE);
+				return false;
+			}
+			
 			// 参数有效性检查
 			if (!(CONSTS.TYPE_QUEUE.equals(_qtype) || CONSTS.TYPE_TOPIC.equals(_qtype))) {
 				String err = String.format("%s, request is:%s", CONSTS.ERR_QUEUE_TYPE_ERROR, _qtype);
@@ -251,7 +270,7 @@ public class MQService {
 			QueueBean queueBean = null;
 			
 			if (HttpUtils.isNull(_qid)) {
-				boolean allreadyExist = ServiceData.get().isQueueNameExists(_qname);
+				boolean allreadyExist = ServiceData.get().isQueueNameExistsByName(_qname);
 				if (allreadyExist) {
 					resultBean.setRetCode(CONSTS.REVOKE_NOK);
 					resultBean.setRetInfo(CONSTS.ERR_QUEUE_EXISTS);
@@ -308,6 +327,233 @@ public class MQService {
 			resultBean.setRetInfo("params is null");
 		}
 		
+		return res;
+	}
+
+	public static boolean delQueue(Map<String, String> params, ResultBean resultBean) {
+		boolean res = false;
+		if(params != null) {
+			String queueId = params.get(FixHeader.HEADER_QUEUE_ID);
+			String servID = params.get(FixHeader.HEADER_SERV_ID);
+			
+			if(HttpUtils.isNull(queueId) || HttpUtils.isNull(servID)) {
+				resultBean.setRetCode(CONSTS.REVOKE_NOK);
+				resultBean.setRetInfo(CONSTS.ERR_PARAM_INCOMPLETE);
+				return false;
+			}
+			
+			if(!ServiceData.get().isQueueNameExistsById(queueId)) {
+				resultBean.setRetCode(CONSTS.REVOKE_NOK);
+				resultBean.setRetInfo("this queue is not exist!");
+				return false;
+			}
+			
+			QueueBean queueBean = ServiceData.get().getQueueBeanById(queueId);
+			if(queueBean != null) {
+				//先卸载
+				if(queueBean.getDeploy().equals(CONSTS.DEPLOYED)) {
+					List<InstanceDtlBean> list = MetaData.get().getMasterBrokersByServId(servID);
+					res = deleteRabbitQueue(queueBean, list);
+					if(!res) {
+						resultBean.setRetCode(CONSTS.REVOKE_NOK);
+						resultBean.setRetInfo(CONSTS.ERR_QUEUE_NOT_EXISTS);
+						return false;
+					}
+				}
+				
+				CRUD curd = new CRUD();
+				String dSql = "delete from t_mq_queue where queue_id = ?";
+				SqlBean sqlBean = new SqlBean(dSql);
+				sqlBean.addParams(new Object[]{queueId});
+				curd.putSqlBean(sqlBean);
+				
+				res = curd.executeUpdate(resultBean);
+				if (!res) {
+					resultBean.setRetCode(CONSTS.REVOKE_NOK);
+					resultBean.setRetInfo(resultBean.getRetInfo());
+				} else {
+					resultBean.setRetCode(CONSTS.REVOKE_OK);
+					resultBean.setRetInfo("");
+					//TODO 保存修改到集群中
+					ServiceData.get().delQueue(queueId);
+				}
+			}else {
+				resultBean.setRetCode(CONSTS.REVOKE_NOK);
+				resultBean.setRetInfo("rabbitmq delete queue fail");
+			}
+		}else {
+			resultBean.setRetCode(CONSTS.REVOKE_NOK);
+			resultBean.setRetInfo(CONSTS.ERR_PARAM_INCOMPLETE);
+		}
+		return res;
+	}
+	
+	public static boolean releaseQueue(Map<String, String> params, ResultBean resultBean) {
+		boolean res = false;
+		if(params != null) {
+			
+			String queueName = params.get(FixHeader.HEADER_QUEUE_NAME);
+			String servId = params.get(FixHeader.HEADER_SERV_ID);
+			if (HttpUtils.isNotNull(queueName) && HttpUtils.isNotNull(servId)) {
+				
+				QueueBean queueBean = ServiceData.get().getQueueBeanByName(queueName);
+				if(queueBean != null) {
+					if(CONSTS.NOT_DEPLOYED.equals(queueBean.getDeploy())) {
+						res = releaseQueueToMQ(queueBean, servId, resultBean);
+						if(res) {
+							resultBean.setRetCode(CONSTS.REVOKE_OK);
+							resultBean.setRetInfo("");
+						}
+						
+					}else {
+						resultBean.setRetCode(CONSTS.REVOKE_NOK);
+						resultBean.setRetInfo(CONSTS.ERR_QUEUE_ALLREADY_DEPLOYED);
+					}
+				}else {
+					resultBean.setRetCode(CONSTS.REVOKE_NOK);
+					resultBean.setRetInfo(CONSTS.ERR_QUEUE_NOT_EXISTS);
+				}
+			}else {
+				resultBean.setRetCode(CONSTS.REVOKE_NOK);
+				resultBean.setRetInfo(CONSTS.ERR_PARAM_INCOMPLETE);
+			}
+		}else {
+			resultBean.setRetCode(CONSTS.REVOKE_NOK);
+			resultBean.setRetInfo("params is null");
+		}
+		return res;
+	}
+	
+	private static boolean releaseQueueToMQ(QueueBean queueBean, String servId, ResultBean resultBean) {
+		boolean createOk = false;
+		List<InstanceDtlBean> list = MetaData.get().getMasterBrokersByServId(servId);
+		
+		if (list!=null&&list.size()>0) {
+			
+			String queueName = queueBean.getQueueName();
+			String queueType = queueBean.getQueueType();//相对C的实现原理,Topic的区分在于消费端,服务端创建Queue和Topic一样
+			
+			String ip = "";
+			String user = "";
+			String pwd ="";
+			String brokerId="";
+			String vhost ="";
+			
+			List<InstanceDtlBean> succList = new ArrayList<>();
+			
+			for (InstanceDtlBean brokerBean : list) {
+				if (createOk)
+					break;
+				ip = brokerBean.getAttribute(FixHeader.HEADER_IP).getAttrValue();
+				user = CONSTS.MQ_DEFAULT_USER;
+				pwd = CONSTS.MQ_DEFAULT_PWD;
+				
+				brokerId= brokerBean.getInstID();
+				int port = Integer.valueOf(brokerBean.getAttribute(FixHeader.HEADER_PORT).getAttrValue());
+				
+				vhost = CONSTS.MQ_DEFAULT_VHOST;
+				
+				IMQClient c = new MQClientImpl();
+				
+				int cf = c.connect(user, pwd, vhost, ip, port);
+				try {
+					if (cf == 0) {
+						int createRet = -1;
+						if (HttpUtils.isNotNull(queueType)&&queueType.equals("2")) {
+							createRet = c.createTopic(queueName, false, true);
+						} else {
+							createRet = c.createQueue(queueName, false, true);
+						}
+						
+						if (createRet != 0) {
+							String err = String.format("release queue:%s error, user:%s pwd:%s vhost:%s %s:%d",
+									queueName, user, pwd, vhost, ip, port);
+							logger.error(err);
+							
+							createOk = false;
+							break;
+						} else {
+							succList.add(brokerBean);
+							createOk = true;
+						}
+					} else {
+						String err = String.format("create queue on borker:[BrokerId:%s, IP:%s, port:%d] fail.", brokerId, ip, port);
+						resultBean.setRetCode(CONSTS.REVOKE_NOK);
+						resultBean.setRetInfo(err);
+						createOk = false;
+						break;
+					}
+				} catch (Exception e) {
+					createOk = false;
+					
+					resultBean.setRetCode(CONSTS.REVOKE_NOK);
+					resultBean.setRetInfo(e.getMessage());
+					logger.error(e.getMessage(), e);
+					
+					break;
+				} finally {
+					if(cf==0)
+						c.close();
+				}
+			}
+			
+			if (createOk) {
+				CRUD crud = new CRUD();
+				String uSql = "update t_mq_queue set is_deploy=? where queue_id=?";
+				crud.putSql(uSql, new Object[]{CONSTS.DEPLOYED,queueBean.getQueueId()});
+				
+				//TODO 往mo_queue 和 mo_queue_accu_dtl表插入数据
+				createOk = crud.executeUpdate(resultBean);
+				if(createOk) {
+					queueBean.setDeploy(CONSTS.DEPLOYED);
+					ServiceData.get().saveQueue(queueBean.getQueueId(), queueBean);
+				}else {
+					deleteRabbitQueue(queueBean, succList);
+				}
+			} else {
+				deleteRabbitQueue(queueBean, succList);
+			}
+		}
+		
+		return createOk;
+	}
+	
+	private static boolean deleteRabbitQueue(QueueBean queueBean, List<InstanceDtlBean> list) {
+		if (list == null)
+			return false;
+		boolean res = false;
+		String queueName = queueBean.getQueueName();
+		String ip = "";
+		int port = 0;
+		String user = CONSTS.MQ_DEFAULT_USER;
+		String pwd = CONSTS.MQ_DEFAULT_PWD;
+		String vhost = CONSTS.MQ_DEFAULT_VHOST;
+		
+		for (InstanceDtlBean brokerBean : list) {
+			ip = brokerBean.getAttribute(FixHeader.HEADER_IP).getAttrValue();
+			port = Integer.valueOf(brokerBean.getAttribute(FixHeader.HEADER_PORT).getAttrValue());
+
+			IMQClient c = new MQClientImpl();
+			int cf = c.connect(user, pwd, vhost, ip, port);
+			try {
+				if(cf==0) {
+					int qf = -1;
+					if(queueBean.getQueueType().equals(CONSTS.TYPE_TOPIC)) {
+						qf = c.deleteTopic(queueName);
+					} else {
+						qf = c.deleteQueue(queueName);
+					}
+					if (qf != -1) {
+						res = true;
+					}
+				}
+				c.deleteQueue(queueName);
+			} catch (Exception e) {
+				logger.error(e.getMessage(), e);
+			} finally {
+				if(c!=null) c.close();
+			}
+		}
 		return res;
 	}
 }

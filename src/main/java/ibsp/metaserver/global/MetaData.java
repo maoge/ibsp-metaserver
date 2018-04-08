@@ -14,6 +14,7 @@ import ibsp.metaserver.bean.TopologyBean;
 import ibsp.metaserver.dbservice.MetaDataService;
 import ibsp.metaserver.eventbus.EventType;
 import ibsp.metaserver.utils.CONSTS;
+import ibsp.metaserver.utils.FixHeader;
 import ibsp.metaserver.utils.HttpUtils;
 import ibsp.metaserver.utils.SysConfig;
 import ibsp.metaserver.utils.Topology;
@@ -673,12 +674,12 @@ public class MetaData {
 		ServiceBean servBean = serviceMap.get(servId);
 		int vbrokerContainerCmptID = MetaData.get().getComponentID("MQ_VBROKER_CONTAINER");
 		
-		if(servBean == null || servBean.getServType() != CONSTS.SERV_TYPE_MQ) {
+		if(servBean == null ||  !CONSTS.SERV_TYPE_MQ.equals(servBean.getServType())) {
 			return null;
 		}
 		
 		Set<String> childs = topo.get(servId, CONSTS.TOPO_TYPE_CONTAIN);
-		if(childs != null && !childs.isEmpty()) {
+		if(childs == null || childs.isEmpty()) {
 			return null;
 		}	
 
@@ -697,5 +698,18 @@ public class MetaData {
 		}
 		
 		return list;
+	}
+	
+	public List<InstanceDtlBean> getMasterBrokersByServId(String servId){
+		List<InstanceDtlBean> brokers = new ArrayList<>();
+		List<InstanceDtlBean> vbrokers = getVbrokerByServId(servId);
+		
+		for(InstanceDtlBean vbroker : vbrokers) {
+			String masterId = vbroker.getAttribute(FixHeader.HEADER_MASTER_ID).getAttrValue();
+			InstanceDtlBean broker = instanceDtlMap.get(masterId);
+			brokers.add(broker);
+		}
+		
+		return brokers;
 	}
 }
