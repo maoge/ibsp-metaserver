@@ -712,4 +712,28 @@ public class MetaData {
 		
 		return brokers;
 	}
+	
+	public boolean isServDepplyed(String instId) {
+		if (serviceMap == null || HttpUtils.isNull(instId))
+			return false;
+
+		ServiceBean seviceBean = serviceMap.get(instId);
+		if (seviceBean == null)
+			return false;
+		
+		return seviceBean.getDeployed().equals(CONSTS.DEPLOYED);
+	}
+	
+	public void setDBPwd(String instId, String user, String pwd) {
+		if (serviceMap == null || HttpUtils.isNull(instId))
+			return;
+
+		ServiceBean seviceBean = serviceMap.get(instId);
+		if (seviceBean == null)
+			return;
+		
+		seviceBean.setUser(user);
+		seviceBean.setPassword(pwd);
+	}
+	
 }

@@ -1,8 +1,5 @@
 package ibsp.metaserver.autodeploy;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -23,7 +20,6 @@ import ibsp.metaserver.dbservice.MetaDataService;
 import ibsp.metaserver.dbservice.TiDBService;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.utils.CONSTS;
-import ibsp.metaserver.utils.DES3;
 import ibsp.metaserver.utils.HttpUtils;
 import ibsp.metaserver.utils.Topology;
 
@@ -42,6 +38,8 @@ public class TiDBDeployer implements Deployer {
 		if (!TiDBService.loadServiceInfo(serviceID, pdServerList,
 				tidbServerList, tikvServerList, collectd, result))
 			return false;
+		
+		boolean isServDeployed = MetaData.get().isServDepplyed(serviceID);
 		
 		//check if the service matches minimum condition of TiDB product
 		Boolean isProduct = ConfigDataService.getIsProductByServId(serviceID, result);
@@ -79,18 +77,20 @@ public class TiDBDeployer implements Deployer {
 		// deploy tidb-server
 		if (!deployTiDBServerList(serviceID, tidbServerList, pdList, sessionKey, result))
 			return false;
-		
-		// deploy tidb root password
-		if (!setTiDBPassword(tidbServerList.get(0), pwd, sessionKey, result))
-			return false;
 
 		// deploy collectd
 		if (!deployCollectd(serviceID, collectd, pdList, sessionKey, result))
 			return false;
 			
-		// mod t_service.IS_DEPLOYED = 1
-		if (!ConfigDataService.modServiceDeployFlag(serviceID, CONSTS.DEPLOYED, result))
-			return false;
+		if (!isServDeployed) {
+			// deploy tidb root password
+			if (!DeployUtils.resetDBPwd(serviceID, tidbServerList.get(0), pwd, sessionKey, result))
+				return false;
+			
+			// mod t_service.IS_DEPLOYED = 1
+			if (!ConfigDataService.modServiceDeployFlag(serviceID, CONSTS.DEPLOYED, result))
+				return false;
+		}
 		
 		return true;
 	}
@@ -322,36 +322,6 @@ public class TiDBDeployer implements Deployer {
 		return true;
 	}
 	
-	private boolean setTiDBPassword(InstanceDtlBean tidbServer, String pwd, 
-			String sessionKey, ResultBean result) {
-		
-		Connection conn = null;
-		PreparedStatement stmt = null;
-		
-		try {
-			String DBAddress = "jdbc:mysql://"+tidbServer.getAttribute("IP").getAttrValue()
-					+":"+tidbServer.getAttribute("PORT").getAttrValue()+"?"+
-					"user=root&useUnicode=true&characterEncoding=UTF8&useSSL=true";
-			conn = DriverManager.getConnection(DBAddress);
-			
-			stmt = conn.prepareStatement("SET PASSWORD FOR 'root'@'%' = ?");
-			stmt.setString(1, DES3.decrypt(pwd));
-			stmt.execute();
-			return true;
-		} catch (Exception e) {
-			logger.error(e.getMessage(), e);
-			result.setRetCode(CONSTS.REVOKE_NOK);
-			result.setRetInfo(CONSTS.ERR_CONNECT_TIDB_SERVER_ERROR+e.getMessage());
-			return false;
-		} finally {
-			try {
-				if (stmt != null) stmt.close();
-				if (conn != null) conn.close();
-			} catch (Exception e) {
-			}
-		}
-	}
-	
 	private boolean undeployPDServerList(String serviceID, List<InstanceDtlBean> pdServerList,
 			String sessionKey, ResultBean result) {
 
@@ -421,10 +391,10 @@ public class TiDBDeployer implements Deployer {
 		String dataDir   = "data";
 		String logFile   = "log/pd.log";
 
-		String startContext = needJoin ? getPdJoinStartCmd(id, clientUrl, peerUrl, dataDir, logFile, join) :
-			getPdInitStartCmd(id, clientUrl, peerUrl, dataDir, logFile, initCluster);
+		String startContext = needJoin ? DeployUtils.getPdJoinStartCmd(id, clientUrl, peerUrl, dataDir, logFile, join) :
+			DeployUtils.getPdInitStartCmd(id, clientUrl, peerUrl, dataDir, logFile, initCluster);
 		
-		String stopContext = getPdStopCmd(id);
+		String stopContext = DeployUtils.getPdStopCmd(id);
 
 		if (pdInstance.getIsDeployed().equals(CONSTS.DEPLOYED)) {
 			String info = String.format("pd id:%s %s:%s is deployed ......", id, ip, port);
@@ -491,7 +461,7 @@ public class TiDBDeployer implements Deployer {
 			}
 			
 			// start pd-server
-			if (!execStartShell(executor, port, sessionKey)) {
+			if (!DeployUtils.execStartShell(executor, port, sessionKey)) {
 				DeployLog.pubLog(sessionKey, "exec pd start shell fail ......");
 				return false;
 			}
@@ -564,8 +534,8 @@ public class TiDBDeployer implements Deployer {
 		String dataDir = "data";
 		String logFile = "log/tikv.log";
 		
-		String startContext = getTikvStartCmd(ip, port, pdList, dataDir, logFile);
-		String stopContext  = getTikvStopCmd(ip, port);
+		String startContext = DeployUtils.getTikvStartCmd(ip, port, pdList, dataDir, logFile);
+		String stopContext  = DeployUtils.getTikvStopCmd(ip, port);
 		
 		if (tikvInstance.getIsDeployed().equals(CONSTS.DEPLOYED)) {
 			String info = String.format("tikv id:%s %s:%s is deployed ......", id, ip, port);
@@ -628,7 +598,7 @@ public class TiDBDeployer implements Deployer {
 			}
 			
 			// start tikv-server
-			if (!execStartShell(executor, port, sessionKey)) {
+			if (!DeployUtils.execStartShell(executor, port, sessionKey)) {
 				DeployLog.pubLog(sessionKey, "exec tikv start shell fail ......");
 				return false;
 			}
@@ -681,9 +651,9 @@ public class TiDBDeployer implements Deployer {
 		
 		String logFile = "log/tidb.log";
 		
-		String startContext = getTidbStartCmd(ip, port, logFile, pdList, statPort);
+		String startContext = DeployUtils.getTidbStartCmd(ip, port, logFile, pdList, statPort);
 		
-		String stopContext = getTidbStopCmd(ip, port);
+		String stopContext = DeployUtils.getTidbStopCmd(ip, port);
 		
 		if (tidbInstance.getIsDeployed().equals(CONSTS.DEPLOYED)) {
 			String info = String.format("tidb id:%s %s:%s is deployed ......", id, ip, port);
@@ -749,7 +719,7 @@ public class TiDBDeployer implements Deployer {
 			}
 			
 			// start tidb-server
-			if (!execStartShell(executor, port, sessionKey)) {
+			if (!DeployUtils.execStartShell(executor, port, sessionKey)) {
 				DeployLog.pubLog(sessionKey, "exec tidb start shell fail ......");
 				return false;
 			}
@@ -795,9 +765,9 @@ public class TiDBDeployer implements Deployer {
 //		String logFile = "log/collectd.log";
 		
 		//TODO log file and metaserver address
-		String startContext = getCollectdStartCmd(id, ip, port, CONSTS.METASVR_URL, serviceID);
+		String startContext = DeployUtils.getCollectdStartCmd(id, ip, port, CONSTS.METASVR_URL, serviceID);
 		
-		String stopContext = getCollectdStopCmd(id);
+		String stopContext = DeployUtils.getCollectdStopCmd(id);
 		
 		if (collectdInstance.getIsDeployed().equals(CONSTS.DEPLOYED)) {
 			String info = String.format("Collectd id:%s %s:%s is deployed ......", id, ip, port);
@@ -858,7 +828,7 @@ public class TiDBDeployer implements Deployer {
 			}
 			
 			// start collectd
-			if (!execStartShell(executor, port, sessionKey)) {
+			if (!DeployUtils.execStartShell(executor, port, sessionKey)) {
 				DeployLog.pubLog(sessionKey, "exec collectd start shell fail ......");
 				return false;
 			}
@@ -957,7 +927,7 @@ public class TiDBDeployer implements Deployer {
 				
 				// stop pd-server
 				if (executor.isPortUsed(port, sessionKey)) {
-					if (!execStopShell(executor, port, sessionKey)) {
+					if (!DeployUtils.execStopShell(executor, port, sessionKey)) {
 						DeployLog.pubLog(sessionKey, "exec pd stop shell fail ......");
 						return false;
 					}
@@ -1132,7 +1102,7 @@ public class TiDBDeployer implements Deployer {
 				
 				// stop tidb-server
 				if (executor.isPortUsed(port, sessionKey)) {
-					if (!execStopShell(executor, port, sessionKey)) {
+					if (!DeployUtils.execStopShell(executor, port, sessionKey)) {
 						DeployLog.pubLog(sessionKey, "exec tidb stop shell fail ......");
 						return false;
 					}
@@ -1206,7 +1176,7 @@ public class TiDBDeployer implements Deployer {
 				
 				// stop collectd
 				if (executor.isPortUsed(port, sessionKey)) {
-					if (!execStopShell(executor, port, sessionKey)) {
+					if (!DeployUtils.execStopShell(executor, port, sessionKey)) {
 						DeployLog.pubLog(sessionKey, "exec collectd stop shell fail ......");
 						return false;
 					}
@@ -1289,66 +1259,6 @@ public class TiDBDeployer implements Deployer {
 		return sb.toString();
 	}
 	
-	private boolean execStartShell(SSHExecutor executor, String port, String sessionKey) {
-		boolean ret = true;
-		try {
-			executor.execStartShell(sessionKey);
-			
-			// start may take some time
-			long beginTs = System.currentTimeMillis();
-			long currTs = beginTs;
-			long maxTs = 60000L;
-			
-			do {
-				Thread.sleep(CONSTS.DEPLOY_CHECK_INTERVAL);
-	
-				currTs = System.currentTimeMillis();
-				if ((currTs - beginTs) > maxTs) {
-					ret = false;
-					break;
-				}
-	
-				executor.echo("......");
-			} while (!executor.isPortUsed(port, sessionKey));
-//			Thread.sleep(1L);
-			
-		} catch (Exception e) {
-			ret = false;
-		}
-		
-		return ret;
-	}
-	
-	private boolean execStopShell(SSHExecutor executor, String port, String sessionKey) {
-		boolean ret = true;
-		try {
-			executor.execStopShell(sessionKey);
-			
-			// start may take some time
-			long beginTs = System.currentTimeMillis();
-			long currTs = beginTs;
-			long maxTs = 60000L;
-			
-			do {
-				Thread.sleep(CONSTS.DEPLOY_CHECK_INTERVAL);
-	
-				currTs = System.currentTimeMillis();
-				if ((currTs - beginTs) > maxTs) {
-					ret = false;
-					break;
-				}
-	
-				executor.echo("......");
-			} while (executor.isPortUsed(port, sessionKey));
-//			Thread.sleep(1L);
-			
-		} catch (Exception e) {
-			ret = false;
-		}
-		
-		return ret;
-	}
-	
 	//检查tikv的状态，停止tikv 最后删除目录
 	private void checkTikvStatus(String servId, String id, String ip, String port, String user, String password, int tikvId) {
 		new Thread(new Runnable() {
@@ -1372,7 +1282,7 @@ public class TiDBDeployer implements Deployer {
 					}
 					// stop tikv-server
 					if (executor.isPortUsed(port,"")) {
-						if (!execStopShell(executor, port, "")) {
+						if (!DeployUtils.execStopShell(executor, port, "")) {
 							logger.error(String.format("stop tikv[%s:%s] shell faild", ip, port));
 						}
 					}
@@ -1524,8 +1434,8 @@ public class TiDBDeployer implements Deployer {
 		String logFile   = "log/tidb.log";
 		
 		String deployRootPath = String.format("$HOME/tidb_deploy/%s", port);
-		String startShell = getTidbStartCmd(ip, port, logFile, pdList, statPort);	
-		String stopShell  = getTidbStopCmd(ip, port);
+		String startShell = DeployUtils.getTidbStartCmd(ip, port, logFile, pdList, statPort);	
+		String stopShell  = DeployUtils.getTidbStopCmd(ip, port);
 		
 		if (executor.isDirExistInCurrPath(deployRootPath, sessionKey)) {
 			executor.cd(deployRootPath, sessionKey);
@@ -1549,8 +1459,8 @@ public class TiDBDeployer implements Deployer {
 		String logFile   = "log/pd.log";
 		
 		String deployRootPath = String.format("$HOME/pd_deploy/%s", port);
-		String startShell = getPdInitStartCmd(id, clientUrl, peerUrl, dataDir, logFile, initCluster);
-		String stopShell  = getPdStopCmd(id);
+		String startShell = DeployUtils.getPdInitStartCmd(id, clientUrl, peerUrl, dataDir, logFile, initCluster);
+		String stopShell  = DeployUtils.getPdStopCmd(id);
 		
 		if (executor.isDirExistInCurrPath(deployRootPath, sessionKey)) {
 			executor.cd(deployRootPath, sessionKey);
@@ -1572,8 +1482,8 @@ public class TiDBDeployer implements Deployer {
 		String logFile   = "log/tikv.log";
 		
 		String deployRootPath = String.format("$HOME/tikv_deploy/%s", port);
-		String startShell = getTikvStartCmd(ip, port, pdList, dataDir, logFile);	
-		String stopShell  = getTikvStopCmd(ip, port);
+		String startShell = DeployUtils.getTikvStartCmd(ip, port, pdList, dataDir, logFile);	
+		String stopShell  = DeployUtils.getTikvStopCmd(ip, port);
 		
 		if (executor.isDirExistInCurrPath(deployRootPath, sessionKey)) {
 			executor.cd(deployRootPath, sessionKey);
@@ -1586,105 +1496,4 @@ public class TiDBDeployer implements Deployer {
 		return Boolean.TRUE;
 	}
 	
-	private String getTidbStartCmd(String ip, String port, String logFile, String pdList, String statPort) {
-		return String.format("bin/tidb-server -host %s -P %s \\\\\n"
-				+ "    --store=tikv \\\\\n"
-				+ "    --log-file=%s \\\\\n"
-				+ "    --path=%s \\\\\n"
-				+ "    --config=conf/tidb.toml \\\\\n"
-				+ "    --status=%s &",
-				ip, port, logFile, pdList, statPort);
-	}
-	
-	private String getTidbStopCmd(String ip, String port) {
-		return String.format("var=\\\"\\\\-host %s \\\\-P %s\\\" \\n"
-				+ "pid=\\`ps -ef | grep \\\"\\${var}\\\" | awk '{print \\$1, \\$2, \\$8}' | grep tidb-server | awk '{print \\$2}'\\`\\n"
-				+ "if [ \\\"\\${pid}\\\" != \\\"\\\" ]\\n"
-				+ "then\\n"
-				+ "    kill -9 \\$pid\\n"
-				+ "    echo stop tidb-server pid:\\$pid\\n"
-				+ "else\\n"
-				+ "    echo stop tidb-server not running\\n"
-				+ "fi\\n",
-				ip, port);
-	}
-	
-	private String getPdInitStartCmd(String id, String clientUrl, String peerUrl, String dataDir, String logFile,String cluster) {
-		return String.format("bin/pd-server --name=%s \\\\\n"
-				+ "    --client-urls=%s --peer-urls=%s \\\\\n"
-				+ "    --advertise-client-urls=%s --advertise-peer-urls=%s \\\\\n"
-				+ "    --data-dir=%s -L info \\\\\n" 
-				+ "    --log-file=%s \\\\\n"
-				+ "    --config=conf/pd.toml \\\\\n"
-				+ "    --initial-cluster=%s &",
-				id, clientUrl, peerUrl, clientUrl, peerUrl, dataDir, logFile, cluster);
-	}
-	
-	private String getPdJoinStartCmd(String id, String clientUrl, String peerUrl, String dataDir, String logFile,String join) {
-		return String.format("bin/pd-server --name=%s \\\\\n"
-				+ "    --client-urls=%s --peer-urls=%s \\\\\n"
-				+ "    --advertise-client-urls=%s --advertise-peer-urls=%s \\\\\n"
-				+ "    --data-dir=%s -L info \\\\\n" 
-				+ "    --log-file=%s \\\\\n"
-				+ "    --config=conf/pd.toml \\\\\n"
-				+ "    --join=%s &",
-				id, clientUrl, peerUrl, clientUrl, peerUrl, dataDir, logFile, join);
-	}
-	
-	private String getPdStopCmd(String id) {
-		return String.format("var=\\\"name=%s\\\" \\n"
-				+ "pid=\\`ps -ef | grep \\\"\\${var}\\\" | awk '{print \\$1, \\$2, \\$8}' | grep pd-server | awk '{print \\$2}'\\`\\n"
-				+ "if [ \\\"\\${pid}\\\" != \\\"\\\" ]\\n"
-				+ "then\\n"
-				+ "    kill \\$pid\\n"
-				+ "    echo stop pd-server pid:\\$pid\\n"
-				+ "else\\n"
-				+ "    echo stop pd-server not running\\n"
-				+ "fi\\n",
-				id);
-	}
-	
-	private String getTikvStartCmd(String ip, String port, String pdList, String dataDir, String logFile) {
-		return String.format("bin/tikv-server --addr %s:%s \\\\\n"
-				+ "    --pd %s \\\\\n"
-				+ "    --data-dir %s \\\\\n"
-				+ "    --config conf/tikv.toml \\\\\n"
-				+ "    -L info --log-file %s &",
-				ip, port, pdList, dataDir, logFile);
-	}
-	
-	private String getTikvStopCmd(String ip,String port) {
-		return String.format("var=\\\"\\\\--addr %s:%s\\\" \\n"
-				+ "pid=\\`ps -ef | grep \\\"\\${var}\\\" | awk '{print \\$1, \\$2, \\$8}' | grep tikv-server | awk '{print \\$2}'\\`\\n"
-				+ "if [ \\\"\\${pid}\\\" != \\\"\\\" ]\\n"
-				+ "then\\n"
-				+ "    kill \\$pid\\n"
-				+ "    echo stop tikv-server pid:\\$pid\\n"
-				+ "else\\n"
-				+ "    echo stop tikv-server not running\\n"
-				+ "fi\\n",
-				ip, port);
-	}
-	
-	private String getCollectdStartCmd(String id, String ip, String port, String rootUrl, String servID) {
-		return String.format("bin/collectd -name=%s \\\\\n"
-				+ "    -addr=%s:%s \\\\\n"
-				+ "    -compress=false \\\\\n"
-				+ "    -rooturl=%s \\\\\n"
-				+ "    -servid=%s &",
-				id, ip, port, rootUrl, servID);
-	}
-	
-	private String getCollectdStopCmd(String id) {
-		return String.format("var=\\\"name=%s\\\" \\n"
-				+ "pid=\\`ps -ef | grep \\\"\\${var}\\\" | awk '{print \\$1, \\$2, \\$8}' | grep collectd | awk '{print \\$2}'\\`\\n"
-				+ "if [ \\\"\\${pid}\\\" != \\\"\\\" ]\\n"
-				+ "then\\n"
-				+ "    kill \\$pid\\n"
-				+ "    echo stop collectd pid:\\$pid\\n"
-				+ "else\\n"
-				+ "    echo stop collectd not running\\n"
-				+ "fi\\n",
-				id);
-	}
 }
