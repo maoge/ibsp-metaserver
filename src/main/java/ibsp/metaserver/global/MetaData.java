@@ -28,7 +28,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
@@ -89,92 +88,7 @@ public class MetaData {
 		metaServUrls       = "";
 	}
 	
-	public boolean doTopo(JsonObject json, EventType type) {
-		boolean res = true;
-		
-		if (topo == null)
-			return false;
-
-		String instID1 = json.getString("INST_ID1");
-		String instID2 = json.getString("INST_ID2");
-		Integer topoType = json.getInteger("TOPO_TYPE");
-
-		if (HttpUtils.isNull(instID1) || HttpUtils.isNull(instID2)
-				|| topoType == null)
-			return false;
-
-		switch (type) {
-		case e1:
-			topo.put(instID1, instID2, topoType);
-			break;
-		case e2:
-			topo.remove(instID1, instID2, topoType);
-			break;
-		default:
-			res = false;
-			break;
-		}
-
-		return res;
-	}
 	
-	public boolean doInstance(JsonObject json, EventType type) {
-		boolean res = true;
-		
-		if (instanceDtlMap == null)
-			return false;
-		
-		String instID = json.getString("INST_ID");
-		if (HttpUtils.isNull(instID))
-			return false;
-		
-		switch (type) {
-		case e3:
-		case e4:
-			InstanceDtlBean instDtl = MetaDataService.getInstanceDtl(instID);
-			if (instDtl != null) {
-				instanceDtlMap.put(instID, instDtl);
-			}
-			break;
-		case e5:
-			instanceDtlMap.remove(instID);
-			break;
-		default:
-			res = false;
-			break;
-		}
-		
-		return res;
-	}
-	
-	public boolean doService(JsonObject json, EventType type) {
-		boolean res = true;
-		
-		if (serviceMap == null)
-			return false;
-		
-		String instID = json.getString("INST_ID");
-		if (HttpUtils.isNull(instID))
-			return false;
-		
-		switch (type) {
-		case e6:
-		case e7:
-			ServiceBean service = MetaDataService.getService(instID);
-			if (service != null) {
-				serviceMap.put(instID, service);
-			}
-			break;
-		case e8:
-			serviceMap.remove(instID);
-			break;
-		default:
-			res = false;
-			break;
-		}
-		
-		return res;
-	}
 	
 	public static MetaData get() {
 		try {
@@ -207,6 +121,10 @@ public class MetaData {
 		LoadCollectQuota();
 		LoadTopo();
 		LoadMetaServUrl();
+	}
+	
+	public void reloadMetaData() {
+		initData();
 	}
 	
 	private void initJedisPool() {
@@ -492,6 +410,93 @@ public class MetaData {
 		} finally {
 			intanceLock.unlock();
 		}
+	}
+	
+	public boolean doTopo(JsonObject json, EventType type) {
+		boolean res = true;
+		
+		if (topo == null)
+			return false;
+
+		String instID1 = json.getString("INST_ID1");
+		String instID2 = json.getString("INST_ID2");
+		Integer topoType = json.getInteger("TOPO_TYPE");
+
+		if (HttpUtils.isNull(instID1) || HttpUtils.isNull(instID2)
+				|| topoType == null)
+			return false;
+
+		switch (type) {
+		case e1:
+			topo.put(instID1, instID2, topoType);
+			break;
+		case e2:
+			topo.remove(instID1, instID2, topoType);
+			break;
+		default:
+			res = false;
+			break;
+		}
+
+		return res;
+	}
+	
+	public boolean doInstance(JsonObject json, EventType type) {
+		boolean res = true;
+		
+		if (instanceDtlMap == null)
+			return false;
+		
+		String instID = json.getString("INST_ID");
+		if (HttpUtils.isNull(instID))
+			return false;
+		
+		switch (type) {
+		case e3:
+		case e4:
+			InstanceDtlBean instDtl = MetaDataService.getInstanceDtl(instID);
+			if (instDtl != null) {
+				instanceDtlMap.put(instID, instDtl);
+			}
+			break;
+		case e5:
+			instanceDtlMap.remove(instID);
+			break;
+		default:
+			res = false;
+			break;
+		}
+		
+		return res;
+	}
+	
+	public boolean doService(JsonObject json, EventType type) {
+		boolean res = true;
+		
+		if (serviceMap == null)
+			return false;
+		
+		String instID = json.getString("INST_ID");
+		if (HttpUtils.isNull(instID))
+			return false;
+		
+		switch (type) {
+		case e6:
+		case e7:
+			ServiceBean service = MetaDataService.getService(instID);
+			if (service != null) {
+				serviceMap.put(instID, service);
+			}
+			break;
+		case e8:
+			serviceMap.remove(instID);
+			break;
+		default:
+			res = false;
+			break;
+		}
+		
+		return res;
 	}
 	
 	public Map<String, ServiceBean> getServiceMap() {
