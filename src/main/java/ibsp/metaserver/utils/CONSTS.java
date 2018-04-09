@@ -3,7 +3,7 @@ package ibsp.metaserver.utils;
 public class CONSTS {
 	
 	//TODO read url from database
-	public static final String METASVR_URL           = "192.168.14.206:19991";
+	//public static final String METASVR_URL           = "192.168.14.206:19991";
 	
 	public static final String CONF_PATH             = "conf";
 	public static final String INIT_PROP_FILE        = "conf/init";

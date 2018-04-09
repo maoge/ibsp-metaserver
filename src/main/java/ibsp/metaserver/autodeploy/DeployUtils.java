@@ -46,7 +46,7 @@ public class DeployUtils {
 //		String logFile = "log/collectd.log";
 		
 		//TODO log file and metaserver address
-		String startContext = getCollectdStartCmd(id, ip, port, CONSTS.METASVR_URL, serviceID);
+		String startContext = getCollectdStartCmd(id, ip, port, MetaData.get().getMetaServUrls(), serviceID);
 		
 		String stopContext = getCollectdStopCmd(id);
 		
@@ -499,7 +499,7 @@ public class DeployUtils {
 		return String.format("bin/collectd -name=%s \\\\\n"
 				+ "    -addr=%s:%s \\\\\n"
 				+ "    -compress=false \\\\\n"
-				+ "    -rooturl=http://%s \\\\\n"
+				+ "    -rooturl=%s \\\\\n"
 				+ "    -servid=%s &",
 				id, ip, port, rootUrl, servID);
 	}

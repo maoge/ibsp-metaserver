@@ -8,6 +8,7 @@ import ibsp.metaserver.bean.InstanceBean;
 import ibsp.metaserver.bean.InstanceDtlBean;
 import ibsp.metaserver.bean.MetaAttributeBean;
 import ibsp.metaserver.bean.MetaComponentBean;
+import ibsp.metaserver.bean.MetaServUrl;
 import ibsp.metaserver.bean.RelationBean;
 import ibsp.metaserver.bean.ServiceBean;
 import ibsp.metaserver.bean.TopologyBean;
@@ -27,6 +28,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
@@ -37,11 +39,6 @@ import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
-
-// TODO t_service EVENT 
-// TODO t_instance EVENT
-// TODO t_instance_attr EVENT
-// TODO t_topology EVENT
 
 public class MetaData {
 	
@@ -61,6 +58,9 @@ public class MetaData {
 	private Map<String, Integer> quotaName2Code;
 	private Map<Integer, String> quotaCode2Name;
 	private Topology topo;
+	
+	private Map<Integer, MetaServUrl> metaServMap;
+	private String metaServUrls;
 	
 	private JedisPool jedisPool;
 	
@@ -84,6 +84,9 @@ public class MetaData {
 		quotaName2Code     = new ConcurrentHashMap<String,  Integer>();
 		quotaCode2Name     = new ConcurrentHashMap<Integer, String>();
 		topo               = new Topology();
+		
+		metaServMap        = new ConcurrentHashMap<Integer, MetaServUrl>();
+		metaServUrls       = "";
 	}
 	
 	public boolean doTopo(JsonObject json, EventType type) {
@@ -203,6 +206,7 @@ public class MetaData {
 		LoadInstances();
 		LoadCollectQuota();
 		LoadTopo();
+		LoadMetaServUrl();
 	}
 	
 	private void initJedisPool() {
@@ -320,6 +324,38 @@ public class MetaData {
 				instDtl.addAttribute(instAttr);
 			}
 			
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+		} finally {
+			intanceLock.unlock();
+		}
+	}
+	
+	private void LoadMetaServUrl() {
+		try {
+			intanceLock.lock();
+			
+			List<MetaServUrl> list = MetaDataService.getAllMetaServUrl();
+			if (list == null || list.isEmpty())
+				return;
+			
+			metaServMap.clear();
+			metaServUrls = "";
+			StringBuilder sb = new StringBuilder();
+			int cnt = 0;
+			
+			for (MetaServUrl metaServUrl : list) {
+				if (metaServUrl == null)
+					continue;
+				
+				metaServMap.put(metaServUrl.getMetaSvrID(), metaServUrl);
+				
+				if (cnt++ > 0) sb.append(CONSTS.PATH_COMMA);
+				sb.append(metaServUrl.getHttpServAddr());
+			}
+			
+			metaServUrls = sb.toString();
+		
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 		} finally {
@@ -711,6 +747,10 @@ public class MetaData {
 		}
 		
 		return brokers;
+	}
+	
+	public String getMetaServUrls() {
+		return metaServUrls;
 	}
 	
 	public boolean isServDepplyed(String instId) {

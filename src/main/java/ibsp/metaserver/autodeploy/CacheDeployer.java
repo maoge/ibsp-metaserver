@@ -697,8 +697,7 @@ public class CacheDeployer implements Deployer {
 					line = line.substring(0, "proxy.id=".length())+id;
 				}
 				if (line.indexOf("metasvr.rooturl=")!=-1) {
-					//TODO metaserver address
-					line = line.substring(0, "metasvr.rooturl=".length())+CONSTS.METASVR_URL;
+					line = line.substring(0, "metasvr.rooturl=".length())+MetaData.get().getMetaServUrls();
 				}
 				sb.append(line).append("\n");
 			}

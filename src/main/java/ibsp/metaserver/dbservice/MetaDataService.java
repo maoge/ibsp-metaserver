@@ -8,6 +8,7 @@ import ibsp.metaserver.bean.InstanceDtlBean;
 import ibsp.metaserver.bean.InstanceRelationBean;
 import ibsp.metaserver.bean.MetaAttributeBean;
 import ibsp.metaserver.bean.MetaComponentBean;
+import ibsp.metaserver.bean.MetaServUrl;
 import ibsp.metaserver.bean.RelationBean;
 import ibsp.metaserver.bean.ResultBean;
 import ibsp.metaserver.bean.ServiceBean;
@@ -484,6 +485,40 @@ public class MetaDataService {
 		}
 		
 		return services;
+	}
+	
+	public static List<MetaServUrl> getAllMetaServUrl() {
+		String sql = "select METASVR_ID, METASVR_ADDR from t_metasvr_url";
+		List<MetaServUrl> urls = null;
+		
+		try {
+			SqlBean sqlBean = new SqlBean(sql);
+			
+			CRUD c = new CRUD();
+			c.putSqlBean(sqlBean);
+			
+			List<HashMap<String, Object>> result = c.queryForList();
+			if (result == null) {
+				return null;
+			}
+			
+			urls = new LinkedList<MetaServUrl>();
+			
+			for (HashMap<String, Object> item : result) {
+				if (item == null)
+					continue;
+				
+				MetaServUrl url = MetaServUrl.convert(item);
+				if (url != null) {
+					urls.add(url);
+				}
+			}
+			
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+		}
+		
+		return urls;
 	}
 	
 	public static List<TopologyBean> getAllTopology() {
