@@ -4,6 +4,9 @@ import ibsp.metaserver.bean.InstanceDtlBean;
 import ibsp.metaserver.bean.QueueBean;
 import ibsp.metaserver.bean.ResultBean;
 import ibsp.metaserver.bean.SqlBean;
+import ibsp.metaserver.eventbus.EventBean;
+import ibsp.metaserver.eventbus.EventBusMsg;
+import ibsp.metaserver.eventbus.EventType;
 import ibsp.metaserver.exception.CRUDException;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.global.ServiceData;
@@ -31,6 +34,15 @@ import org.slf4j.LoggerFactory;
 public class MQService {
 	
 	private static final Logger logger = LoggerFactory.getLogger(MQService.class);
+	
+	private final static String SEL_ALL_QUEUE = "SELECT q.QUEUE_ID, q.QUEUE_NAME, q.IS_DURABLE, q.IS_ORDERED, q.QUEUE_TYPE, q.IS_DEPLOY, q.SERV_ID, t.SERV_NAME "
+											+     "FROM t_mq_queue q left join t_service t "
+											+     "on q.SERV_ID = t.INST_ID";
+	
+	private final static String SEL_QUEUE     = "SELECT q.QUEUE_ID, q.QUEUE_NAME, q.IS_DURABLE, q.IS_ORDERED, q.QUEUE_TYPE, q.IS_DEPLOY, q.SERV_ID, t.SERV_NAME "
+											+     "FROM t_mq_queue q left join t_service t "
+											+     "on q.SERV_ID = t.INST_ID "
+											+     "where q.QUEUE_ID = ?";
 	
 	public static boolean loadServiceInfo(String serviceID, List<InstanceDtlBean> vbrokerList,
 			InstanceDtlBean collectd, ResultBean result) {
@@ -106,17 +118,34 @@ public class MQService {
 		
 		return true;
 	}
+	
+	public static QueueBean getQueue(String queueID) {
+		QueueBean queueBean = null;
+		try {
+			SqlBean sqlBean = new SqlBean(SEL_QUEUE);
+			sqlBean.addParams(new Object[]{queueID});
+			
+			CRUD c = new CRUD();
+			c.putSqlBean(sqlBean);
+			
+			List<HashMap<String, Object>> queryResult = c.queryForList();
+			if (queryResult != null && !queryResult.isEmpty()) {
+				HashMap<String, Object> item = queryResult.get(0);
+				queueBean = QueueBean.convert(item);
+			}
+		} catch (CRUDException e) {
+			logger.error(e.getMessage(), e);
+		}
+		
+		return queueBean;
+	}
 
 	public static List<QueueBean> getAllQueues() {
-		String sql = "SELECT q.QUEUE_ID, q.QUEUE_NAME, q.IS_DURABLE, q.IS_ORDERED, q.QUEUE_TYPE, q.IS_DEPLOY, q.SERV_ID, t.SERV_NAME "
-				+     "FROM t_mq_queue q left join t_service t "
-				+     "on q.SERV_ID = t.INST_ID";
-		
 		List<QueueBean> list = null;
 		try {
 			CRUD c = new CRUD();
 			List<Object> paramList = new LinkedList<Object>();
-			c.putSql(sql, paramList);
+			c.putSql(SEL_ALL_QUEUE, paramList);
 			List<HashMap<String, Object>> queryResult = c.queryForList();
 			
 			if (queryResult != null) {
@@ -136,7 +165,7 @@ public class MQService {
 		return list;
 	}
 	
-	public static JsonArray getQueueList (Map<String,String> params, ResultBean resultBean){
+	public static JsonArray getQueueList(Map<String,String> params, ResultBean resultBean) {
 		JsonArray jsonArray = null;
 		String sql="select q.queue_id, q.queue_name, queue_type, q.is_durable, q.queue_type, "
 				+ "q.is_durable, q.is_ordered, q.is_deploy "
@@ -224,7 +253,6 @@ public class MQService {
 		return countJson;
 	}
 	
-	
 	public static boolean saveQueue(Map<String, String> params, ResultBean resultBean) {
 		boolean res = false;
 		if (params != null) {
@@ -270,7 +298,7 @@ public class MQService {
 			QueueBean queueBean = null;
 			
 			if (HttpUtils.isNull(_qid)) {
-				boolean allreadyExist = ServiceData.get().isQueueNameExistsByName(_qname);
+				boolean allreadyExist = MetaData.get().isQueueNameExistsByName(_qname);
 				if (allreadyExist) {
 					resultBean.setRetCode(CONSTS.REVOKE_NOK);
 					resultBean.setRetInfo(CONSTS.ERR_QUEUE_EXISTS);
@@ -317,10 +345,18 @@ public class MQService {
 			} else {
 				resultBean.setRetCode(CONSTS.REVOKE_OK);
 				resultBean.setRetInfo("");
-				//TODO 保存到集群中
+				
 				queueBean = new QueueBean(qid, _qname, _durable, _ordered,
 						_qtype, CONSTS.NOT_DEPLOYED, _servid, MetaData.get().getServiceName(_servid));
-				ServiceData.get().saveQueue(qid, queueBean);
+				MetaData.get().saveQueue(qid, queueBean);
+				
+				JsonObject evJson = new JsonObject();
+				evJson.put("QUEUE_ID", qid);
+				
+				EventBean ev = new EventBean(EventType.e9);
+				ev.setUuid(MetaData.get().getUUID());
+				ev.setJsonStr(evJson.toString());
+				EventBusMsg.publishEvent(ev);
 			}
 		} else {
 			resultBean.setRetCode(CONSTS.REVOKE_NOK);
@@ -342,13 +378,13 @@ public class MQService {
 				return false;
 			}
 			
-			if(!ServiceData.get().isQueueNameExistsById(queueId)) {
+			if(!MetaData.get().isQueueNameExistsById(queueId)) {
 				resultBean.setRetCode(CONSTS.REVOKE_NOK);
 				resultBean.setRetInfo("this queue is not exist!");
 				return false;
 			}
 			
-			QueueBean queueBean = ServiceData.get().getQueueBeanById(queueId);
+			QueueBean queueBean = MetaData.get().getQueueBeanById(queueId);
 			if(queueBean != null) {
 				//先卸载
 				if(queueBean.getDeploy().equals(CONSTS.DEPLOYED)) {
@@ -374,8 +410,16 @@ public class MQService {
 				} else {
 					resultBean.setRetCode(CONSTS.REVOKE_OK);
 					resultBean.setRetInfo("");
-					//TODO 保存修改到集群中
-					ServiceData.get().delQueue(queueId);
+					
+					MetaData.get().delQueue(queueId);
+					
+					JsonObject evJson = new JsonObject();
+					evJson.put("QUEUE_ID", queueId);
+					
+					EventBean ev = new EventBean(EventType.e11);
+					ev.setUuid(MetaData.get().getUUID());
+					ev.setJsonStr(evJson.toString());
+					EventBusMsg.publishEvent(ev);
 				}
 			}else {
 				resultBean.setRetCode(CONSTS.REVOKE_NOK);
@@ -396,7 +440,7 @@ public class MQService {
 			String servId = params.get(FixHeader.HEADER_SERV_ID);
 			if (HttpUtils.isNotNull(queueName) && HttpUtils.isNotNull(servId)) {
 				
-				QueueBean queueBean = ServiceData.get().getQueueBeanByName(queueName);
+				QueueBean queueBean = MetaData.get().getQueueBeanByName(queueName);
 				if(queueBean != null) {
 					if(CONSTS.NOT_DEPLOYED.equals(queueBean.getDeploy())) {
 						res = releaseQueueToMQ(queueBean, servId, resultBean);
@@ -504,10 +548,18 @@ public class MQService {
 				
 				//TODO 往mo_queue 和 mo_queue_accu_dtl表插入数据
 				createOk = crud.executeUpdate(resultBean);
-				if(createOk) {
+				if (createOk) {
 					queueBean.setDeploy(CONSTS.DEPLOYED);
-					ServiceData.get().saveQueue(queueBean.getQueueId(), queueBean);
-				}else {
+					MetaData.get().saveQueue(queueBean.getQueueId(), queueBean);
+					
+					JsonObject evJson = new JsonObject();
+					evJson.put("QUEUE_ID", queueBean.getQueueId());
+					
+					EventBean ev = new EventBean(EventType.e10);
+					ev.setUuid(MetaData.get().getUUID());
+					ev.setJsonStr(evJson.toString());
+					EventBusMsg.publishEvent(ev);
+				} else {
 					deleteRabbitQueue(queueBean, succList);
 				}
 			} else {

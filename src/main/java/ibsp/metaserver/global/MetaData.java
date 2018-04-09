@@ -9,9 +9,11 @@ import ibsp.metaserver.bean.InstanceDtlBean;
 import ibsp.metaserver.bean.MetaAttributeBean;
 import ibsp.metaserver.bean.MetaComponentBean;
 import ibsp.metaserver.bean.MetaServUrl;
+import ibsp.metaserver.bean.QueueBean;
 import ibsp.metaserver.bean.RelationBean;
 import ibsp.metaserver.bean.ServiceBean;
 import ibsp.metaserver.bean.TopologyBean;
+import ibsp.metaserver.dbservice.MQService;
 import ibsp.metaserver.dbservice.MetaDataService;
 import ibsp.metaserver.eventbus.EventType;
 import ibsp.metaserver.utils.CONSTS;
@@ -29,6 +31,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -61,6 +64,9 @@ public class MetaData {
 	private Map<Integer, MetaServUrl> metaServMap;
 	private String metaServUrls;
 	
+	private Map<String, QueueBean> queueMap;
+	private Map<String, String> queueName2IdMap;
+	
 	private JedisPool jedisPool;
 	
 	private static MetaData theInstance = null;
@@ -86,9 +92,10 @@ public class MetaData {
 		
 		metaServMap        = new ConcurrentHashMap<Integer, MetaServUrl>();
 		metaServUrls       = "";
+		
+		queueMap           = new ConcurrentHashMap<String, QueueBean>();
+		queueName2IdMap    = new ConcurrentHashMap<String, String>();
 	}
-	
-	
 	
 	public static MetaData get() {
 		try {
@@ -121,6 +128,7 @@ public class MetaData {
 		LoadCollectQuota();
 		LoadTopo();
 		LoadMetaServUrl();
+		LoadQueue();
 	}
 	
 	public void reloadMetaData() {
@@ -247,6 +255,30 @@ public class MetaData {
 		} finally {
 			intanceLock.unlock();
 		}
+	}
+	
+	private void LoadQueue() {
+		try {
+			intanceLock.lock();
+			
+			List<QueueBean> queueList = MQService.getAllQueues();
+			if (queueList == null) {
+				logger.info("LoadQueue: no data loaded ......");
+				return;
+			}
+			
+			Iterator<QueueBean> iter = queueList.iterator();
+			while (iter.hasNext()) {
+				QueueBean queue = iter.next();
+				queueMap.put(queue.getQueueId(), queue);
+			}
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+		} finally {
+			intanceLock.unlock();
+		}
+		
+		genQueueName2IdMap();
 	}
 	
 	private void LoadMetaServUrl() {
@@ -497,6 +529,130 @@ public class MetaData {
 		}
 		
 		return res;
+	}
+	
+	public boolean doQueue(JsonObject json, EventType type) {
+		if (queueMap == null || queueName2IdMap == null)
+			return false;
+		
+		String queueID = json.getString("QUEUE_ID");
+		if (HttpUtils.isNull(queueID))
+			return false;
+		
+		boolean res = false;
+		
+		switch (type) {
+		case e9:
+		case e10:
+			QueueBean queueBean = MQService.getQueue(queueID);
+			if (queueBean != null) {
+				saveQueue(queueID, queueBean);
+			} else {
+				res = false;
+			}
+			break;
+		case e11:
+			res = delQueue(queueID);
+			break;
+		default:
+			break;
+		}
+		
+		return res;
+	}
+	
+	private void genQueueName2IdMap() {
+		if (queueMap == null)
+			return;
+		
+		queueName2IdMap.clear();
+		
+		Set<Entry<String, QueueBean>> queueEntrySet = queueMap.entrySet();
+		for (Entry<String, QueueBean> queueEntry : queueEntrySet) {
+			QueueBean queueBean = queueEntry.getValue();
+			if (queueBean == null)
+				continue;
+			
+			queueName2IdMap.put(queueBean.getQueueName(), queueBean.getQueueId());
+		}
+	}
+	
+	public boolean isQueueNameExistsByName(String queueName) {
+		if (queueName2IdMap == null)
+			return false;
+		
+		return queueName2IdMap.containsKey(queueName);
+	}
+	
+	public boolean isQueueNameExistsById(String queueId) {
+		if (queueName2IdMap == null)
+			return false;
+		
+		return queueMap.containsKey(queueId);
+	}
+	
+	public boolean saveQueue(String queueId, QueueBean queueBean) {
+		if (queueMap == null)
+			return false;
+		
+		try {
+			intanceLock.lock();
+			
+			QueueBean oldQueue = queueMap.get(queueId);
+			queueMap.put(queueId, queueBean);
+			
+			if(oldQueue != null) {
+				queueName2IdMap.remove(oldQueue.getQueueName());
+			}
+			
+			queueName2IdMap.put(queueBean.getQueueName(), queueId);
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+		} finally {
+			intanceLock.unlock();
+		}
+		
+		return false;
+	}
+	
+	public boolean delQueue(String queueId) {
+		if (queueMap == null)
+			return false;
+		
+		QueueBean qb = queueMap.get(queueId);
+		if (qb == null)
+			return false;
+		
+		try {
+			intanceLock.lock();
+			
+			queueName2IdMap.remove(qb.getQueueName());
+			queueMap.remove(queueId);
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+		} finally {
+			intanceLock.unlock();
+		}
+		
+		return true;
+	}
+	
+	public QueueBean getQueueBeanByName(String queueName) {
+		if (queueMap == null || queueName2IdMap == null)
+			return null;
+		
+		String queueId = queueName2IdMap.get(queueName);
+		if (HttpUtils.isNull(queueId))
+			return null;
+		
+		return queueMap.get(queueId);
+	}
+	
+	public QueueBean getQueueBeanById(String queueId) {
+		if (queueMap == null)
+			return null;
+		
+		return queueMap.get(queueId);
 	}
 	
 	public Map<String, ServiceBean> getServiceMap() {

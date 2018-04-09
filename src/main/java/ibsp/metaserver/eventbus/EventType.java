@@ -18,7 +18,11 @@ public enum EventType {
 	e7(50007, false, "MetaData.serviceMap mod"),         // MetaData.serviceMap mod
 	e8(50008, false, "MetaData.serviceMap del"),         // MetaData.serviceMap del
 	
-	e98(50098, false, "client put collect event");       // 客户端上传采集信息 
+	e9 (50009,  false, "MetaData.queueMap add"),         // MetaData.queueMap add
+	e10(500010, false, "MetaData.queueMap mod"),         // MetaData.queueMap mod
+	e11(500011, false, "MetaData.queueMap del"),         // MetaData.queueMap del
+	
+	e98(50098, false, "client put collect event");       // 瀹㈡埛绔笂浼犻噰闆嗕俊鎭� 
 	
 
 	private final int     value;
@@ -44,7 +48,7 @@ public enum EventType {
 	}
 	
 	public int getValue() {
-		// 得到枚举值代表的字符串。
+		// 寰楀埌鏋氫妇鍊间唬琛ㄧ殑瀛楃涓层��
 		return value;
 	}
 	
@@ -53,7 +57,7 @@ public enum EventType {
 	}
 	
 	public String getInfo() {
-		// 得到枚举值代表的字符串。
+		// 寰楀埌鏋氫妇鍊间唬琛ㄧ殑瀛楃涓层��
 		return info;
 	}
 	
