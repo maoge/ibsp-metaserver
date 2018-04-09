@@ -275,17 +275,14 @@ public class CacheDeployer implements Deployer {
 		if (!MetaDataService.deleteService(serviceID, result))
 			return false;
 		
-		// TODO MetaData clear using event:serviceMap,instanceDtlMap,topo
-		
 		return true;
 	}
 
 	@Override
 	public boolean deleteInstance(String serviceID, String instID,
 			String sessionKey, ResultBean result) {
-		return false;
+		return MetaDataService.deleteInstance(serviceID, instID, result);
 	}
-	
 	
 	private boolean checkHashSlot(String serviceID, List<InstanceDtlBean> nodeClusterList, String sessionKey,
 			ResultBean result) {

@@ -122,8 +122,37 @@ public class MQDeployer implements Deployer {
 	@Override
 	public boolean undeployInstance(String serviceID, String instID,
 			String sessionKey, ResultBean result) {
-		// TODO Auto-generated method stub
-		return false;
+		
+		InstanceDtlBean instDtl = MetaDataService.getInstanceDtlWithSubInfo(instID, result);
+		if (instDtl == null) {
+			String err = String.format("instance id:%s not found!", instID);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(err);
+			return false;
+		}
+		
+		int cmptID = instDtl.getInstance().getCmptID();
+		boolean undeployRet = false;
+		switch (cmptID) {
+		case 103:  // MQ_VBROKER
+			undeployRet = undeployVBroker(serviceID, instDtl, sessionKey, result);
+			break;
+		case 104:  // MQ_BROKER
+			// can't deploy broker alone
+			undeployRet = true;
+			break;
+		case 105:  // MQ_SWITCH
+			// TODO
+			undeployRet = true;
+			break;
+		case 106:  // MQ_COLLECTD
+			undeployRet = DeployUtils.undeployCollectd(instDtl, sessionKey, false, result);
+			break;
+		default:
+			break;
+		}
+		
+		return undeployRet;
 	}
 
 	@Override
@@ -161,16 +190,13 @@ public class MQDeployer implements Deployer {
 		if (!MetaDataService.deleteService(serviceID, result))
 			return false;
 		
-		// TODO MetaData clear using event:serviceMap,instanceDtlMap,topo
-		
 		return true;
 	}
 
 	@Override
 	public boolean deleteInstance(String serviceID, String instID,
 			String sessionKey, ResultBean result) {
-		// TODO Auto-generated method stub
-		return false;
+		return MetaDataService.deleteInstance(serviceID, instID, result);
 	}
 	
 	private boolean deployVBrokerList(String serviceID, List<InstanceDtlBean> vbrokerList,
