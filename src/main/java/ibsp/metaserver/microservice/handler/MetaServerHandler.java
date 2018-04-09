@@ -72,6 +72,15 @@ public class MetaServerHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 	
+	@Service(id = "reloadMetaData", name = "reloadMetaData", auth = true, bwswitch = true)
+	public static void reloadMetaData(RoutingContext routeContext) {
+		MetaData.get().reloadMetaData();
+		
+		JsonObject json = new JsonObject();
+		json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+		HttpUtils.outJsonObject(routeContext, json);
+	}
+	
 	@Service(id = "getCmptAttrByType", name = "getCmptAttrByType", auth = true, bwswitch = true)
 	public static void getCmptAttrByType(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
