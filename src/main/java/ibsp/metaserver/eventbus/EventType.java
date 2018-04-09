@@ -16,7 +16,10 @@ public enum EventType {
 	
 	e6(50006, false, "MetaData.serviceMap add"),         // MetaData.serviceMap add
 	e7(50007, false, "MetaData.serviceMap mod"),         // MetaData.serviceMap mod
-	e8(50008, false, "MetaData.serviceMap del");         // MetaData.serviceMap del
+	e8(50008, false, "MetaData.serviceMap del"),         // MetaData.serviceMap del
+	
+	e98(50098, false, "client put collect event");       // 客户端上传采集信息 
+	
 
 	private final int     value;
 	private final boolean alarm;

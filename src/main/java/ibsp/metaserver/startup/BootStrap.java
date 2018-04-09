@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ibsp.metaserver.dbpool.DbSource;
+import ibsp.metaserver.global.ClientStatisticData;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.global.ServiceData;
 import ibsp.metaserver.threadpool.WorkerPool;
@@ -48,6 +49,7 @@ public class BootStrap {
 		MetaData.get();
 		ServiceData.get();
 		ActiveCollect.get();
+		ClientStatisticData.get();
 	}
 	
 	private static void bootMicroService() {

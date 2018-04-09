@@ -11,6 +11,7 @@ import java.net.UnknownHostException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ibsp.metaserver.global.ClientStatisticData;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.threadpool.WorkerPool;
 import ibsp.metaserver.utils.CONSTS;
@@ -77,6 +78,19 @@ public class SysEventHandler implements Handler<Message<String>> {
 			case e8:
 				MetaData.get().doService(json, type);
 				break;
+				
+			//客户端上报事件
+			case e98:
+				JsonObject obj = new JsonObject(jsonStr);
+				String clientType = obj.getString(FixHeader.HEADER_CLIENT_TYPE);
+				String clientInfo = obj.getString(FixHeader.HEADER_CLIENT_INFO);
+				String lsnrAddr = obj.getString(FixHeader.HEADER_LSNR_ADDR);
+				
+				//TODO deal client info
+				ClientStatisticData.get().put(clientType, lsnrAddr);
+				
+				break;
+				
 			default:
 				break;
 			}

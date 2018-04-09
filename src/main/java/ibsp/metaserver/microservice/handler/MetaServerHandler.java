@@ -10,11 +10,15 @@ import ibsp.metaserver.annotation.App;
 import ibsp.metaserver.annotation.Service;
 import ibsp.metaserver.bean.MetaAttributeBean;
 import ibsp.metaserver.dbservice.MetaDataService;
+import ibsp.metaserver.eventbus.EventBean;
+import ibsp.metaserver.eventbus.EventBusMsg;
+import ibsp.metaserver.eventbus.EventType;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.FixHeader;
 import ibsp.metaserver.utils.HttpUtils;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.SocketAddress;
@@ -134,4 +138,33 @@ public class MetaServerHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 	
+	@Service(id = "putClientStatisticInfo", name = "putClientStatisticInfo")
+	public static void putClientStatisticInfo(RoutingContext routeContext) {
+		JsonObject json = new JsonObject();
+		
+		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
+		String clientType = params != null ? params.get(FixHeader.HEADER_CLIENT_TYPE) : null;
+		String clientInfo = params != null ? params.get(FixHeader.HEADER_CLIENT_INFO) : null;
+		String lsnrAddr = params != null ? params.get(FixHeader.HEADER_LSNR_ADDR) : null;
+		if (!HttpUtils.isNotNull(clientType) || !HttpUtils.isNotNull(clientInfo) || !HttpUtils.isNotNull(lsnrAddr)) {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+			json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+		} else {
+			//通知集群节点及时更新内存数据
+			JsonObject paramsJson = new JsonObject();
+			paramsJson.put(FixHeader.HEADER_CLIENT_TYPE, clientType);
+			paramsJson.put(FixHeader.HEADER_CLIENT_INFO, clientType);
+			paramsJson.put(FixHeader.HEADER_LSNR_ADDR, lsnrAddr);
+			
+			EventBean evBean = new EventBean();
+			evBean.setEvType(EventType.e98);
+			evBean.setJsonStr(paramsJson.toString());
+			EventBusMsg.publishEvent(evBean);
+			
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+			json.put(FixHeader.HEADER_RET_INFO, "");
+		}
+		
+		HttpUtils.outJsonObject(routeContext, json);
+	}
 }

@@ -114,6 +114,10 @@ public class CONSTS {
 	public static final String SERV_CACHE_PROXY      = "CACHE_PROXY";
 	public static final String SERV_CACHE_NODE       = "CACHE_NODE";
 	
+	public static final String CLIENT_TYPE_CACHE     = "CACHE_CLIENT";
+	public static final String CLIENT_TYPE_DB        = "DB_CLIENT";
+	public static final String CLIENT_TYPE_MQ        = "MQ_CLIENT";
+	
 	public static final String SCHEMA_OBJECT         = "\"object\"";
 	public static final String SCHEMA_ARRAY          = "\"array\"";
 	
