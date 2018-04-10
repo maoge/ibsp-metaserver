@@ -724,6 +724,16 @@ public class MetaData {
 		return permTopicMap.containsKey(consumerId);
 	}
 	
+	public boolean hasPermnentTopicByQueueId(String queueId) {
+		if (queueId2ConsumerIdMap == null)
+			return false;
+		IdSetBean<String> idset = queueId2ConsumerIdMap.get(queueId);
+		if(idset == null || idset.isEmpty()) {
+			return false;
+		}
+		return true;
+	}
+	
 	public boolean savePermnentTopic(String consumerId, PermnentTopicBean bean) {
 		if (permTopicMap == null)
 			return false;

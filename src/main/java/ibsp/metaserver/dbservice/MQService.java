@@ -396,6 +396,13 @@ public class MQService {
 			}
 			
 			QueueBean queueBean = MetaData.get().getQueueBeanById(queueId);
+			
+			if(queueBean.getQueueType().equals(CONSTS.TYPE_TOPIC) && MetaData.get().hasPermnentTopicByQueueId(queueId)) {
+				resultBean.setRetCode(CONSTS.REVOKE_NOK);
+				resultBean.setRetInfo("this topic bind permnent_topic!");
+				return false;
+			}
+				
 			if(queueBean != null) {
 				//先卸载
 				if(queueBean.getDeploy().equals(CONSTS.DEPLOYED)) {
