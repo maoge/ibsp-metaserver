@@ -1,6 +1,7 @@
 package ibsp.metaserver.dbservice;
 
 import ibsp.metaserver.bean.InstanceDtlBean;
+import ibsp.metaserver.bean.PermnentTopicBean;
 import ibsp.metaserver.bean.QueueBean;
 import ibsp.metaserver.bean.ResultBean;
 import ibsp.metaserver.bean.SqlBean;
@@ -16,6 +17,7 @@ import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.CRUD;
 import ibsp.metaserver.utils.FixHeader;
 import ibsp.metaserver.utils.HttpUtils;
+import ibsp.metaserver.utils.SRandomGenerator;
 import ibsp.metaserver.utils.UUIDUtils;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -44,6 +46,13 @@ public class MQService {
 											+     "on q.SERV_ID = t.INST_ID "
 											+     "where q.QUEUE_ID = ?";
 	
+	private final static String SEL_ALL_PERMNENT_TOPIC = "SELECT t.CONSUMER_ID, t.REAL_QUEUE, t.MAIN_TOPIC, t.SUB_TOPIC, t.QUEUE_ID FROM t_mq_permnent_topic t";
+	
+	private final static String INSERT_PERMNENT_TOPIC  = "INSERT INTO t_mq_permnent_topic(CONSUMER_ID, REAL_QUEUE, MAIN_TOPIC, SUB_TOPIC, QUEUE_ID) values (?,?,?,?,?)";
+
+	private final static String SELECT_PERMNENT_TOPIC  = "SELECT t.CONSUMER_ID, t.REAL_QUEUE, t.MAIN_TOPIC, t.SUB_TOPIC, t.QUEUE_ID FROM t_mq_permnent_topic t where t.CONSUMER_ID = ?";
+	
+	private final static String DEL_PERMNENT_TOPIC     = "DELETE FROM t_mq_permnent_topic where CONSUMER_ID = ?";
 	public static boolean loadServiceInfo(String serviceID, List<InstanceDtlBean> vbrokerList,
 			InstanceDtlBean collectd, ResultBean result) {
 		
@@ -572,11 +581,96 @@ public class MQService {
 		return createOk;
 	}
 	
+	private static boolean releasePermnentToMQ(String queueName, String servId, ResultBean resultBean) {
+		List<InstanceDtlBean> list = MetaData.get().getMasterBrokersByServId(servId);
+		return releasePermnentToMQ(queueName, list, resultBean);	
+	}
+	
+	private static boolean releasePermnentToMQ(String queueName, List<InstanceDtlBean> list, ResultBean resultBean) {
+		boolean createOk = false;
+		
+		if (list!=null&&list.size()>0) {
+						
+			String ip = "";
+			String user = "";
+			String pwd ="";
+			String brokerId="";
+			String vhost ="";
+			
+			List<InstanceDtlBean> succList = new ArrayList<>();
+			
+			for (InstanceDtlBean brokerBean : list) {
+				if (createOk)
+					break;
+				ip = brokerBean.getAttribute(FixHeader.HEADER_IP).getAttrValue();
+				user = CONSTS.MQ_DEFAULT_USER;
+				pwd = CONSTS.MQ_DEFAULT_PWD;
+				
+				brokerId= brokerBean.getInstID();
+				int port = Integer.valueOf(brokerBean.getAttribute(FixHeader.HEADER_PORT).getAttrValue());
+				
+				vhost = CONSTS.MQ_DEFAULT_VHOST;
+				
+				IMQClient c = new MQClientImpl();
+				
+				int cf = c.connect(user, pwd, vhost, ip, port);
+				try {
+					if (cf == 0) {
+						int createRet = -1;
+						createRet = c.createQueue(queueName, false, true);
+						
+						if (createRet != 0) {
+							String err = String.format("release queue:%s error, user:%s pwd:%s vhost:%s %s:%d",
+									queueName, user, pwd, vhost, ip, port);
+							logger.error(err);
+							
+							createOk = false;
+							break;
+						} else {
+							succList.add(brokerBean);
+							createOk = true;
+						}
+					} else {
+						String err = String.format("create queue on borker:[BrokerId:%s, IP:%s, port:%d] fail.", brokerId, ip, port);
+						resultBean.setRetCode(CONSTS.REVOKE_NOK);
+						resultBean.setRetInfo(err);
+						createOk = false;
+						break;
+					}
+				} catch (Exception e) {
+					createOk = false;
+					
+					resultBean.setRetCode(CONSTS.REVOKE_NOK);
+					resultBean.setRetInfo(e.getMessage());
+					logger.error(e.getMessage(), e);
+					
+					break;
+				} finally {
+					if(cf==0)
+						c.close();
+				}
+			}
+			
+			if (!createOk) {
+				deleteRabbitQueueByName(queueName, succList);
+			}
+		}
+		return createOk;
+	}
+	
 	private static boolean deleteRabbitQueue(QueueBean queueBean, List<InstanceDtlBean> list) {
 		if (list == null)
 			return false;
 		boolean res = false;
 		String queueName = queueBean.getQueueName();
+		res = deleteRabbitQueueByName(queueName, list);
+		return res;
+	}
+	
+	private static boolean deleteRabbitQueueByName(String queueName, List<InstanceDtlBean> list) {
+		if (list == null)
+			return false;
+		boolean res = false;
 		String ip = "";
 		int port = 0;
 		String user = CONSTS.MQ_DEFAULT_USER;
@@ -592,21 +686,297 @@ public class MQService {
 			try {
 				if(cf==0) {
 					int qf = -1;
-					if(queueBean.getQueueType().equals(CONSTS.TYPE_TOPIC)) {
-						qf = c.deleteTopic(queueName);
-					} else {
-						qf = c.deleteQueue(queueName);
-					}
+					qf = c.deleteQueue(queueName);
 					if (qf != -1) {
 						res = true;
 					}
 				}
-				c.deleteQueue(queueName);
 			} catch (Exception e) {
 				logger.error(e.getMessage(), e);
 			} finally {
 				if(c!=null) c.close();
 			}
+		}
+		return res;
+	}
+	
+	public static List<PermnentTopicBean> getAllPermnentTopics() {
+		List<PermnentTopicBean> list = null;
+		try {
+			CRUD c = new CRUD();
+			List<Object> paramList = new LinkedList<Object>();
+			c.putSql(SEL_ALL_PERMNENT_TOPIC, paramList);
+			List<HashMap<String, Object>> queryResult = c.queryForList();
+			
+			if (queryResult != null) {
+				list = new ArrayList<PermnentTopicBean>(queryResult.size());
+				
+				Iterator<HashMap<String, Object>> iter = queryResult.iterator();
+				while (iter.hasNext()) {
+					HashMap<String, Object> mateMap = iter.next();
+					PermnentTopicBean permnentTopicBean = PermnentTopicBean.convert(mateMap);
+					list.add(permnentTopicBean);
+				}
+			}
+		} catch (CRUDException e) {
+			logger.error(e.getMessage(), e);
+		}
+		
+		return list;
+	}
+	
+	public static JsonArray getPermnentTopicList(Map<String, String> params, ResultBean resultBean) {
+		JsonArray jsonArray = null;
+		String sql="select t.consumer_id, t.real_queue, t.main_topic, t.sub_topic, t.queue_id "
+				+ "from t_mq_permnent_topic t where t.queue_id = ? ";
+		
+		if (params!=null && params.size()>0) {
+			
+			String pageSizeString = params.get(CONSTS.PAGE_SIZE);
+			String pageNumString = params.get(CONSTS.PAGE_NUMBER);
+			String queueId = params.get(FixHeader.HEADER_QUEUE_ID);
+			String consumerId = params.get(FixHeader.HEADER_CONSUMER_ID);
+			
+			if(HttpUtils.isNull(queueId)) {
+				resultBean.setRetCode(CONSTS.REVOKE_NOK);
+				resultBean.setRetInfo(CONSTS.ERR_PARAM_INCOMPLETE);
+				return null;
+			}
+			
+			if(HttpUtils.isNotNull(consumerId)) {
+				sql += " and t.consumer_id like '%" + consumerId +  "%' ";
+			}
+			
+			if(HttpUtils.isNotNull(pageSizeString)&&HttpUtils.isNotNull(pageNumString)){
+				
+				int pageSize = Integer.parseInt(pageSizeString);
+				int pageNum = Integer.parseInt(pageNumString);
+				int start = (pageNum - 1) * pageSize;
+				
+				sql += " limit "+start+","+pageSize;
+			}
+
+			CRUD crud = new CRUD();
+			crud.putSql(sql, new Object[] {queueId});
+			try {
+				jsonArray = crud.queryForJSONArray();
+			} catch (CRUDException e) {
+				e.printStackTrace();
+				resultBean.setRetCode(CONSTS.REVOKE_NOK);
+				resultBean.setRetInfo(e.getMessage());
+			}
+			
+		}else {
+			resultBean.setRetCode(CONSTS.REVOKE_NOK);
+			resultBean.setRetInfo("params is null");
+		}
+
+		return jsonArray;
+	}
+
+	public static JsonObject getPermnentTopicCount(Map<String, String> params, ResultBean resultBean) {
+		JsonObject countJson = new JsonObject();
+		String sql="select count(1) from t_mq_permnent_topic q where q.queue_id = ?";
+		
+		if (params!=null && params.size()>0) {
+		
+			String queueId = params.get(FixHeader.HEADER_QUEUE_ID);
+			String consumerId = params.get(FixHeader.HEADER_CONSUMER_ID);
+			
+			if(HttpUtils.isNull(queueId)) {
+				resultBean.setRetCode(CONSTS.REVOKE_NOK);
+				resultBean.setRetInfo(CONSTS.ERR_PARAM_INCOMPLETE);
+				return null;
+			}
+			
+			if(HttpUtils.isNotNull(consumerId)) {
+				sql += " and t.consumer_id like '%" + consumerId +  "%' ";
+			}
+			
+			CRUD crud = new CRUD();
+			crud.putSql(sql, new Object[] {queueId});
+			try {
+				int count = crud.queryForCount();
+				countJson.put("COUNT", count);
+			} catch (CRUDException e) {
+				e.printStackTrace();
+				resultBean.setRetCode(CONSTS.REVOKE_NOK);
+				resultBean.setRetInfo(e.getMessage());
+			}
+			
+		}else {
+			resultBean.setRetCode(CONSTS.REVOKE_NOK);
+			resultBean.setRetInfo("params is null");
+		}
+
+		return countJson;
+	}
+	
+	public static PermnentTopicBean getPermnentTopic(String consumerId) {
+		PermnentTopicBean bean = null;
+		try {
+			SqlBean sqlBean = new SqlBean(SELECT_PERMNENT_TOPIC);
+			sqlBean.addParams(new Object[]{consumerId});
+			
+			CRUD c = new CRUD();
+			c.putSqlBean(sqlBean);
+			
+			List<HashMap<String, Object>> queryResult = c.queryForList();
+			if (queryResult != null && !queryResult.isEmpty()) {
+				HashMap<String, Object> item = queryResult.get(0);
+				bean = PermnentTopicBean.convert(item);
+			}
+		} catch (CRUDException e) {
+			logger.error(e.getMessage(), e);
+		}
+		
+		return bean;
+	}
+	
+	public static boolean savePermnentTopic(Map<String, String> params, ResultBean resultBean) {
+		boolean res = false;
+		if (params != null) {
+			String queueId = params.get(FixHeader.HEADER_QUEUE_ID);
+			String consumerId = params.get(FixHeader.HEADER_CONSUMER_ID);
+			String subtopic = params.get(FixHeader.HEADER_SUB_TOPIC);
+			String realqueue = SRandomGenerator.genPermQueue();
+			
+			if(HttpUtils.isNull(queueId) || HttpUtils.isNull(consumerId)) {
+				resultBean.setRetCode(CONSTS.REVOKE_NOK);
+				resultBean.setRetInfo(CONSTS.ERR_PARAM_INCOMPLETE);
+				return false;
+			}
+			
+			QueueBean queueBean = MetaData.get().getQueueBeanById(queueId);
+			PermnentTopicBean permnentTopicBean = null;
+			
+			if(queueBean == null) {
+				resultBean.setRetCode(CONSTS.REVOKE_NOK);
+				resultBean.setRetInfo(CONSTS.ERR_QUEUE_NOT_EXISTS);
+				return false;
+			}
+			
+			if(queueBean.getQueueType().equals(CONSTS.TYPE_QUEUE)) {
+				resultBean.setRetCode(CONSTS.REVOKE_NOK);
+				resultBean.setRetInfo("not a topic type");
+				return false;
+			}
+			
+			if(MetaData.get().isPermnentTopicExistsById(consumerId)) {
+				resultBean.setRetCode(CONSTS.REVOKE_NOK);
+				resultBean.setRetInfo(CONSTS.ERR_QUEUE_EXISTS);
+				return false;
+			}
+
+			if(HttpUtils.isNull(subtopic)) {
+				subtopic = queueBean.getQueueName();
+			}
+			
+			boolean isCreate = releasePermnentToMQ(realqueue, queueBean.getServiceId(), resultBean);
+			
+			if(isCreate) {
+				CRUD curd = new CRUD();
+				
+				SqlBean iSqlBean = new SqlBean(INSERT_PERMNENT_TOPIC);
+				iSqlBean.addParams(new Object[]{
+					consumerId, realqueue, queueBean.getQueueName(), subtopic, queueId
+				});
+				
+				curd.putSqlBean(iSqlBean);	
+				res = curd.executeUpdate(resultBean);
+				if (!res) {
+					resultBean.setRetCode(CONSTS.REVOKE_NOK);
+					resultBean.setRetInfo(resultBean.getRetInfo());
+				} else {
+					resultBean.setRetCode(CONSTS.REVOKE_OK);
+					resultBean.setRetInfo("");
+					
+					permnentTopicBean = new PermnentTopicBean(consumerId, realqueue, queueBean.getQueueName(), subtopic, queueId);
+					MetaData.get().savePermnentTopic(consumerId, permnentTopicBean);
+					
+					JsonObject evJson = new JsonObject();
+					evJson.put(FixHeader.HEADER_CONSUMER_ID, consumerId);
+					
+					EventBean ev = new EventBean(EventType.e12);
+					ev.setUuid(MetaData.get().getUUID());
+					ev.setJsonStr(evJson.toString());
+					EventBusMsg.publishEvent(ev);
+				}
+			}else {
+				resultBean.setRetCode(CONSTS.REVOKE_NOK);
+				resultBean.setRetInfo("rabbitmq create permnent_topic fail");
+			}
+		} else {
+			resultBean.setRetCode(CONSTS.REVOKE_NOK);
+			resultBean.setRetInfo("params is null");
+		}
+		
+		return res;
+	}
+	
+	public static boolean delPermnentTopic(Map<String, String> params, ResultBean resultBean) {
+		boolean res = false;
+		if(params != null) {
+			String queueId = params.get(FixHeader.HEADER_QUEUE_ID);
+			String consumerId = params.get(FixHeader.HEADER_CONSUMER_ID);
+			
+			if(HttpUtils.isNull(queueId) || HttpUtils.isNull(consumerId)) {
+				resultBean.setRetCode(CONSTS.REVOKE_NOK);
+				resultBean.setRetInfo(CONSTS.ERR_PARAM_INCOMPLETE);
+				return false;
+			}
+			
+			if(!MetaData.get().isPermnentTopicExistsById(consumerId)) {
+				resultBean.setRetCode(CONSTS.REVOKE_NOK);
+				resultBean.setRetInfo("this permnnet_topic is not exist!");
+				return false;
+			}
+			
+			PermnentTopicBean permnentTopicBean = MetaData.get().getPermnentTopicById(consumerId);
+			QueueBean queueBean = MetaData.get().getQueueBeanById(queueId);
+			
+			if(permnentTopicBean != null && queueBean != null) {
+				//先卸载
+				if(queueBean.getDeploy().equals(CONSTS.DEPLOYED)) {
+					List<InstanceDtlBean> list = MetaData.get().getMasterBrokersByServId(queueBean.getServiceId());
+					res = deleteRabbitQueueByName(permnentTopicBean.getRealQueue(), list);
+					if(!res) {
+						resultBean.setRetCode(CONSTS.REVOKE_NOK);
+						resultBean.setRetInfo("permnent_topic not exist");
+						return false;
+					}
+				}
+				
+				CRUD curd = new CRUD();
+				SqlBean sqlBean = new SqlBean(DEL_PERMNENT_TOPIC);
+				sqlBean.addParams(new Object[]{consumerId});
+				curd.putSqlBean(sqlBean);
+				
+				res = curd.executeUpdate(resultBean);
+				if (!res) {
+					resultBean.setRetCode(CONSTS.REVOKE_NOK);
+					resultBean.setRetInfo(resultBean.getRetInfo());
+				} else {
+					resultBean.setRetCode(CONSTS.REVOKE_OK);
+					resultBean.setRetInfo("");
+					
+					MetaData.get().delPermnentTopic(consumerId);
+					
+					JsonObject evJson = new JsonObject();
+					evJson.put(FixHeader.HEADER_CONSUMER_ID, consumerId);
+					
+					EventBean ev = new EventBean(EventType.e13);
+					ev.setUuid(MetaData.get().getUUID());
+					ev.setJsonStr(evJson.toString());
+					EventBusMsg.publishEvent(ev);
+				}
+			}else {
+				resultBean.setRetCode(CONSTS.REVOKE_NOK);
+				resultBean.setRetInfo("rabbitmq delete queue fail");
+			}
+		}else {
+			resultBean.setRetCode(CONSTS.REVOKE_NOK);
+			resultBean.setRetInfo(CONSTS.ERR_PARAM_INCOMPLETE);
 		}
 		return res;
 	}

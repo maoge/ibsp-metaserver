@@ -383,6 +383,16 @@ CREATE TABLE `t_mq_queue` (
   UNIQUE KEY `IDX_QNAME` (`QUEUE_NAME`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
+DROP TABLE IF EXISTS `t_mq_permnent_topic`;
+CREATE TABLE `t_mq_permnent_topic` (
+  `CONSUMER_ID` varchar(48) NOT NULL,
+  `REAL_QUEUE` varchar(48) DEFAULT NULL,
+  `MAIN_TOPIC` varchar(48) DEFAULT NULL,
+  `SUB_TOPIC` varchar(48) DEFAULT NULL,
+  `QUEUE_ID` varchar(36) NOT NULL,
+  PRIMARY KEY (`CONSUMER_ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
 DROP TABLE IF EXISTS `t_metasvr_url`;
 CREATE TABLE `t_metasvr_url` (
   `METASVR_ID`   int         NOT NULL COMMENT 'METASERVER ID',

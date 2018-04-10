@@ -129,4 +129,69 @@ public class MQHandle {
 		json.put(FixHeader.HEADER_RET_INFO, resultBean.getRetInfo());
 		HttpUtils.outJsonObject(routeContext, json);
 	}
+	
+	@Service(id = "getPermnentTopicList", name = "getPermnentTopicList")
+	public static void getPermnentTopicList(RoutingContext routeContext){
+		ResultBean resultBean = new ResultBean();
+		JsonObject json = new JsonObject();
+		
+		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
+		JsonArray jsonarray = MQService.getPermnentTopicList(params, resultBean);
+
+		if(resultBean.getRetCode() == CONSTS.REVOKE_NOK) {
+			json.put(FixHeader.HEADER_RET_CODE, resultBean.getRetCode());
+			json.put(FixHeader.HEADER_RET_INFO, resultBean.getRetInfo());
+		}else {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+			json.put(FixHeader.HEADER_RET_INFO, jsonarray);
+		}
+		
+		HttpUtils.outJsonObject(routeContext, json);
+		
+	}
+	
+	@Service(id = "getPermnentTopicCount", name="getPermnentTopicCount")
+	public static void getPermnentTopicCount(RoutingContext routeContext){
+		ResultBean resultBean = new ResultBean();
+		JsonObject json = new JsonObject();
+		
+		Map<String,String> params = HttpUtils.getParamForMap(routeContext);
+		JsonObject countJson = MQService.getPermnentTopicCount(params, resultBean);
+
+		if(resultBean.getRetCode() == CONSTS.REVOKE_NOK) {
+			json.put(FixHeader.HEADER_RET_CODE, resultBean.getRetCode());
+			json.put(FixHeader.HEADER_RET_INFO, resultBean.getRetInfo());
+		}else {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+			json.put(FixHeader.HEADER_RET_INFO, countJson);
+		}
+		
+		HttpUtils.outJsonObject(routeContext, json);
+	}
+	
+	@Service(id = "savePermnentTopic", name = "savePermnentTopic", auth = true, bwswitch = true)
+	public static void savePermnentTopic(RoutingContext routeContext) {
+		ResultBean resultBean = new ResultBean();
+		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
+		MQService.savePermnentTopic(params,resultBean);
+		
+		JsonObject json = new JsonObject();
+		json.put(FixHeader.HEADER_RET_CODE, resultBean.getRetCode());
+		json.put(FixHeader.HEADER_RET_INFO, resultBean.getRetInfo());
+		
+		HttpUtils.outJsonObject(routeContext, json);
+	}
+	
+	@Service(id = "delPermnentTopic", name = "delPermnentTopic", auth = true, bwswitch = true)
+	public static void delPermnentTopic(RoutingContext routeContext) {
+		ResultBean resultBean = new ResultBean();
+		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
+		MQService.delPermnentTopic(params, resultBean);
+		
+		JsonObject json = new JsonObject();
+		json.put(FixHeader.HEADER_RET_CODE, resultBean.getRetCode());
+		json.put(FixHeader.HEADER_RET_INFO, resultBean.getRetInfo());
+		
+		HttpUtils.outJsonObject(routeContext, json);
+	}
 }

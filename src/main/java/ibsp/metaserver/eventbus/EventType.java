@@ -22,6 +22,9 @@ public enum EventType {
 	e10(500010, false, "MetaData.queueMap mod"),         // MetaData.queueMap mod
 	e11(500011, false, "MetaData.queueMap del"),         // MetaData.queueMap del
 	
+	e12(500012, false, "MetaData.queueMap add"),         // MetaData.permnentTopic add
+	e13(500013, false, "MetaData.queueMap del"),         // MetaData.permnentTopic del
+	
 	e61(50061, false, "cache proxy deployed"),       // 接入机扩容
 	e62(50062, false, "cache proxy undeployed"),       // 接入机缩容
 	
