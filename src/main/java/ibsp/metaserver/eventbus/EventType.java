@@ -22,6 +22,9 @@ public enum EventType {
 	e10(500010, false, "MetaData.queueMap mod"),         // MetaData.queueMap mod
 	e11(500011, false, "MetaData.queueMap del"),         // MetaData.queueMap del
 	
+	e61(50061, false, "cache proxy deployed"),       // 接入机扩容
+	e62(50062, false, "cache proxy undeployed"),       // 接入机缩容
+	
 	e98(50098, false, "client put collect event");       // 瀹㈡埛绔笂浼犻噰闆嗕俊鎭� 
 	
 

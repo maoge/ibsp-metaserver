@@ -7,10 +7,13 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ibsp.metaserver.bean.ResultBean;
+import ibsp.metaserver.dbservice.CacheService;
 import ibsp.metaserver.global.ClientStatisticData;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.threadpool.WorkerPool;
@@ -83,11 +86,26 @@ public class SysEventHandler implements Handler<Message<String>> {
 			case e11:
 				MetaData.get().doQueue(json, type);
 				break;
+
+			//接入机扩缩容
+			case e61:				
+				// 事件推送只要一个节点做
+				if (uuid.equals(MetaData.get().getUUID())) {
+					notifyCacheProxy(json.getString(FixHeader.HEADER_INSTANCE_ID), true);
+				}
+				break;		
+			case e62:
+				// 事件推送只要一个节点做
+				if (uuid.equals(MetaData.get().getUUID())) {
+					notifyCacheProxy(json.getString(FixHeader.HEADER_INSTANCE_ID), false);
+				}
+				break;				
+			
 			//客户端上报事件
 			case e98:
 				JsonObject obj = new JsonObject(jsonStr);
 				String clientType = obj.getString(FixHeader.HEADER_CLIENT_TYPE);
-				String clientInfo = obj.getString(FixHeader.HEADER_CLIENT_INFO);
+//				String clientInfo = obj.getString(FixHeader.HEADER_CLIENT_INFO);
 				String lsnrAddr = obj.getString(FixHeader.HEADER_LSNR_ADDR);
 				
 				//TODO deal client info
@@ -99,6 +117,34 @@ public class SysEventHandler implements Handler<Message<String>> {
 				break;
 			}
 		}
+		
+		private void notifyCacheProxy(String instID, boolean deploy) {
+			
+			JsonObject proxyInfo = CacheService.getProxyInfoByID(instID, new ResultBean());
+				
+			EventBean evBean = new EventBean();
+			if (deploy) {
+				evBean.setEvType(EventType.e61);
+			} else {
+				evBean.setEvType(EventType.e62);
+			}
+			evBean.setServID(proxyInfo.getString("SERV_ID"));
+			evBean.setJsonStr(proxyInfo.toString());
+			String msg = evBean.asJsonString();
+				
+			Set<String> clientSet = ClientStatisticData.get().getCacheClients();
+			for (String addr : clientSet) {
+				String arr[] = addr.split(":");
+				String ip   = arr[0];
+				int    port = Integer.valueOf(arr[1]);
+					
+				EventNotifier notifier = new EventNotifier(ip, port, msg);
+				String info = String.format("notify cache proxy expansion event %s:%d %s", ip, port, msg);
+				logger.info(info);
+				WorkerPool.get().execute(notifier);
+			}
+		}
+
 	}
 	
 	private static class EventNotifier implements Runnable {

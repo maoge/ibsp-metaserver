@@ -22,12 +22,17 @@ import ibsp.metaserver.bean.ResultBean;
 import ibsp.metaserver.dbservice.CacheService;
 import ibsp.metaserver.dbservice.ConfigDataService;
 import ibsp.metaserver.dbservice.MetaDataService;
+import ibsp.metaserver.eventbus.EventBean;
+import ibsp.metaserver.eventbus.EventBusMsg;
+import ibsp.metaserver.eventbus.EventType;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.monitor.CacheServiceMonitor;
 import ibsp.metaserver.utils.CONSTS;
+import ibsp.metaserver.utils.FixHeader;
 import ibsp.metaserver.utils.HttpUtils;
 import ibsp.metaserver.utils.RedisUtils;
 import ibsp.metaserver.utils.Topology;
+import io.vertx.core.json.JsonObject;
  
 public class CacheDeployer implements Deployer {
 
@@ -115,7 +120,16 @@ public class CacheDeployer implements Deployer {
 		switch (cmptID) {
 		case 112:    // cache proxy
 			deployRet = deployProxy(serviceID, instDtl, sessionKey, result);
-			//TODO publish add proxy event to cache client
+			
+			JsonObject paramsJson = new JsonObject();
+			paramsJson.put(FixHeader.HEADER_SERV_ID, serviceID);
+			paramsJson.put(FixHeader.HEADER_INSTANCE_ID, instID);
+			EventBean evBean = new EventBean();
+			evBean.setEvType(EventType.e61);
+			evBean.setUuid(MetaData.get().getUUID());
+			evBean.setJsonStr(paramsJson.toString());
+			EventBusMsg.publishEvent(evBean);
+			
 			break;
 		case 110:    // cache node cluster
 			result.setRetCode(CONSTS.REVOKE_NOK);
@@ -191,7 +205,16 @@ public class CacheDeployer implements Deployer {
 		switch (cmptID) {
 		case 112:    // cache proxy
 			deployRet = undeployProxy(serviceID, instDtl, sessionKey, result);
-			//TODO publish remove proxy event to cache client
+			
+			JsonObject paramsJson = new JsonObject();
+			paramsJson.put(FixHeader.HEADER_SERV_ID, serviceID);
+			paramsJson.put(FixHeader.HEADER_INSTANCE_ID, instID);
+			EventBean evBean = new EventBean();
+			evBean.setEvType(EventType.e62);
+			evBean.setUuid(MetaData.get().getUUID());
+			evBean.setJsonStr(paramsJson.toString());
+			EventBusMsg.publishEvent(evBean);
+			
 			break;
 		case 110:    // cache node cluster
 			result.setRetCode(CONSTS.REVOKE_NOK);

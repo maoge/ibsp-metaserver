@@ -16,6 +16,9 @@ public class EventBean {
 	@KVPair(key = FixHeader.HEADER_EVENT_CODE, val = "")
 	private EventType evType;
 	
+	@KVPair(key = FixHeader.HEADER_SERV_ID, val = "")
+	private String servID;
+	
 	@KVPair(key = FixHeader.HEADER_UUID, val = "")
 	private String uuid;
 	
@@ -30,6 +33,7 @@ public class EventBean {
 	
 	public EventBean() {
 		evType  = EventType.e0;
+		servID  = "";
 		uuid    = "";
 		jsonStr = "";
 	}
@@ -46,6 +50,14 @@ public class EventBean {
 		this.evType = evType;
 	}
 	
+	public String getServID() {
+		return servID;
+	}
+
+	public void setServID(String servID) {
+		this.servID = servID;
+	}
+
 	public String getUuid() {
 		return uuid;
 	}

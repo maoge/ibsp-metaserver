@@ -45,8 +45,8 @@ public class CacheHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 	
-	@Service(id = "getProxyByServiceName", name = "getProxyByServiceName", auth = true, bwswitch = true)
-	public static void getProxyByServiceName(RoutingContext routeContext) throws Exception {
+	@Service(id = "getDeployedProxyByServiceName", name = "getDeployedProxyByServiceName", auth = true, bwswitch = true)
+	public static void getDeployedProxyByServiceName(RoutingContext routeContext) throws Exception {
 		JsonObject json = new JsonObject();
 		
 		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
@@ -60,7 +60,7 @@ public class CacheHandler {
 				json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
 			} else {
 				ResultBean result = new ResultBean();
-				JsonArray proxyInfo = CacheService.getProxyByServiceName(servName, result);
+				JsonArray proxyInfo = CacheService.getDeployedProxyByServiceName(servName, result);
 				if (proxyInfo!=null) {
 					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
 					json.put(FixHeader.HEADER_RET_INFO, proxyInfo);

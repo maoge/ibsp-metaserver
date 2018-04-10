@@ -29,14 +29,14 @@ public class CacheService {
 			+ "JOIN t_topology top2 ON top1.INST_ID2=top2.INST_ID1 "
 			+ "WHERE top2.INST_ID2=?";
 	
-	private static final String GET_PROXY_BY_SERVICE = 
+	private static final String GET_DEPLOYED_PROXY_BY_SERVICE = 
 			"SELECT att.INST_ID, ATTR_NAME, ATTR_VALUE FROM "+ 
 			"t_instance_attr att JOIN t_instance ins ON att.INST_ID=ins.INST_ID "+ 
 			"JOIN t_meta_cmpt cmpt ON ins.CMPT_ID=cmpt.CMPT_ID "+
 			"JOIN t_topology top1 ON ins.INST_ID=top1.INST_ID2 "+ 
 			"JOIN t_topology top2 ON top1.INST_ID1=top2.INST_ID2 "+
 			"JOIN t_service serv ON top2.INST_ID1=serv.INST_ID "+
-			"WHERE cmpt.CMPT_NAME='CACHE_PROXY' AND serv.SERV_NAME=?";
+			"WHERE cmpt.CMPT_NAME='CACHE_PROXY' AND ins.IS_DEPLOYED='1' AND serv.SERV_NAME=?";
 	
 	private static final String UPDATE_MASTER_ID = 
 			"UPDATE t_instance_attr SET ATTR_VALUE=? "
@@ -181,10 +181,15 @@ public class CacheService {
 			case "RW_SEPARATE":
 				res.put("RW_SEPARATE", attr.getAttrValue());
 				break;
+			case "CACHE_PROXY_ID":
+				res.put("ID", attr.getAttrValue());
+				break;
+			case "CACHE_PROXY_NAME":
+				res.put("NAME", attr.getAttrValue());
+				break;
 			default:
 				break;
 			}
-			res.put("NAME", instID);
 			
 			SqlBean sqlBean = new SqlBean(GET_SERVICE_NAME_BY_PROXY_ID);
 			sqlBean.addParams(new Object[] {instID});
@@ -204,10 +209,10 @@ public class CacheService {
 		return res;
 	}
 	
-	public static JsonArray getProxyByServiceName(String servName, ResultBean result) {
+	public static JsonArray getDeployedProxyByServiceName(String servName, ResultBean result) {
 		
 		JsonArray res = new JsonArray();
-		SqlBean sqlBean = new SqlBean(GET_PROXY_BY_SERVICE);
+		SqlBean sqlBean = new SqlBean(GET_DEPLOYED_PROXY_BY_SERVICE);
 		sqlBean.addParams(new Object[] {servName});
 		CRUD c = new CRUD();
 		c.putSqlBean(sqlBean);
