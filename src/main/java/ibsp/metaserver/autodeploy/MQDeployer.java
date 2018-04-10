@@ -255,7 +255,7 @@ public class MQDeployer implements Deployer {
 		String vbrokerId = vbrokerInstanceDtl.getAttribute("VBROKER_ID").getAttrValue();
 		
 		if (vbrokerInstanceDtl.getInstance().getIsDeployed().equals(CONSTS.DEPLOYED)) {
-			String info = String.format("mq vbroker id:%s %s:%s is deployed ......", vbrokerId);
+			String info = String.format("mq vbroker id:%s is deployed ......", vbrokerId);
 			DeployLog.pubSuccessLog(sessionKey, info);
 
 			return true;
