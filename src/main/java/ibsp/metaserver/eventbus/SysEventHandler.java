@@ -56,14 +56,12 @@ public class SysEventHandler implements Handler<Message<String>> {
 			}
 			
 			int eventCode       = jsonObj.getInteger(FixHeader.HEADER_EVENT_CODE);
+			String servId       = jsonObj.getString(FixHeader.HEADER_SERV_ID);
 			String uuid         = jsonObj.getString(FixHeader.HEADER_UUID);
 			String jsonStr      = jsonObj.getString(FixHeader.HEADER_JSONSTR);
 			EventType type      = EventType.get(eventCode);
 			JsonObject json     = new JsonObject(jsonStr);
-			
-//			if (uuid.equals(MetaData.get().getUUID())) {
-//				return;
-//			}
+
 			
 			switch(type) {
 			case e1:
@@ -101,6 +99,13 @@ public class SysEventHandler implements Handler<Message<String>> {
 				}
 				break;				
 			
+			case e63:
+				// 事件推送只要一个节点做
+				if (uuid.equals(MetaData.get().getUUID())) {
+					notifyCacheHaSwitch(servId, jsonStr, false);
+				}
+				break;
+				
 			//客户端上报事件
 			case e98:
 				JsonObject obj = new JsonObject(jsonStr);
@@ -118,9 +123,9 @@ public class SysEventHandler implements Handler<Message<String>> {
 			}
 		}
 		
-		private void notifyCacheProxy(String instID, boolean deploy) {
+		private void notifyCacheProxy(String instId, boolean deploy) {
 			
-			JsonObject proxyInfo = CacheService.getProxyInfoByID(instID, new ResultBean());
+			JsonObject proxyInfo = CacheService.getProxyInfoByID(instId, new ResultBean());
 				
 			EventBean evBean = new EventBean();
 			if (deploy) {
@@ -145,6 +150,26 @@ public class SysEventHandler implements Handler<Message<String>> {
 			}
 		}
 
+		private void notifyCacheHaSwitch(String servId, String jsonStr, boolean deploy) {
+
+			EventBean evBean = new EventBean();
+			evBean.setEvType(EventType.e63);
+			evBean.setServID(servId);
+			evBean.setJsonStr(jsonStr);
+			String msg = evBean.asJsonString();
+				
+			Set<String> proxySet = ClientStatisticData.get().getCacheProxies();
+			for (String addr : proxySet) {
+				String arr[] = addr.split(":");
+				String ip   = arr[0];
+				int    port = Integer.valueOf(arr[1]);
+					
+				EventNotifier notifier = new EventNotifier(ip, port, msg);
+				String info = String.format("notify cache ha switch event %s:%d %s", ip, port, msg);
+				logger.info(info);
+				WorkerPool.get().execute(notifier);
+			}
+		}
 	}
 	
 	private static class EventNotifier implements Runnable {
@@ -212,5 +237,5 @@ public class SysEventHandler implements Handler<Message<String>> {
 		}
 		
 	}
-	
+
 }

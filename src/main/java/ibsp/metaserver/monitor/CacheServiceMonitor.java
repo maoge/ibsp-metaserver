@@ -17,9 +17,15 @@ import ibsp.metaserver.bean.ResultBean;
 import ibsp.metaserver.bean.ServiceBean;
 import ibsp.metaserver.dbservice.CacheService;
 import ibsp.metaserver.dbservice.MetaDataService;
+import ibsp.metaserver.eventbus.EventBean;
+import ibsp.metaserver.eventbus.EventBusMsg;
+import ibsp.metaserver.eventbus.EventType;
+import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.utils.CONSTS;
+import ibsp.metaserver.utils.FixHeader;
 import ibsp.metaserver.utils.HttpUtils;
 import ibsp.metaserver.utils.RedisUtils;
+import io.vertx.core.json.JsonObject;
 
 public class CacheServiceMonitor implements Runnable {
 	
@@ -65,7 +71,18 @@ public class CacheServiceMonitor implements Runnable {
 								logger.info("主从切换失败，尝试直接拉起主节点！");
 								this.pullUpInstance(master, null);
 							} else {
-								//TODO publish HA switched event
+								//pulish e63
+								JsonObject paramsJson = new JsonObject();
+								paramsJson.put("CLUSTER_ID", cluster.getInstID());
+								paramsJson.put("NEW_MASTER_ID", slave.getInstID());
+								
+								EventBean evBean = new EventBean();
+								evBean.setEvType(EventType.e63);
+								evBean.setServID(service.getInstID());
+								evBean.setUuid(MetaData.get().getUUID());
+								evBean.setJsonStr(paramsJson.toString());
+								EventBusMsg.publishEvent(evBean);
+								
 								//pull up old master as slave
 								this.pullUpInstance(master, slave);
 							}
