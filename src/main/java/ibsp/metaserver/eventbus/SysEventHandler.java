@@ -110,6 +110,10 @@ public class SysEventHandler implements Handler<Message<String>> {
 				}
 				break;
 				
+			//redis节点down
+			case e64:
+				break;
+				
 			//客户端上报事件
 			case e98:
 				JsonObject obj = new JsonObject(jsonStr);

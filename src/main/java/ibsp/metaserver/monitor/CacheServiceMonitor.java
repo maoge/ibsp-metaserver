@@ -22,7 +22,6 @@ import ibsp.metaserver.eventbus.EventBusMsg;
 import ibsp.metaserver.eventbus.EventType;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.utils.CONSTS;
-import ibsp.metaserver.utils.FixHeader;
 import ibsp.metaserver.utils.HttpUtils;
 import ibsp.metaserver.utils.RedisUtils;
 import io.vertx.core.json.JsonObject;
@@ -52,7 +51,7 @@ public class CacheServiceMonitor implements Runnable {
 					InstanceDtlBean master = cluster.getSubInstances().get(masterID);
 					
 					if (master.getInstance().getIsDeployed().equals(CONSTS.DEPLOYED) &&
-							!isServerAlive(master.getAttribute("IP").getAttrValue(), master.getAttribute("PORT").getAttrValue())) {
+							!isServerAlive(service.getInstID(), cluster.getInstID(), master)) {
 						
 						if (cluster.getSubInstances().size()==1) {
 				            logger.info("该主节点没有从节点！尝试拉起该实例！");
@@ -67,7 +66,7 @@ public class CacheServiceMonitor implements Runnable {
 								slave = cluster.getSubInstances().get(slaveID);
 							}
 							
-							if (!doSwitch(master, slave, cluster.getInstID())) {
+							if (!doSwitch(service.getInstID(), cluster.getInstID(), master, slave)) {
 								logger.info("主从切换失败，尝试直接拉起主节点！");
 								this.pullUpInstance(master, null);
 							} else {
@@ -82,6 +81,7 @@ public class CacheServiceMonitor implements Runnable {
 								evBean.setUuid(MetaData.get().getUUID());
 								evBean.setJsonStr(paramsJson.toString());
 								EventBusMsg.publishEvent(evBean);
+								//TODO save alarm to DB
 								
 								//pull up old master as slave
 								this.pullUpInstance(master, slave);
@@ -96,7 +96,7 @@ public class CacheServiceMonitor implements Runnable {
 						
 						InstanceDtlBean slave = cluster.getSubInstances().get(slaveID);
 						if (slave.getInstance().getIsDeployed().equals(CONSTS.DEPLOYED) &&
-								!isServerAlive(slave.getAttribute("IP").getAttrValue(), slave.getAttribute("PORT").getAttrValue())) {
+								!isServerAlive(service.getInstID(), cluster.getInstID(), slave)) {
 							this.pullUpInstance(slave, master);
 						}
 					}
@@ -136,17 +136,30 @@ public class CacheServiceMonitor implements Runnable {
 	/**
 	 * 判断redis实例是否存活
 	 */
-	private boolean isServerAlive(String host, String port) {
+	private boolean isServerAlive(String servID, String clusterID, InstanceDtlBean instance) {
 		
 		Socket socket = null;
 		boolean rstbool = true;
+		String host = instance.getAttribute("IP").getAttrValue();
+		String port = instance.getAttribute("PORT").getAttrValue();
 		
 		try {
 			socket = new Socket(host, Integer.parseInt(port));
 		} catch (IOException e) {
 			rstbool = false;
 			logger.warn("redis进程不存在：" + host+":"+port);
-			//TODO publish cache node down event
+			
+			JsonObject paramsJson = new JsonObject();
+			paramsJson.put("CLUSTER_ID", clusterID);
+			paramsJson.put("INST_ID", instance.getInstID());
+			
+			EventBean evBean = new EventBean();
+			evBean.setEvType(EventType.e64);
+			evBean.setServID(servID);
+			evBean.setJsonStr(paramsJson.toString());
+			EventBusMsg.publishEvent(evBean);
+			
+			//TODO save alarm to DB
 		} finally {
 			try {
 				if (socket != null)
@@ -218,7 +231,7 @@ public class CacheServiceMonitor implements Runnable {
     /**
      * 进行主从切换
      */
-    private boolean doSwitch(InstanceDtlBean master, InstanceDtlBean slave, String clusterID) {
+    private boolean doSwitch(String servID, String clusterID, InstanceDtlBean master, InstanceDtlBean slave) {
     	
 		String slaveIP = slave.getAttribute("IP").getAttrValue();
 		String slavePort = slave.getAttribute("PORT").getAttrValue();
@@ -227,7 +240,7 @@ public class CacheServiceMonitor implements Runnable {
 		String masterIP = master.getAttribute("IP").getAttrValue();
 		String masterPort = master.getAttribute("PORT").getAttrValue();
 		
-		if (!isServerAlive(slaveIP, slavePort))
+		if (!isServerAlive(servID, clusterID, slave))
 			return false;
 
 			
