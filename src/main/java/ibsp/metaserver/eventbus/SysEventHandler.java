@@ -84,7 +84,11 @@ public class SysEventHandler implements Handler<Message<String>> {
 			case e11:
 				MetaData.get().doQueue(json, type);
 				break;
-
+			case e12:
+			case e13:
+				MetaData.get().doPermnentTopic(json, type);
+				break;
+			
 			//接入机扩缩容
 			case e61:				
 				// 事件推送只要一个节点做

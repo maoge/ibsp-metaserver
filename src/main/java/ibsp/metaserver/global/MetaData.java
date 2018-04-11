@@ -9,6 +9,7 @@ import ibsp.metaserver.bean.InstanceDtlBean;
 import ibsp.metaserver.bean.MetaAttributeBean;
 import ibsp.metaserver.bean.MetaComponentBean;
 import ibsp.metaserver.bean.MetaServUrl;
+import ibsp.metaserver.bean.PermnentTopicBean;
 import ibsp.metaserver.bean.QueueBean;
 import ibsp.metaserver.bean.RelationBean;
 import ibsp.metaserver.bean.ServiceBean;
@@ -66,6 +67,8 @@ public class MetaData {
 	
 	private Map<String, QueueBean> queueMap;
 	private Map<String, String> queueName2IdMap;
+	private Map<String, PermnentTopicBean> permTopicMap;
+	private Map<String, IdSetBean<String>> queueId2ConsumerIdMap;
 	
 	private JedisPool jedisPool;
 	
@@ -93,8 +96,10 @@ public class MetaData {
 		metaServMap        = new ConcurrentHashMap<Integer, MetaServUrl>();
 		metaServUrls       = "";
 		
-		queueMap           = new ConcurrentHashMap<String, QueueBean>();
-		queueName2IdMap    = new ConcurrentHashMap<String, String>();
+		queueMap               = new ConcurrentHashMap<String, QueueBean>();
+		queueName2IdMap        = new ConcurrentHashMap<String, String>();
+		permTopicMap           = new ConcurrentHashMap<String, PermnentTopicBean>();
+		queueId2ConsumerIdMap  = new ConcurrentHashMap<String, IdSetBean<String>>();
 	}
 	
 	public static MetaData get() {
@@ -129,6 +134,7 @@ public class MetaData {
 		LoadTopo();
 		LoadMetaServUrl();
 		LoadQueue();
+		LoadPermnentTopic();
 	}
 	
 	public void reloadMetaData() {
@@ -279,6 +285,55 @@ public class MetaData {
 		}
 		
 		genQueueName2IdMap();
+	}
+	
+	private void LoadPermnentTopic() {
+		try {
+			intanceLock.lock();
+			
+			List<PermnentTopicBean> permnentTopicList = MQService.getAllPermnentTopics();
+			if (permnentTopicList == null) {
+				logger.info("LoadPermnentTopic: no data loaded ......");
+				return;
+			}
+			
+			Iterator<PermnentTopicBean> iter = permnentTopicList.iterator();
+			while (iter.hasNext()) {
+				PermnentTopicBean bean = iter.next();
+				permTopicMap.put(bean.getConsumerId(), bean);
+			}
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+		} finally {
+			intanceLock.unlock();
+		}
+		
+		genQueueId2ConsumerIdMap();
+	}
+	
+	private void genQueueId2ConsumerIdMap() {
+		if (permTopicMap == null)
+			return;
+		
+		queueId2ConsumerIdMap.clear();
+		
+		Set<Entry<String, PermnentTopicBean>> entrySet = permTopicMap.entrySet();
+		for (Entry<String, PermnentTopicBean> entry : entrySet) {
+			PermnentTopicBean bean = entry.getValue();
+			if (bean == null)
+				continue;
+			
+			IdSetBean<String> idSet = queueId2ConsumerIdMap.get(bean.getQueueId());
+			
+			if (idSet == null) {
+				idSet = new IdSetBean<String>();
+				idSet.addId(bean.getConsumerId());
+				
+				queueId2ConsumerIdMap.put(bean.getQueueId(), idSet);
+			} else {
+				idSet.addId(bean.getConsumerId());
+			}
+		}
 	}
 	
 	private void LoadMetaServUrl() {
@@ -653,6 +708,106 @@ public class MetaData {
 			return null;
 		
 		return queueMap.get(queueId);
+	}
+	
+	public PermnentTopicBean getPermnentTopicById(String consumerId) {
+		if(permTopicMap == null)
+			return null;
+		
+		return permTopicMap.get(consumerId);
+	}
+	
+	public boolean isPermnentTopicExistsById(String consumerId) {
+		if (permTopicMap == null)
+			return false;
+		
+		return permTopicMap.containsKey(consumerId);
+	}
+	
+	public boolean hasPermnentTopicByQueueId(String queueId) {
+		if (queueId2ConsumerIdMap == null)
+			return false;
+		IdSetBean<String> idset = queueId2ConsumerIdMap.get(queueId);
+		if(idset == null || idset.isEmpty()) {
+			return false;
+		}
+		return true;
+	}
+	
+	public boolean savePermnentTopic(String consumerId, PermnentTopicBean bean) {
+		if (permTopicMap == null)
+			return false;
+		
+		try {
+			intanceLock.lock();
+			permTopicMap.put(consumerId, bean);
+			
+			IdSetBean<String> idSet = queueId2ConsumerIdMap.get(bean.getQueueId());
+			if(idSet == null) {
+				idSet = new IdSetBean<>();
+				idSet.addId(consumerId);
+				queueId2ConsumerIdMap.put(bean.getQueueId(), idSet);
+			}else {
+				idSet.addId(consumerId);
+			}
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+		} finally {
+			intanceLock.unlock();
+		}
+		
+		return false;
+	}
+	
+	public boolean delPermnentTopic(String consumerId) {
+		if (permTopicMap == null)
+			return false;
+		
+		PermnentTopicBean bean = permTopicMap.get(consumerId);
+		if (bean == null)
+			return false;
+		
+		try {
+			intanceLock.lock();
+			IdSetBean<String> idSet = queueId2ConsumerIdMap.get(bean.getQueueId());
+			idSet.removeId(consumerId);
+			permTopicMap.remove(consumerId);
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+		} finally {
+			intanceLock.unlock();
+		}
+		
+		return true;
+	}
+	
+	public boolean doPermnentTopic(JsonObject json, EventType type) {
+		if (permTopicMap == null || queueId2ConsumerIdMap == null)
+			return false;
+		
+		String consumerId = json.getString(FixHeader.HEADER_CONSUMER_ID);
+		if (HttpUtils.isNull(consumerId))
+			return false;
+		
+		boolean res = false;
+		
+		switch (type) {
+		case e12:
+			PermnentTopicBean bean = MQService.getPermnentTopic(consumerId);
+			if (bean != null) {
+				savePermnentTopic(consumerId, bean);
+			} else {
+				res = false;
+			}
+			break;
+		case e13:
+			res = delPermnentTopic(consumerId);
+			break;
+		default:
+			break;
+		}
+		
+		return res;
 	}
 	
 	public Map<String, ServiceBean> getServiceMap() {
