@@ -56,8 +56,8 @@ public class CacheService {
 		}
 		
 		return  getNodeClustersByServIdOrServiceStub(serviceID, serviceStub, nodeClusterList, result) &&
-				getCacheProxiesByServIdOrServiceStub(serviceID, serviceStub, proxyList, result);
-//				getCollectdInfoByServIdOrServiceStub(serviceID, serviceStub, collectd, result);
+				getCacheProxiesByServIdOrServiceStub(serviceID, serviceStub, proxyList, result) &&
+				getCollectdInfoByServIdOrServiceStub(serviceID, serviceStub, collectd, result);
 	}
 	
 	public static boolean getNodeClustersByServIdOrServiceStub(String serviceID, Map<Integer, String> serviceStub,
