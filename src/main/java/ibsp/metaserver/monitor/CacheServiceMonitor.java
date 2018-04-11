@@ -199,7 +199,7 @@ public class CacheServiceMonitor implements Runnable {
         	executor.execSingleLine("bin/redis-server conf/redis.conf", null);
         	if (executor.waitProcessStart(port, null)) {
     			logger.info("拉起节点成功！Host:" + ip + ":" + port);
-    			if (masterIp != null && masterPort != null) {
+    			if (master != null) {
     				replicationCountMap.put(ip+":"+port, 0);
     			}
         	} else {

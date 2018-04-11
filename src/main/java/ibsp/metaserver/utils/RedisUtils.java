@@ -160,7 +160,8 @@ public class RedisUtils {
 		try {
 			Map<String, String> result = new HashMap<String, String>();
 			jedis = new Jedis(ip, new Integer(port));
-			String[] replicationInfo = jedis.info("replication").split(System.lineSeparator());
+//			String[] replicationInfo = jedis.info("replication").split(System.lineSeparator());
+			String[] replicationInfo = jedis.info("replication").split("\r\n");
 			for (String info : replicationInfo) {
 				if (info.indexOf(":") == -1)
 					continue;
