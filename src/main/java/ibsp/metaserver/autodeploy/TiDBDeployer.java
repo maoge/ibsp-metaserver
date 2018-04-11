@@ -18,10 +18,15 @@ import ibsp.metaserver.bean.ResultBean;
 import ibsp.metaserver.dbservice.ConfigDataService;
 import ibsp.metaserver.dbservice.MetaDataService;
 import ibsp.metaserver.dbservice.TiDBService;
+import ibsp.metaserver.eventbus.EventBean;
+import ibsp.metaserver.eventbus.EventBusMsg;
+import ibsp.metaserver.eventbus.EventType;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.utils.CONSTS;
+import ibsp.metaserver.utils.FixHeader;
 import ibsp.metaserver.utils.HttpUtils;
 import ibsp.metaserver.utils.Topology;
+import io.vertx.core.json.JsonObject;
 
 public class TiDBDeployer implements Deployer {
 
@@ -165,8 +170,20 @@ public class TiDBDeployer implements Deployer {
 			//when deploying a new PD server, needJoin must be true
 			deployRet = deployPDServer(serviceID, instDtl, true, join, initCluster, sessionKey, result);
 			break;
+			
 		case 119:    // DB_TIDB
 			deployRet = deployTiDBServer(serviceID, instDtl, pdList, sessionKey, result);
+			JsonObject paramsJson = new JsonObject();
+			paramsJson.put(FixHeader.HEADER_INSTANCE_ID, instID);
+			paramsJson.put(FixHeader.HEADER_INSTANCE_ADDRESS, 
+					instDtl.getAttribute("IP").getAttrValue()+":"+instDtl.getAttribute("PORT").getAttrValue());
+			EventBean evBean = new EventBean();
+			evBean.setEvType(EventType.e71);
+			evBean.setServID(serviceID);
+			evBean.setUuid(MetaData.get().getUUID());
+			evBean.setJsonStr(paramsJson.toString());
+			EventBusMsg.publishEvent(evBean);
+			
 			break;
 		case 120:    // DB_TIKV
 			deployRet = deployTiKVServer(serviceID, instDtl, pdList, sessionKey, result);
@@ -223,6 +240,15 @@ public class TiDBDeployer implements Deployer {
 			break;
 		case 119:    // DB_TIDB
 			undeployRet = undeployTiDBServer(serviceID, instDtl, sessionKey, false, result);
+			JsonObject paramsJson = new JsonObject();
+			paramsJson.put(FixHeader.HEADER_INSTANCE_ID, instID);
+			EventBean evBean = new EventBean();
+			evBean.setEvType(EventType.e72);
+			evBean.setServID(serviceID);
+			evBean.setUuid(MetaData.get().getUUID());
+			evBean.setJsonStr(paramsJson.toString());
+			EventBusMsg.publishEvent(evBean);
+			
 			break;
 		case 120:    // DB_TIKV
 			undeployRet = undeployTiKVServer(serviceID, instDtl, sessionKey, false, result);

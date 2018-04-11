@@ -81,6 +81,10 @@ public class ClientStatisticData {
 		return this.cacheProxyMap.keySet();
 	}
 	
+	public Set<String> getDbClients() {
+		return this.dbClientMap.keySet();
+	}
+	
 	private class ExpiredDataChecker implements Runnable {
 
 		@Override

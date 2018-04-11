@@ -452,16 +452,29 @@ public class TiDBService {
         con.disconnect();
         return new JsonObject(result.toString());
 	}
-	
-	public static void main(String[] args) {
-		List<InstanceDtlBean> pdServerList = new ArrayList<InstanceDtlBean>();
-		List<InstanceDtlBean> tidbServerList = new ArrayList<InstanceDtlBean>();
-		List<InstanceDtlBean> tikvServerList = new ArrayList<InstanceDtlBean>();
-		InstanceDtlBean collectd = null;
-		ResultBean result = new ResultBean();
 
-		loadServiceInfo("dccb67fc-a799-dbec-8266-cb78c79bc956", pdServerList, tidbServerList, tikvServerList, collectd, result);
-		
-		System.out.println(pdServerList);
+	public static JsonArray getTidbInfoByService(String servID, ResultBean result) {
+		JsonArray array = new JsonArray();
+		try {
+			List<InstanceDtlBean> tidbServerList = new ArrayList<InstanceDtlBean>();
+			if (!getTidbInfoByServIdOrServiceStub(servID, null, tidbServerList, result))
+				return null;
+			
+			for (InstanceDtlBean instance : tidbServerList) {
+				if (instance.getInstance().getIsDeployed().equals(CONSTS.NOT_DEPLOYED))
+					continue;
+				JsonObject object = new JsonObject();
+				object.put("ID", instance.getInstID());
+				object.put("ADDRESS", instance.getAttribute("IP").getAttrValue()+":"
+						+instance.getAttribute("PORT").getAttrValue());
+				array.add(object);
+			}
+		} catch (Exception e) {
+			logger.error("Error get tidb info by service ID...", e);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(e.getMessage());
+			return null;
+		}
+		return array;
 	}
 }

@@ -7,6 +7,7 @@ import ibsp.metaserver.dbservice.TiDBService;
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.FixHeader;
 import ibsp.metaserver.utils.HttpUtils;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 
@@ -15,7 +16,7 @@ import java.util.Map;
 @App(path = "/tidbsvr")
 public class TiDBHandler {
 
-	@Service(id = "tidbAddressService", name = "tidbAddressService", auth = true, bwswitch = true)
+	@Service(id = "getTidbInfoByService", name = "getTidbInfoByService", auth = true, bwswitch = true)
 	public static void tidbAddressService(RoutingContext routeContext) throws Exception {
 		JsonObject json = new JsonObject();
 		
@@ -30,10 +31,10 @@ public class TiDBHandler {
 				json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
 			} else {
 				ResultBean result = new ResultBean();
-				String address = TiDBService.getAllAddressByServID(servID, CONSTS.SERV_DB_TIDB, result);
-				if (address!=null) {
+				JsonArray array = TiDBService.getTidbInfoByService(servID, result);
+				if (array!=null) {
 					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
-					json.put(FixHeader.HEADER_RET_INFO, address);
+					json.put(FixHeader.HEADER_RET_INFO, array);
 				} else {
 					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
 					json.put(FixHeader.HEADER_RET_INFO, result.getRetInfo());

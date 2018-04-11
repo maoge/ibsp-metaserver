@@ -91,20 +91,17 @@ public class SysEventHandler implements Handler<Message<String>> {
 			
 			//接入机扩缩容
 			case e61:				
-				// 事件推送只要一个节点做
 				if (uuid.equals(MetaData.get().getUUID())) {
 					notifyCacheProxy(json.getString(FixHeader.HEADER_INSTANCE_ID), true);
 				}
 				break;		
 			case e62:
-				// 事件推送只要一个节点做
 				if (uuid.equals(MetaData.get().getUUID())) {
 					notifyCacheProxy(json.getString(FixHeader.HEADER_INSTANCE_ID), false);
 				}
 				break;				
 			
 			case e63:
-				// 事件推送只要一个节点做
 				if (uuid.equals(MetaData.get().getUUID())) {
 					notifyCacheHaSwitch(servId, jsonStr, false);
 				}
@@ -113,6 +110,18 @@ public class SysEventHandler implements Handler<Message<String>> {
 			//redis节点down
 			case e64:
 				break;
+				
+			//接入机扩缩容
+			case e71:				
+				if (uuid.equals(MetaData.get().getUUID())) {
+					notifyTidbServer(servId, jsonStr, true);
+				}
+				break;		
+			case e72:
+				if (uuid.equals(MetaData.get().getUUID())) {
+					notifyTidbServer(servId, jsonStr, false);
+				}
+				break;	
 				
 			//客户端上报事件
 			case e98:
@@ -174,6 +183,31 @@ public class SysEventHandler implements Handler<Message<String>> {
 					
 				EventNotifier notifier = new EventNotifier(ip, port, msg);
 				String info = String.format("notify cache ha switch event %s:%d %s", ip, port, msg);
+				logger.info(info);
+				WorkerPool.get().execute(notifier);
+			}
+		}
+		
+		private void notifyTidbServer(String servId, String jsonStr, boolean deploy) {
+
+			EventBean evBean = new EventBean();
+			if (deploy) {
+				evBean.setEvType(EventType.e71);
+			} else {
+				evBean.setEvType(EventType.e72);
+			}
+			evBean.setServID(servId);
+			evBean.setJsonStr(jsonStr);
+			String msg = evBean.asJsonString();
+				
+			Set<String> clientSet = ClientStatisticData.get().getDbClients();
+			for (String addr : clientSet) {
+				String arr[] = addr.split(":");
+				String ip   = arr[0];
+				int    port = Integer.valueOf(arr[1]);
+					
+				EventNotifier notifier = new EventNotifier(ip, port, msg);
+				String info = String.format("notify cache proxy expansion event %s:%d %s", ip, port, msg);
 				logger.info(info);
 				WorkerPool.get().execute(notifier);
 			}
