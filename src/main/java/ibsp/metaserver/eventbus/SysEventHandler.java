@@ -12,6 +12,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ibsp.metaserver.bean.InstanceDtlBean;
 import ibsp.metaserver.bean.ResultBean;
 import ibsp.metaserver.dbservice.CacheService;
 import ibsp.metaserver.global.ClientStatisticData;
@@ -106,6 +107,11 @@ public class SysEventHandler implements Handler<Message<String>> {
 					generalNotify(type, servId, jsonStr,
 							ClientStatisticData.get().getCacheProxies());
 				}
+				//update metadata
+				InstanceDtlBean cluster =
+						MetaData.get().getInstanceDtlBean(json.getString(FixHeader.HEADER_CLUSTER_ID));
+				cluster.setAttribute(FixHeader.HEADER_MASTER_ID, 
+						json.getString(FixHeader.HEADER_NEW_MASTER_ID));
 				break;
 				
 			//redis节点down
