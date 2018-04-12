@@ -95,6 +95,7 @@ public class TiDBDeployer implements Deployer {
 			// mod t_service.IS_DEPLOYED = 1
 			if (!ConfigDataService.modServiceDeployFlag(serviceID, CONSTS.DEPLOYED, result))
 				return false;
+			DeployUtils.publishDeployEvent(EventType.e21, serviceID);
 		}
 		
 		return true;
@@ -130,6 +131,7 @@ public class TiDBDeployer implements Deployer {
 		// mod t_service.IS_DEPLOYED = 0
 		if (!ConfigDataService.modServiceDeployFlag(serviceID, CONSTS.NOT_DEPLOYED, result))
 			return false;
+		DeployUtils.publishDeployEvent(EventType.e22, serviceID);
 		
 		return true;
 	}
@@ -502,6 +504,7 @@ public class TiDBDeployer implements Deployer {
 			// mod t_instance.IS_DEPLOYED = 1
 			if (!ConfigDataService.modInstanceDeployFlag(id, CONSTS.DEPLOYED, result))
 				return false;
+			DeployUtils.publishDeployEvent(EventType.e23, id);
 			
 			if(needJoin) {
 				//然后更新所有的pd脚本、tikv脚本、tidb脚本
@@ -630,6 +633,7 @@ public class TiDBDeployer implements Deployer {
 			// mod t_instance.IS_DEPLOYED = 1
 			if (!ConfigDataService.modInstanceDeployFlag(id, CONSTS.DEPLOYED, result))
 				return false;
+			DeployUtils.publishDeployEvent(EventType.e23, id);
 			
 			String info = String.format("deploy tikv id:%s %s:%s success ......", id, ip, port);
 			DeployLog.pubSuccessLog(sessionKey, info);
@@ -752,6 +756,7 @@ public class TiDBDeployer implements Deployer {
 			if (!ConfigDataService.modInstanceDeployFlag(id, CONSTS.DEPLOYED, result)) {
 				return false;
 			}
+			DeployUtils.publishDeployEvent(EventType.e23, id);
 			
 			String info = String.format("deploy tidb id:%s %s:%s success ......", id, ip, port);
 			DeployLog.pubSuccessLog(sessionKey, info);
@@ -857,6 +862,7 @@ public class TiDBDeployer implements Deployer {
 			if (!ConfigDataService.modInstanceDeployFlag(id, CONSTS.NOT_DEPLOYED, result)) {
 				return false;
 			}
+			DeployUtils.publishDeployEvent(EventType.e24, id);
 	
 			if (!isUndeployService) {
 				// 重新从数据库获取所有的PD的信息，然后刷新PD脚本 再从数据库所有的tikv信息，刷新tikv的脚本
@@ -1031,6 +1037,7 @@ public class TiDBDeployer implements Deployer {
 			// mod t_instance.IS_DEPLOYED = 0
 			if (!ConfigDataService.modInstanceDeployFlag(id, CONSTS.NOT_DEPLOYED, result))
 				return false;
+			DeployUtils.publishDeployEvent(EventType.e24, id);
 			
 			String info = String.format("undeploy tidb id:%s %s:%s success ......", id, ip, port);
 			DeployLog.pubSuccessLog(sessionKey, info);
@@ -1134,6 +1141,7 @@ public class TiDBDeployer implements Deployer {
 					if (!ConfigDataService.modInstanceDeployFlag(id, CONSTS.NOT_DEPLOYED, result)) {
 						logger.error(result.getRetInfo());
 					}
+					DeployUtils.publishDeployEvent(EventType.e24, id);
 				}catch (Exception e) {
 					logger.error(e.getMessage());
 					e.printStackTrace();

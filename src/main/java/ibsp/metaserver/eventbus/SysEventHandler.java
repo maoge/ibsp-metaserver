@@ -63,11 +63,11 @@ public class SysEventHandler implements Handler<Message<String>> {
 			EventType type      = EventType.get(eventCode);
 			JsonObject json     = new JsonObject(jsonStr);
 
+			logger.info("Received event type " + eventCode);
 			
 			switch(type) {
 			case e1:
 			case e2:
-				System.out.println(msg);
 				MetaData.get().doTopo(json, type);
 				break;
 			case e3:
@@ -88,6 +88,15 @@ public class SysEventHandler implements Handler<Message<String>> {
 			case e12:
 			case e13:
 				MetaData.get().doPermnentTopic(json, type);
+				break;
+				
+			case e21:
+			case e22:
+				MetaData.get().doServiceDeploy(json, type);
+				break;
+			case e23:
+			case e24:
+				MetaData.get().doInstanceDeploy(json, type);
 				break;
 			
 			//接入机扩缩容

@@ -14,6 +14,7 @@ import ibsp.metaserver.eventbus.EventType;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.DES3;
+import ibsp.metaserver.utils.FixHeader;
 import io.vertx.core.json.JsonObject;
 
 import java.sql.Connection;
@@ -118,6 +119,7 @@ public class DeployUtils {
 			if (!ConfigDataService.modInstanceDeployFlag(id, CONSTS.DEPLOYED, result)) {
 				return false;
 			}
+			publishDeployEvent(EventType.e23, id);
 			
 			String info = String.format("deploy collectd id:%s %s:%s success ......", id, ip, port);
 			DeployLog.pubSuccessLog(sessionKey, info);
@@ -192,6 +194,7 @@ public class DeployUtils {
 			// mod t_instance.IS_DEPLOYED = 0
 			if (!ConfigDataService.modInstanceDeployFlag(id, CONSTS.NOT_DEPLOYED, result))
 				return false;
+			publishDeployEvent(EventType.e24, id);
 			
 			String info = String.format("undeploy collectd id:%s %s:%s success ......", id, ip, port);
 			DeployLog.pubSuccessLog(sessionKey, info);
@@ -517,4 +520,12 @@ public class DeployUtils {
 				id);
 	}
 
+	public static void publishDeployEvent(EventType type, String id) {
+		JsonObject paramsJson = new JsonObject();
+		paramsJson.put(FixHeader.HEADER_INSTANCE_ID, id);
+		EventBean evBean = new EventBean();
+		evBean.setEvType(type);
+		evBean.setJsonStr(paramsJson.toString());
+		EventBusMsg.publishEvent(evBean);
+	}
 }

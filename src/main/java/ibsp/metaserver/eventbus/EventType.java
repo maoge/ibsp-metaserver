@@ -25,6 +25,11 @@ public enum EventType {
 	e12(500012, false, "MetaData.queueMap add"),         // MetaData.permnentTopic add
 	e13(500013, false, "MetaData.queueMap del"),         // MetaData.permnentTopic del
 	
+	e21(50021, false, "Service deployed"),
+	e22(50022, false, "Service undeployed"),
+	e23(50023, false, "Instance deployed"),
+	e24(50024, false, "Instance undeployed"),
+	
 	e61(50061, false, "cache proxy deployed"),       // 接入机扩容
 	e62(50062, false, "cache proxy undeployed"),       // 接入机缩容
 	e63(50063, true, "redis automatic ha switch"),       // redis故障主从切换

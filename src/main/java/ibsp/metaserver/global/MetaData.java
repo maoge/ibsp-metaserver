@@ -619,6 +619,48 @@ public class MetaData {
 		return res;
 	}
 	
+	public boolean doServiceDeploy(JsonObject json, EventType type) {
+		if (serviceMap == null)
+			return false;
+
+		String instID = json.getString(FixHeader.HEADER_INSTANCE_ID);
+		if (HttpUtils.isNull(instID))
+			return false;
+
+		switch (type) {
+		case e21:
+			serviceMap.get(instID).setDeployed(CONSTS.DEPLOYED);
+			break;
+		case e22:
+			serviceMap.get(instID).setDeployed(CONSTS.NOT_DEPLOYED);
+			break;
+		default:
+			return false;
+		}
+		return true;
+	}
+	
+	public boolean doInstanceDeploy(JsonObject json, EventType type) {
+		if (this.instanceDtlMap == null)
+			return false;
+
+		String instID = json.getString(FixHeader.HEADER_INSTANCE_ID);
+		if (HttpUtils.isNull(instID))
+			return false;
+
+		switch (type) {
+		case e23:
+			instanceDtlMap.get(instID).getInstance().setIsDeployed(CONSTS.DEPLOYED);
+			break;
+		case e24:
+			instanceDtlMap.get(instID).getInstance().setIsDeployed(CONSTS.NOT_DEPLOYED);
+			break;
+		default:
+			return false;
+		}
+		return true;
+	}
+	
 	private void genQueueName2IdMap() {
 		if (queueMap == null)
 			return;

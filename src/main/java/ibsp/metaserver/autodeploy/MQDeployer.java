@@ -21,6 +21,7 @@ import ibsp.metaserver.bean.ResultBean;
 import ibsp.metaserver.dbservice.ConfigDataService;
 import ibsp.metaserver.dbservice.MQService;
 import ibsp.metaserver.dbservice.MetaDataService;
+import ibsp.metaserver.eventbus.EventType;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.ErlUtils;
@@ -53,6 +54,7 @@ public class MQDeployer implements Deployer {
 			// mod t_service.IS_DEPLOYED = 1
 			if (!ConfigDataService.modServiceDeployFlag(serviceID, CONSTS.DEPLOYED, result))
 				return false;
+			DeployUtils.publishDeployEvent(EventType.e21, serviceID);
 		}
 		
 		return true;
@@ -77,6 +79,7 @@ public class MQDeployer implements Deployer {
 		//  t_service.IS_DEPLOYED = 0
 		if (!ConfigDataService.modServiceDeployFlag(serviceID, CONSTS.NOT_DEPLOYED, result))
 			return false;
+		DeployUtils.publishDeployEvent(EventType.e22, serviceID);
 		
 		return true;
 	}
@@ -254,6 +257,7 @@ public class MQDeployer implements Deployer {
 			if (!ConfigDataService.modInstanceDeployFlag(vbrokerId, CONSTS.NOT_DEPLOYED, result)) {
 				return false;
 			}
+			DeployUtils.publishDeployEvent(EventType.e24, vbrokerId);
 		}
 		
 		return allOk;
@@ -374,6 +378,7 @@ public class MQDeployer implements Deployer {
 			ConfigDataService.modComponentAttribute(vbrokerId, attrID, masterID, result);
 			
 			ConfigDataService.modInstanceDeployFlag(vbrokerId, CONSTS.DEPLOYED, result);
+			DeployUtils.publishDeployEvent(EventType.e23, vbrokerId);
 		} else {
 			// uninstall the success
 			for (InstanceDtlBean brokerInstanceDtl : success) {
@@ -563,6 +568,7 @@ public class MQDeployer implements Deployer {
 		if (!ConfigDataService.modInstanceDeployFlag(id, CONSTS.DEPLOYED, result)) {
 			return false;
 		}
+		DeployUtils.publishDeployEvent(EventType.e23, id);
 		
 		return true;
 	}
@@ -620,6 +626,7 @@ public class MQDeployer implements Deployer {
 		if (!ConfigDataService.modInstanceDeployFlag(id, CONSTS.NOT_DEPLOYED, result)) {
 			return false;
 		}
+		DeployUtils.publishDeployEvent(EventType.e24, id);
 		
 		return true;
 	}

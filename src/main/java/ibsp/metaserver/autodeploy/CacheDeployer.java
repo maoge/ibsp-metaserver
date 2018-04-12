@@ -70,6 +70,7 @@ public class CacheDeployer implements Deployer {
 			// mod t_service.IS_DEPLOYED = 1
 			if (!ConfigDataService.modServiceDeployFlag(serviceID, CONSTS.DEPLOYED, result))
 				return false;
+			DeployUtils.publishDeployEvent(EventType.e21, serviceID);
 		}
 		
 		return true;
@@ -99,6 +100,7 @@ public class CacheDeployer implements Deployer {
 		// mod t_service.IS_DEPLOYED = 0
 		if (!ConfigDataService.modServiceDeployFlag(serviceID, CONSTS.NOT_DEPLOYED, result))
 			return false;
+		DeployUtils.publishDeployEvent(EventType.e22, serviceID);
 		
 		return true;
 	}
@@ -416,6 +418,7 @@ public class CacheDeployer implements Deployer {
 		
 		if (!ConfigDataService.modInstanceDeployFlag(clusterDtl.getInstID(), CONSTS.DEPLOYED, result))
 			return false;
+		DeployUtils.publishDeployEvent(EventType.e23, clusterDtl.getInstID());
 		
 		return true;
 	}
@@ -443,6 +446,7 @@ public class CacheDeployer implements Deployer {
 		
 		if (!ConfigDataService.modInstanceDeployFlag(clusterDtl.getInstID(), CONSTS.NOT_DEPLOYED, result))
 			return false;
+		DeployUtils.publishDeployEvent(EventType.e24, clusterDtl.getInstID());
 		
 		return true;
 	}
@@ -547,6 +551,7 @@ public class CacheDeployer implements Deployer {
 			// mod t_instance.IS_DEPLOYED = 1
 			if (!ConfigDataService.modInstanceDeployFlag(id, CONSTS.DEPLOYED, result))
 				return false;
+			DeployUtils.publishDeployEvent(EventType.e23, id);
 
 			String info = String.format("deploy cache node id:%s %s:%s success ......", id, ip, port);
 			DeployLog.pubSuccessLog(sessionKey, info);
@@ -615,6 +620,7 @@ public class CacheDeployer implements Deployer {
 
 			if (!ConfigDataService.modInstanceDeployFlag(id, CONSTS.NOT_DEPLOYED, result))
 				return false;
+			DeployUtils.publishDeployEvent(EventType.e24, id);
 
 			String info = String.format("undeploy cache node id:%s %s:%s success ......", id, ip, port);
 			DeployLog.pubSuccessLog(sessionKey, info);
@@ -738,6 +744,7 @@ public class CacheDeployer implements Deployer {
 			// mod t_instance.IS_DEPLOYED = 1
 			if (!ConfigDataService.modInstanceDeployFlag(id, CONSTS.DEPLOYED, result))
 				return false;
+			DeployUtils.publishDeployEvent(EventType.e23, id);
 
 			String info = String.format("deploy cache proxy id:%s %s:%s success ......", id, ip, port);
 			DeployLog.pubSuccessLog(sessionKey, info);
@@ -806,6 +813,7 @@ public class CacheDeployer implements Deployer {
 			
 			if (!ConfigDataService.modInstanceDeployFlag(id, CONSTS.NOT_DEPLOYED, result))
 				return false;
+			DeployUtils.publishDeployEvent(EventType.e24, id);
 
 			String info = String.format("undeploy cache proxy id:%s %s:%s success ......", id, ip, port);
 			DeployLog.pubSuccessLog(sessionKey, info);

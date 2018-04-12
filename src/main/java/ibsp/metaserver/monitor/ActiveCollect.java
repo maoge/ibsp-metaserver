@@ -103,6 +103,8 @@ public class ActiveCollect {
 					InstanceDtlBean collectd = MetaData.get().getInstanceDtlBean(collectdID);
 					if (collectd == null)
 						continue;
+					if (collectd.getInstance().getIsDeployed().equals(CONSTS.NOT_DEPLOYED))
+						continue;
 					
 					String collectdName = collectd.getAttribute(FixHeader.HEADER_COLLECTD_NAME).getAttrValue();
 					String ip = collectd.getAttribute(FixHeader.HEADER_IP).getAttrValue();
