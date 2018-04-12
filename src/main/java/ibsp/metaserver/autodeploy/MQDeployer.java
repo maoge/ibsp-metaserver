@@ -98,6 +98,9 @@ public class MQDeployer implements Deployer {
 		switch (cmptID) {
 		case 103:  // MQ_VBROKER
 			deployRet = deployVBroker(serviceID, instDtl, sessionKey, result);
+			if(deployRet) {
+				deployRet = MQService.copyQueueToVbroker(serviceID, instDtl, result);
+			}
 			break;
 		case 104:  // MQ_BROKER
 			// can't deploy broker alone
@@ -205,6 +208,8 @@ public class MQDeployer implements Deployer {
 			
 			if (!deployVBroker(serviceID, vbrokerInstanceDtl, sessionKey, result))
 				return false;
+			
+			
 		}
 		
 		return true;
@@ -244,6 +249,11 @@ public class MQDeployer implements Deployer {
 			allOk &= undeployRabbit(brokerInstanceDtl, sessionKey, result);
 			if (!allOk)
 				break;
+			
+			// write back deploy flag
+			if (!ConfigDataService.modInstanceDeployFlag(vbrokerId, CONSTS.NOT_DEPLOYED, result)) {
+				return false;
+			}
 		}
 		
 		return allOk;

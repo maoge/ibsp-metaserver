@@ -397,52 +397,54 @@ public class MQService {
 			
 			QueueBean queueBean = MetaData.get().getQueueBeanById(queueId);
 			
+			if(queueBean == null) {
+				resultBean.setRetCode(CONSTS.REVOKE_NOK);
+				resultBean.setRetInfo("rabbitmq delete queue fail");
+				return false;
+			}
+			
 			if(queueBean.getQueueType().equals(CONSTS.TYPE_TOPIC) && MetaData.get().hasPermnentTopicByQueueId(queueId)) {
 				resultBean.setRetCode(CONSTS.REVOKE_NOK);
 				resultBean.setRetInfo("this topic bind permnent_topic!");
 				return false;
 			}
 				
-			if(queueBean != null) {
-				//先卸载
-				if(queueBean.getDeploy().equals(CONSTS.DEPLOYED)) {
-					List<InstanceDtlBean> list = MetaData.get().getMasterBrokersByServId(servID);
-					res = deleteRabbitQueue(queueBean, list);
-					if(!res) {
-						resultBean.setRetCode(CONSTS.REVOKE_NOK);
-						resultBean.setRetInfo(CONSTS.ERR_QUEUE_NOT_EXISTS);
-						return false;
-					}
-				}
-				
-				CRUD curd = new CRUD();
-				String dSql = "delete from t_mq_queue where queue_id = ?";
-				SqlBean sqlBean = new SqlBean(dSql);
-				sqlBean.addParams(new Object[]{queueId});
-				curd.putSqlBean(sqlBean);
-				
-				res = curd.executeUpdate(resultBean);
-				if (!res) {
+			//先卸载
+			if(queueBean.getDeploy().equals(CONSTS.DEPLOYED)) {
+				List<InstanceDtlBean> list = MetaData.get().getMasterBrokersByServId(servID);
+				res = deleteRabbitQueue(queueBean, list);
+				if(!res) {
 					resultBean.setRetCode(CONSTS.REVOKE_NOK);
-					resultBean.setRetInfo(resultBean.getRetInfo());
-				} else {
-					resultBean.setRetCode(CONSTS.REVOKE_OK);
-					resultBean.setRetInfo("");
-					
-					MetaData.get().delQueue(queueId);
-					
-					JsonObject evJson = new JsonObject();
-					evJson.put("QUEUE_ID", queueId);
-					
-					EventBean ev = new EventBean(EventType.e11);
-					ev.setUuid(MetaData.get().getUUID());
-					ev.setJsonStr(evJson.toString());
-					EventBusMsg.publishEvent(ev);
+					resultBean.setRetInfo(CONSTS.ERR_QUEUE_NOT_EXISTS);
+					return false;
 				}
-			}else {
-				resultBean.setRetCode(CONSTS.REVOKE_NOK);
-				resultBean.setRetInfo("rabbitmq delete queue fail");
 			}
+			
+			CRUD curd = new CRUD();
+			String dSql = "delete from t_mq_queue where queue_id = ?";
+			SqlBean sqlBean = new SqlBean(dSql);
+			sqlBean.addParams(new Object[]{queueId});
+			curd.putSqlBean(sqlBean);
+			
+			res = curd.executeUpdate(resultBean);
+			if (!res) {
+				resultBean.setRetCode(CONSTS.REVOKE_NOK);
+				resultBean.setRetInfo(resultBean.getRetInfo());
+			} else {
+				resultBean.setRetCode(CONSTS.REVOKE_OK);
+				resultBean.setRetInfo("");
+				
+				MetaData.get().delQueue(queueId);
+				
+				JsonObject evJson = new JsonObject();
+				evJson.put("QUEUE_ID", queueId);
+				
+				EventBean ev = new EventBean(EventType.e11);
+				ev.setUuid(MetaData.get().getUUID());
+				ev.setJsonStr(evJson.toString());
+				EventBusMsg.publishEvent(ev);
+			}
+			
 		}else {
 			resultBean.setRetCode(CONSTS.REVOKE_NOK);
 			resultBean.setRetInfo(CONSTS.ERR_PARAM_INCOMPLETE);
@@ -986,5 +988,14 @@ public class MQService {
 			resultBean.setRetInfo(CONSTS.ERR_PARAM_INCOMPLETE);
 		}
 		return res;
+	}
+	
+	public static boolean copyQueueToVbroker(String servId, InstanceDtlBean instDtl, ResultBean result) {
+		List<QueueBean> queueList = MetaData.get().getQueueListByServId(servId);
+		if(queueList == null || queueList.isEmpty()) {
+			return true;
+		}
+		
+		return true;
 	}
 }

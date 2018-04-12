@@ -65,6 +65,7 @@ public class MetaData {
 	private Map<Integer, MetaServUrl> metaServMap;
 	private String metaServUrls;
 	
+	private Map<String, IdSetBean<String>> servId2QueueIdMap;
 	private Map<String, QueueBean> queueMap;
 	private Map<String, String> queueName2IdMap;
 	private Map<String, PermnentTopicBean> permTopicMap;
@@ -96,6 +97,7 @@ public class MetaData {
 		metaServMap        = new ConcurrentHashMap<Integer, MetaServUrl>();
 		metaServUrls       = "";
 		
+		servId2QueueIdMap      = new ConcurrentHashMap<String, IdSetBean<String>>();
 		queueMap               = new ConcurrentHashMap<String, QueueBean>();
 		queueName2IdMap        = new ConcurrentHashMap<String, String>();
 		permTopicMap           = new ConcurrentHashMap<String, PermnentTopicBean>();
@@ -285,6 +287,7 @@ public class MetaData {
 		}
 		
 		genQueueName2IdMap();
+		genServId2QueueIdMap();
 	}
 	
 	private void LoadPermnentTopic() {
@@ -632,6 +635,29 @@ public class MetaData {
 		}
 	}
 	
+	private void genServId2QueueIdMap() {
+		if (queueMap == null)
+			return;
+		
+		servId2QueueIdMap.clear();
+		
+		Set<Entry<String, QueueBean>> queueEntrySet = queueMap.entrySet();
+		for (Entry<String, QueueBean> queueEntry : queueEntrySet) {
+			QueueBean queueBean = queueEntry.getValue();
+			if (queueBean == null)
+				continue;
+			
+			IdSetBean<String> idSet = servId2QueueIdMap.get(queueBean.getServiceId());
+			if(idSet == null) {
+				idSet = new IdSetBean<>();
+				idSet.addId(queueBean.getQueueId());
+				servId2QueueIdMap.put(queueBean.getServiceId(), idSet);
+			}else {
+				idSet.addId(queueBean.getQueueId());
+			}
+		}
+	}
+	
 	public boolean isQueueNameExistsByName(String queueName) {
 		if (queueName2IdMap == null)
 			return false;
@@ -661,6 +687,16 @@ public class MetaData {
 			}
 			
 			queueName2IdMap.put(queueBean.getQueueName(), queueId);
+			
+			IdSetBean<String> idSet = servId2QueueIdMap.get(queueBean.getServiceId());
+			if(idSet == null) {
+				idSet = new IdSetBean<>();
+				idSet.addId(queueId);
+				servId2QueueIdMap.put(queueBean.getServiceId(), idSet);
+			}else {
+				idSet.addId(queueId);
+			}
+			
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 		} finally {
@@ -678,11 +714,18 @@ public class MetaData {
 		if (qb == null)
 			return false;
 		
+		String servId = qb.getServiceId();
+		
 		try {
 			intanceLock.lock();
 			
 			queueName2IdMap.remove(qb.getQueueName());
 			queueMap.remove(queueId);
+			
+			IdSetBean<String> idSet = servId2QueueIdMap.get(servId);
+			if(idSet != null) {
+				idSet.removeId(queueId);
+			}
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 		} finally {
@@ -690,6 +733,25 @@ public class MetaData {
 		}
 		
 		return true;
+	}
+	
+	public List<QueueBean> getQueueListByServId (String servId){
+		if(servId2QueueIdMap == null) {
+			return null;
+		}
+		IdSetBean<String> idSet = servId2QueueIdMap.get(servId);
+		if(idSet == null || idSet.isEmpty()) {
+			return null;
+		}
+		List<QueueBean> list = new ArrayList<>();
+		Iterator<String> it = idSet.iterator();
+		while (it.hasNext()) {
+			String queueId = it.next();
+			QueueBean queueBean = getQueueBeanById(queueId);
+			if(queueBean != null)
+				list.add(queueBean);
+		}
+		return list;
 	}
 	
 	public QueueBean getQueueBeanByName(String queueName) {
