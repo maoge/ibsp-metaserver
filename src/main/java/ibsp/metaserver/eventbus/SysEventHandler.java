@@ -12,6 +12,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ibsp.metaserver.bean.InstanceDtlBean;
 import ibsp.metaserver.bean.ResultBean;
 import ibsp.metaserver.dbservice.CacheService;
 import ibsp.metaserver.global.ClientStatisticData;
@@ -90,36 +91,39 @@ public class SysEventHandler implements Handler<Message<String>> {
 				break;
 			
 			//接入机扩缩容
-			case e61:				
-				if (uuid.equals(MetaData.get().getUUID())) {
-					notifyCacheProxy(json.getString(FixHeader.HEADER_INSTANCE_ID), true);
-				}
-				break;		
+			case e61:		
 			case e62:
 				if (uuid.equals(MetaData.get().getUUID())) {
-					notifyCacheProxy(json.getString(FixHeader.HEADER_INSTANCE_ID), false);
+					JsonObject proxyInfo = CacheService.getProxyInfoByID(
+							json.getString(FixHeader.HEADER_INSTANCE_ID), new ResultBean());
+					generalNotify(type, servId, proxyInfo.toString(),
+							ClientStatisticData.get().getCacheClients());
 				}
 				break;				
 			
+			//redis故障切换
 			case e63:
 				if (uuid.equals(MetaData.get().getUUID())) {
-					notifyCacheHaSwitch(servId, jsonStr, false);
+					generalNotify(type, servId, jsonStr,
+							ClientStatisticData.get().getCacheProxies());
 				}
+				//update metadata
+				InstanceDtlBean cluster =
+						MetaData.get().getInstanceDtlBean(json.getString(FixHeader.HEADER_CLUSTER_ID));
+				cluster.setAttribute(FixHeader.HEADER_MASTER_ID, 
+						json.getString(FixHeader.HEADER_NEW_MASTER_ID));
 				break;
 				
 			//redis节点down
 			case e64:
 				break;
 				
-			//接入机扩缩容
-			case e71:				
-				if (uuid.equals(MetaData.get().getUUID())) {
-					notifyTidbServer(servId, jsonStr, true);
-				}
-				break;		
+			//Tidb Server扩缩容
+			case e71:
 			case e72:
 				if (uuid.equals(MetaData.get().getUUID())) {
-					notifyTidbServer(servId, jsonStr, false);
+					generalNotify(type, servId, jsonStr, 
+							ClientStatisticData.get().getDbClients());
 				}
 				break;	
 				
@@ -140,43 +144,14 @@ public class SysEventHandler implements Handler<Message<String>> {
 			}
 		}
 		
-		private void notifyCacheProxy(String instId, boolean deploy) {
-			
-			JsonObject proxyInfo = CacheService.getProxyInfoByID(instId, new ResultBean());
-				
+		private void generalNotify(EventType type, String servId, String jsonStr, Set<String> clients) {
 			EventBean evBean = new EventBean();
-			if (deploy) {
-				evBean.setEvType(EventType.e61);
-			} else {
-				evBean.setEvType(EventType.e62);
-			}
-			evBean.setServID(proxyInfo.getString("SERV_ID"));
-			evBean.setJsonStr(proxyInfo.toString());
-			String msg = evBean.asJsonString();
-				
-			Set<String> clientSet = ClientStatisticData.get().getCacheClients();
-			for (String addr : clientSet) {
-				String arr[] = addr.split(":");
-				String ip   = arr[0];
-				int    port = Integer.valueOf(arr[1]);
-					
-				EventNotifier notifier = new EventNotifier(ip, port, msg);
-				String info = String.format("notify cache proxy expansion event %s:%d %s", ip, port, msg);
-				logger.info(info);
-				WorkerPool.get().execute(notifier);
-			}
-		}
-
-		private void notifyCacheHaSwitch(String servId, String jsonStr, boolean deploy) {
-
-			EventBean evBean = new EventBean();
-			evBean.setEvType(EventType.e63);
+			evBean.setEvType(type);
 			evBean.setServID(servId);
 			evBean.setJsonStr(jsonStr);
 			String msg = evBean.asJsonString();
-				
-			Set<String> proxySet = ClientStatisticData.get().getCacheProxies();
-			for (String addr : proxySet) {
+			
+			for (String addr : clients) {
 				String arr[] = addr.split(":");
 				String ip   = arr[0];
 				int    port = Integer.valueOf(arr[1]);
@@ -187,31 +162,7 @@ public class SysEventHandler implements Handler<Message<String>> {
 				WorkerPool.get().execute(notifier);
 			}
 		}
-		
-		private void notifyTidbServer(String servId, String jsonStr, boolean deploy) {
 
-			EventBean evBean = new EventBean();
-			if (deploy) {
-				evBean.setEvType(EventType.e71);
-			} else {
-				evBean.setEvType(EventType.e72);
-			}
-			evBean.setServID(servId);
-			evBean.setJsonStr(jsonStr);
-			String msg = evBean.asJsonString();
-				
-			Set<String> clientSet = ClientStatisticData.get().getDbClients();
-			for (String addr : clientSet) {
-				String arr[] = addr.split(":");
-				String ip   = arr[0];
-				int    port = Integer.valueOf(arr[1]);
-					
-				EventNotifier notifier = new EventNotifier(ip, port, msg);
-				String info = String.format("notify cache proxy expansion event %s:%d %s", ip, port, msg);
-				logger.info(info);
-				WorkerPool.get().execute(notifier);
-			}
-		}
 	}
 	
 	private static class EventNotifier implements Runnable {

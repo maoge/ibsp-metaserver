@@ -122,10 +122,10 @@ public class CacheDeployer implements Deployer {
 			deployRet = deployProxy(serviceID, instDtl, sessionKey, result);
 			
 			JsonObject paramsJson = new JsonObject();
-			paramsJson.put(FixHeader.HEADER_SERV_ID, serviceID);
 			paramsJson.put(FixHeader.HEADER_INSTANCE_ID, instID);
 			EventBean evBean = new EventBean();
 			evBean.setEvType(EventType.e61);
+			evBean.setServID(serviceID);
 			evBean.setUuid(MetaData.get().getUUID());
 			evBean.setJsonStr(paramsJson.toString());
 			EventBusMsg.publishEvent(evBean);
@@ -207,10 +207,10 @@ public class CacheDeployer implements Deployer {
 			deployRet = undeployProxy(serviceID, instDtl, sessionKey, result);
 			
 			JsonObject paramsJson = new JsonObject();
-			paramsJson.put(FixHeader.HEADER_SERV_ID, serviceID);
 			paramsJson.put(FixHeader.HEADER_INSTANCE_ID, instID);
 			EventBean evBean = new EventBean();
 			evBean.setEvType(EventType.e62);
+			evBean.setServID(serviceID);
 			evBean.setUuid(MetaData.get().getUUID());
 			evBean.setJsonStr(paramsJson.toString());
 			EventBusMsg.publishEvent(evBean);

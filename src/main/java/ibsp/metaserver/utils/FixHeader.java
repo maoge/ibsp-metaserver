@@ -230,4 +230,7 @@ public class FixHeader {
 	
 	public static final String HEADER_PAGE_SIZE                = "pageSize";
 	public static final String HEADER_PAGE_NUMBER              = "pageNumber";
+	
+	public static final String HEADER_CLUSTER_ID               = "CLUSTER_ID";
+	public static final String HEADER_NEW_MASTER_ID            = "NEW_MASTER_ID";
 }

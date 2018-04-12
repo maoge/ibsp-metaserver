@@ -22,6 +22,7 @@ import ibsp.metaserver.eventbus.EventBusMsg;
 import ibsp.metaserver.eventbus.EventType;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.utils.CONSTS;
+import ibsp.metaserver.utils.FixHeader;
 import ibsp.metaserver.utils.HttpUtils;
 import ibsp.metaserver.utils.RedisUtils;
 import io.vertx.core.json.JsonObject;
@@ -72,8 +73,8 @@ public class CacheServiceMonitor implements Runnable {
 							} else {
 								//pulish e63
 								JsonObject paramsJson = new JsonObject();
-								paramsJson.put("CLUSTER_ID", cluster.getInstID());
-								paramsJson.put("NEW_MASTER_ID", slave.getInstID());
+								paramsJson.put(FixHeader.HEADER_CLUSTER_ID, cluster.getInstID());
+								paramsJson.put(FixHeader.HEADER_NEW_MASTER_ID, slave.getInstID());
 								
 								EventBean evBean = new EventBean();
 								evBean.setEvType(EventType.e63);
