@@ -1012,6 +1012,9 @@ public class MQService {
 				break;
 			}
 			if(queueBean != null) {
+				if(CONSTS.NOT_DEPLOYED.equals(queueBean.getDeploy())) {
+					continue;
+				}
 				if(CONSTS.TYPE_QUEUE.equals(queueBean.getQueueType())) {
 					String queueName = queueBean.getQueueName();
 					queues.add(queueName);
