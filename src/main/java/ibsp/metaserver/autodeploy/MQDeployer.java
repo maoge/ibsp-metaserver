@@ -431,6 +431,7 @@ public class MQDeployer implements Deployer {
 			boolean needJoinCluster, boolean needSetHaPlicy,
 			String erlCookie, String host, String firstNode, String sessionKey, ResultBean result) throws InterruptedException {
 		
+		String ip      = brokerInstanceDtl.getAttribute("IP").getAttrValue();
 		String port    = brokerInstanceDtl.getAttribute("PORT").getAttrValue();
 		String mgrPort = brokerInstanceDtl.getAttribute("MGR_PORT").getAttrValue();
 		String id      = brokerInstanceDtl.getAttribute("BROKER_ID").getAttrValue();
@@ -438,7 +439,7 @@ public class MQDeployer implements Deployer {
 		String mqPwd   = CONSTS.MQ_DEFAULT_PWD;
 		String mqVHost = CONSTS.MQ_DEFAULT_VHOST;
 		
-		String mqSName = String.format("%s@%s", id, host);
+		String mqName = String.format("%s@%s", id, ip);
 		
 		DeployFileBean rabbitMQFile = MetaData.get().getDeployFile(CONSTS.SERV_MQ_RABBIT);
 		String deployMQPath = String.format("%s/%s", CONSTS.MQ_DEPLOY_ROOT_PATH, port);
@@ -474,13 +475,13 @@ public class MQDeployer implements Deployer {
 		executor.rm(rabbitMQFile.getFileName(), false, sessionKey);
 		
 		String startContext = String.format(
-				"ERL_COOKIE=%s RABBITMQ_NODE_PORT=%s RABBITMQ_NODENAME=%s DISK_FREE_LIMIT=%s VM_MEMORY_HIGH_WATERMARK=%s MANAGEMENT_LISTEN_PORT=%s ./%s/sbin/rabbitmq-server -detached ",
-				erlCookie, port, mqSName, "" + CONSTS.DISK_FREE_LIMIT, "" + CONSTS.VM_MEMORY_HIGH_WATERMARK,
+				"ERL_COOKIE=%s RABBITMQ_NODE_PORT=%s RABBITMQ_NODENAME=%s RABBITMQ_USE_LONGNAME=true DISK_FREE_LIMIT=%s VM_MEMORY_HIGH_WATERMARK=%s MANAGEMENT_LISTEN_PORT=%s ./%s/sbin/rabbitmq-server -detached ",
+				erlCookie, port, mqName, "" + CONSTS.DISK_FREE_LIMIT, "" + CONSTS.VM_MEMORY_HIGH_WATERMARK,
 				mgrPort, CONSTS.MQ_DEPLOY_PATH);
 		executor.createStartShell(startContext);
 
-		String stopContext = String.format("ERL_COOKIE=%s ./%s/sbin/rabbitmqctl -n %s stop ", erlCookie,
-				CONSTS.MQ_DEPLOY_PATH, mqSName);
+		String stopContext = String.format("ERL_COOKIE=%s RABBITMQ_USE_LONGNAME=true ./%s/sbin/rabbitmqctl -n %s stop ", erlCookie,
+				CONSTS.MQ_DEPLOY_PATH, mqName);
 		executor.createStopShell(stopContext);
 		
 		if (!executor.isPortUsed(port, sessionKey)) {
@@ -501,41 +502,41 @@ public class MQDeployer implements Deployer {
 			} while (!executor.isPortUsed(port, sessionKey));
 			Thread.sleep(3000L);
 			
-			String addMqUser = String.format("ERL_COOKIE=%s ./%s/sbin/rabbitmqctl -n %s add_user %s %s",
-					erlCookie, CONSTS.MQ_DEPLOY_PATH, mqSName, mqUser, mqPwd);
+			String addMqUser = String.format("ERL_COOKIE=%s RABBITMQ_USE_LONGNAME=true ./%s/sbin/rabbitmqctl -n %s add_user %s %s",
+					erlCookie, CONSTS.MQ_DEPLOY_PATH, mqName, mqUser, mqPwd);
 			executor.execSingleLine(addMqUser, sessionKey);
 			
-			String permission = String.format("ERL_COOKIE=%s ./%s/sbin/rabbitmqctl -n %s set_permissions -p %s %s '.*' '.*' '.*'",
-					erlCookie, CONSTS.MQ_DEPLOY_PATH, mqSName, mqVHost, mqUser);
+			String permission = String.format("ERL_COOKIE=%s RABBITMQ_USE_LONGNAME=true ./%s/sbin/rabbitmqctl -n %s set_permissions -p %s %s '.*' '.*' '.*'",
+					erlCookie, CONSTS.MQ_DEPLOY_PATH, mqName, mqVHost, mqUser);
 			executor.execSingleLine(permission, sessionKey);
 			
-			String addRole = String.format("ERL_COOKIE=%s ./%s/sbin/rabbitmqctl -n %s set_user_tags %s administrator",
-					erlCookie, CONSTS.MQ_DEPLOY_PATH, mqSName, mqUser);
+			String addRole = String.format("ERL_COOKIE=%s RABBITMQ_USE_LONGNAME=true ./%s/sbin/rabbitmqctl -n %s set_user_tags %s administrator",
+					erlCookie, CONSTS.MQ_DEPLOY_PATH, mqName, mqUser);
 			executor.execSingleLine(addRole, sessionKey);
 			
-			String addPluginMgt = String.format("ERL_COOKIE=%s ./%s/sbin/rabbitmq-plugins -n %s enable rabbitmq_management --online",
-					erlCookie, CONSTS.MQ_DEPLOY_PATH, mqSName);
+			String addPluginMgt = String.format("ERL_COOKIE=%s RABBITMQ_USE_LONGNAME=true ./%s/sbin/rabbitmq-plugins -n %s enable rabbitmq_management --online",
+					erlCookie, CONSTS.MQ_DEPLOY_PATH, mqName);
 			executor.execSingleLine(addPluginMgt, sessionKey);
 			
-			String addPluginMgtAgent = String.format("ERL_COOKIE=%s ./%s/sbin/rabbitmq-plugins -n %s enable rabbitmq_management_agent --online",
-					erlCookie, CONSTS.MQ_DEPLOY_PATH, mqSName);
+			String addPluginMgtAgent = String.format("ERL_COOKIE=%s RABBITMQ_USE_LONGNAME=true ./%s/sbin/rabbitmq-plugins -n %s enable rabbitmq_management_agent --online",
+					erlCookie, CONSTS.MQ_DEPLOY_PATH, mqName);
 			executor.execSingleLine(addPluginMgtAgent, sessionKey);
 			
 			if (needJoinCluster) {
-				String stopApp = String.format("ERL_COOKIE=%s ./%s/sbin/rabbitmqctl -n %s stop_app",
-												erlCookie, CONSTS.MQ_DEPLOY_PATH, mqSName);
+				String stopApp = String.format("ERL_COOKIE=%s RABBITMQ_USE_LONGNAME=true ./%s/sbin/rabbitmqctl -n %s stop_app",
+												erlCookie, CONSTS.MQ_DEPLOY_PATH, mqName);
 				executor.execSingleLine(stopApp, sessionKey);
 				
-				String resetApp = String.format("ERL_COOKIE=%s ./%s/sbin/rabbitmqctl -n %s reset",
-												erlCookie, CONSTS.MQ_DEPLOY_PATH, mqSName);
+				String resetApp = String.format("ERL_COOKIE=%s RABBITMQ_USE_LONGNAME=true ./%s/sbin/rabbitmqctl -n %s reset",
+												erlCookie, CONSTS.MQ_DEPLOY_PATH, mqName);
 				executor.execSingleLine(resetApp, sessionKey);
 
-				String joinCluster = String.format("ERL_COOKIE=%s ./%s/sbin/rabbitmqctl -n %s join_cluster %s",
-												erlCookie, CONSTS.MQ_DEPLOY_PATH, mqSName, firstNode);
+				String joinCluster = String.format("ERL_COOKIE=%s RABBITMQ_USE_LONGNAME=true ./%s/sbin/rabbitmqctl -n %s join_cluster %s",
+												erlCookie, CONSTS.MQ_DEPLOY_PATH, mqName, firstNode);
 				executor.execSingleLine(joinCluster, sessionKey);
 
-				String startApp = String.format("ERL_COOKIE=%s ./%s/sbin/rabbitmqctl -n %s start_app",
-												erlCookie, CONSTS.MQ_DEPLOY_PATH, mqSName);
+				String startApp = String.format("ERL_COOKIE=%s RABBITMQ_USE_LONGNAME=true ./%s/sbin/rabbitmqctl -n %s start_app",
+												erlCookie, CONSTS.MQ_DEPLOY_PATH, mqName);
 				executor.execSingleLine(startApp, sessionKey);
 			}
 			
@@ -545,8 +546,8 @@ public class MQDeployer implements Deployer {
 				// %s@%s set_policy ha-all \".\" '{\"ha-mode\":\"all\",
 				// \"ha-sync-mode\":\"automatic\", \"ha-sync-batch-size\":%d}'", erlCookie,
 				// deployPath, mqSName, mqHost, CONSTS.HA_SYNC_BATCH_SIZE);
-				String setHaPolicy = String.format("ERL_COOKIE=%s ./%s/sbin/rabbitmqctl -n %s set_policy ha-all \".\" '{\"ha-mode\":\"all\", \"ha-sync-mode\":\"automatic\"}'",
-													erlCookie, CONSTS.MQ_DEPLOY_PATH, mqSName);
+				String setHaPolicy = String.format("ERL_COOKIE=%s RABBITMQ_USE_LONGNAME=true ./%s/sbin/rabbitmqctl -n %s set_policy ha-all \".\" '{\"ha-mode\":\"all\", \"ha-sync-mode\":\"automatic\"}'",
+													erlCookie, CONSTS.MQ_DEPLOY_PATH, mqName);
 				executor.execSingleLine(setHaPolicy, sessionKey);
 			}
 			
