@@ -200,7 +200,7 @@ public class MetaData {
 		try {
 			intanceLock.lock();
 			
-			List<ServiceBean> list = MetaDataService.getAllDeployedServices();
+			List<ServiceBean> list = MetaDataService.getAllServices();
 			if (list == null || list.isEmpty())
 				return;
 			
@@ -544,7 +544,7 @@ public class MetaData {
 		switch (type) {
 		case e3:
 		case e4:
-			InstanceDtlBean instDtl = MetaDataService.getInstanceDtl(instID);
+			InstanceDtlBean instDtl = MetaDataService.getInstanceDtlFromDB(instID);
 			if (instDtl != null) {
 				instanceDtlMap.put(instID, instDtl);
 			}
@@ -573,7 +573,7 @@ public class MetaData {
 		switch (type) {
 		case e6:
 		case e7:
-			ServiceBean service = MetaDataService.getService(instID);
+			ServiceBean service = MetaDataService.getServiceFromDB(instID);
 			if (service != null) {
 				serviceMap.put(instID, service);
 			}
@@ -936,6 +936,20 @@ public class MetaData {
 		return serviceMap;
 	}
 	
+	public ServiceBean getService(String servID) {
+		return serviceMap.get(servID);
+	}
+	
+	public String getServiceName(String servId) {
+		if(HttpUtils.isNotNull(servId)) {
+			ServiceBean service = serviceMap.get(servId);
+			if(service != null) {
+				return service.getServName();
+			}
+		}
+		return "";
+	}
+	
 	public String getServiceCollectdID(String servID) {
 		ServiceBean servBean = serviceMap.get(servID);
 		if (servBean == null)
@@ -1087,6 +1101,10 @@ public class MetaData {
 		return topo;
 	}
 	
+	public Set<String> getSubNodes(String parentID) {
+		return this.topo.get(parentID, CONSTS.TOPO_TYPE_CONTAIN);
+	}
+	
 	public JsonArray getMetaTreeByInstId(String instId) {
 		JsonArray arr = new JsonArray();
 		getTreeChild(arr,instId);
@@ -1134,15 +1152,7 @@ public class MetaData {
 		return hasChilds;
 	}
 	
-	public String getServiceName(String servId) {
-		if(HttpUtils.isNotNull(servId)) {
-			ServiceBean service = serviceMap.get(servId);
-			if(service != null) {
-				return service.getServName();
-			}
-		}
-		return "";
-	}
+
 	
 	public List<InstanceDtlBean> getVbrokerByServId(String servId) {
 		ServiceBean servBean = serviceMap.get(servId);

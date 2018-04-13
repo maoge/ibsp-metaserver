@@ -517,6 +517,13 @@ public class ConfigDataService {
 			curd.putSqlBean(sqlAttr);
 		}
 		
+		JsonObject evJson = new JsonObject();
+		evJson.put("INST_ID", instID);
+		EventBean ev = new EventBean(EventType.e3);
+		ev.setUuid(MetaData.get().getUUID());
+		ev.setJsonStr(evJson.toString());
+		events.add(ev);
+		
 		// add relation
 		Iterator<Entry<String, Object>> itJson = ((JsonObject) json).iterator();
 		while (itJson.hasNext()) {
@@ -533,12 +540,12 @@ public class ConfigDataService {
 					sqlTopo.addParams(new Object[] { instID, subCmptID, CONSTS.TOPO_TYPE_CONTAIN });
 					curd.putSqlBean(sqlTopo);
 					
-					JsonObject evJson = new JsonObject();
+					evJson = new JsonObject();
 					evJson.put("INST_ID1", instID);
 					evJson.put("INST_ID2", subCmptID);
 					evJson.put("TOPO_TYPE", CONSTS.TOPO_TYPE_CONTAIN);
 					
-					EventBean ev = new EventBean(EventType.e1);
+					ev = new EventBean(EventType.e1);
 					ev.setUuid(MetaData.get().getUUID());
 					ev.setJsonStr(evJson.toString());
 					

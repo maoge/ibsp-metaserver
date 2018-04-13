@@ -1,5 +1,6 @@
 package ibsp.metaserver.dbservice;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -12,9 +13,13 @@ import ibsp.metaserver.bean.InstAttributeBean;
 import ibsp.metaserver.bean.InstanceDtlBean;
 import ibsp.metaserver.bean.ResultBean;
 import ibsp.metaserver.bean.SqlBean;
+import ibsp.metaserver.eventbus.EventBean;
+import ibsp.metaserver.eventbus.EventBusMsg;
+import ibsp.metaserver.eventbus.EventType;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.CRUD;
+import ibsp.metaserver.utils.FixHeader;
 import ibsp.metaserver.utils.HttpUtils;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -162,52 +167,34 @@ public class CacheService {
 	public static JsonObject getProxyInfoByID(String instID, ResultBean result) {
 		JsonObject res = new JsonObject();
 		
-		List<InstAttributeBean> proxy = MetaDataService.getInstanceAttribute(instID);
+		Map<String, InstAttributeBean> proxy = MetaDataService.getAttribute(instID, result);
 		if (proxy == null || proxy.size()==0) {
 			result.setRetCode(CONSTS.REVOKE_NOK);
 			result.setRetInfo("No instance found: "+instID);
 			return null;
 		}
 		
-		for (InstAttributeBean attr : proxy) {
-			String name = attr.getAttrName();
-			switch (name) {
-			case "IP":
-				res.put("IP", attr.getAttrValue());
-				break;
-			case "PORT":
-				res.put("PORT", attr.getAttrValue());
-				break;
-			case "STAT_PORT":
-				res.put("STAT_PORT", attr.getAttrValue());
-				break;
-			case "RW_SEPARATE":
-				res.put("RW_SEPARATE", attr.getAttrValue());
-				break;
-			case "CACHE_PROXY_ID":
-				res.put("ID", attr.getAttrValue());
-				break;
-			case "CACHE_PROXY_NAME":
-				res.put("NAME", attr.getAttrValue());
-				break;
-			default:
-				break;
-			}
+		res.put("IP", proxy.get(FixHeader.HEADER_IP).getAttrValue());
+		res.put("PORT", proxy.get(FixHeader.HEADER_PORT).getAttrValue());
+		res.put("STAT_PORT", proxy.get(FixHeader.HEADER_STAT_PORT).getAttrValue());
+		res.put("ID", proxy.get("CACHE_PROXY_ID").getAttrValue());
+		res.put("NAME", proxy.get("CACHE_PROXY_NAME").getAttrValue());
+		if (proxy.containsKey("RW_SEPARATE"))
+			res.put("RW_SEPARATE", proxy.get("RW_SEPARATE").getAttrValue());
 			
-			SqlBean sqlBean = new SqlBean(GET_SERVICE_NAME_BY_PROXY_ID);
-			sqlBean.addParams(new Object[] {instID});
-			CRUD c = new CRUD();
-			c.putSqlBean(sqlBean);
-			try {
-				JsonObject object = c.queryForJSONObject();
-				res.put("SERV_ID", object.getString("INST_ID"));
-				res.put("SERV_NAME", object.getString("SERV_NAME"));
-			} catch (Exception e) {
-				logger.error(e.getMessage(), e);
-				result.setRetCode(CONSTS.REVOKE_NOK);
-				result.setRetInfo(e.getMessage());
-				return null;
-			}
+		SqlBean sqlBean = new SqlBean(GET_SERVICE_NAME_BY_PROXY_ID);
+		sqlBean.addParams(new Object[] {instID});
+		CRUD c = new CRUD();
+		c.putSqlBean(sqlBean);
+		try {
+			JsonObject object = c.queryForJSONObject();
+			res.put("SERV_ID", object.getString("INST_ID"));
+			res.put("SERV_NAME", object.getString("SERV_NAME"));
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(e.getMessage());
+			return null;
 		}
 		return res;
 	}
@@ -320,6 +307,14 @@ public class CacheService {
 		c.putSqlBean(sqlBean);
 		try {
 			c.executeUpdate();
+			
+			JsonObject evJson = new JsonObject();
+			evJson.put("INST_ID", clusterID);
+			EventBean ev = new EventBean(EventType.e4);
+			ev.setUuid(MetaData.get().getUUID());
+			ev.setJsonStr(evJson.toString());
+			EventBusMsg.publishEvent(ev);
+			
 			return true;
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
@@ -331,13 +326,24 @@ public class CacheService {
 	
 	public static boolean updateHashSlotByCluster(Map<String, String> slots, ResultBean result) {
 		CRUD c = new CRUD();
+		List<EventBean> events = new ArrayList<EventBean>();
 		for (String clusterID : slots.keySet()) {
 			SqlBean sqlBean = new SqlBean(UPDATE_CACHE_SLOT);
 			sqlBean.addParams(new Object[] {slots.get(clusterID), clusterID});
 			c.putSqlBean(sqlBean);
+			
+			JsonObject evJson = new JsonObject();
+			evJson.put("INST_ID", clusterID);
+			EventBean ev = new EventBean(EventType.e4);
+			ev.setUuid(MetaData.get().getUUID());
+			ev.setJsonStr(evJson.toString());
+			events.add(ev);
 		}
 		try {
 			c.executeUpdate();
+			for (EventBean event : events) {
+				EventBusMsg.publishEvent(event);
+			}
 			return true;
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
