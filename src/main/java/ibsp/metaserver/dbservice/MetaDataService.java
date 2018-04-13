@@ -46,15 +46,6 @@ public class MetaDataService {
 	private static Logger logger = LoggerFactory.getLogger(MetaDataService.class);
 	private static Map<String, String> SERVICE_TYPE_MAPPER = null;
 	
-	private static final String SEL_TOE = "SELECT t1.INST_ID2 as INST_ID, t2.CMPT_ID as CMPT_ID FROM t_topology t1, t_instance t2 "
-            +  "WHERE t1.INST_ID1 = ? AND t1.INST_ID2 = t2.INST_ID";
-	
-	private static final String SEL_INSTANCE = "SELECT INST_ID,CMPT_ID,IS_DEPLOYED,POS_X,POS_Y,WIDTH,HEIGHT,ROW,COL "
-			+ "FROM t_instance WHERE INST_ID = ?";
-
-	private static final String SEL_ATTRIBUTE = "SELECT INST_ID,ATTR_ID,ATTR_NAME,ATTR_VALUE "
-			+ "FROM t_instance_attr WHERE INST_ID = ?";
-	
 	private static final String SEL_DEPLOY_FILE   = "SELECT FILE_TYPE,FILE_NAME,FILE_DIR,IP_ADDRESS,USER_NAME,USER_PWD,FTP_PORT "
             + "FROM t_file_deploy t1, t_ftp_host t2 "
             + "WHERE t1.HOST_ID = t2.HOST_ID";
@@ -101,11 +92,10 @@ public class MetaDataService {
 		try {
 			
 			//delete subInstance first(VBroker, cache node cluster)
-			InstanceDtlBean dtl = MetaDataService.getInstanceDtlWithSubInfo(instID, result);
-			if (dtl.getSubInstances()!=null && dtl.getSubInstances().size()>0) {
-				Collection<InstanceDtlBean> subInstances = dtl.getSubInstances().values();
-				for (InstanceDtlBean instance : subInstances) {
-					if (!deleteInstance(instID, instance.getInstID(), result))
+			Set<String> childs = MetaDataService.getSubNodes(instID, result);
+			if (childs != null && childs.size()>0) {
+				for (String child : childs) {
+					if (!deleteInstance(instID, child, result))
 						return false;
 				}
 			}
@@ -185,6 +175,142 @@ public class MetaDataService {
 		return res;
 	}
 	
+	public static JsonObject loadServiceTopoByInstID(String instID, ResultBean result) {
+		ServiceBean serviceBean = getService(instID, result);
+		if (serviceBean == null)
+			return null;
+		
+		String servType = serviceBean.getServType();
+		String name = SERVICE_TYPE_MAPPER.get(servType);
+		Map<String, String> skeleton = null;
+		JsonObject topoJson = null;
+		JsonObject attrJson = null;
+		try {
+			skeleton = Validator.getSkeleton(name);
+			
+			topoJson = new JsonObject();
+			attrJson = new JsonObject();
+			
+			JsonArray deployFlagArr = new JsonArray();
+			//if service itself is null, return not init
+			InstanceBean instBean = MetaDataService.getInstance(instID, result);
+			if (instBean == null) {
+				result.setRetCode(CONSTS.SERVICE_NOT_INIT);
+				result.setRetInfo("");
+				return null;
+			}
+			MetaComponentBean component = MetaData.get().getComponentByID(instBean.getCmptID());
+			if (component == null) {
+				result.setRetCode(CONSTS.REVOKE_NOK);
+				result.setRetInfo(CONSTS.ERR_METADATA_NOT_FOUND);
+				return null;
+			}
+			
+			if (!addInstanceAttribute(instID, attrJson, skeleton, deployFlagArr)) {
+				result.setRetCode(CONSTS.REVOKE_NOK);
+				result.setRetInfo(CONSTS.ERR_METADATA_NOT_FOUND);
+				return null;
+			}
+			
+			topoJson.put(FixHeader.HEADER_SERV_CLAZZ, component.getServClazz());
+			topoJson.put(component.getCmptName(), attrJson);
+			topoJson.put(FixHeader.HEADER_DEPLOY_FLAG, deployFlagArr);
+		} catch (IOException e) {
+			logger.error(e.getMessage(), e);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(e.getMessage());
+			return null;
+		}
+		
+		return topoJson;
+	}
+	
+	private static boolean addInstanceAttribute(String instID, JsonObject parentJson, Map<String, String> skeleton, JsonArray deployFlagArr) {
+		ResultBean resultBean = new ResultBean();
+		InstanceBean instBean = MetaDataService.getInstance(instID, resultBean);
+		if (instBean == null)
+			return false;
+		
+		int cmptID = instBean.getCmptID();
+		MetaComponentBean component = MetaData.get().getComponentByID(cmptID);
+		if (component == null) {
+			return false;
+		}
+		
+		JsonObject deployJson = new JsonObject();
+		deployJson.put(instID, instBean.getIsDeployed());
+		deployFlagArr.add(deployJson);
+		
+		//JsonObject attrJson = getInstAttr(instID, instBean);
+		//parentJson.put(component.getCmptName(), attrJson);
+		
+		Map<String, InstAttributeBean> attrs = getAttribute(instID, new ResultBean());
+		for (InstAttributeBean attr : attrs.values()) {
+			parentJson.put(attr.getAttrName(), attr.getAttrValue());
+		}
+		
+		// instance POS
+		JsonObject posJson = instBean.getPosAsJson();
+		if (posJson != null) {
+			parentJson.put(FixHeader.HEADER_POS, posJson);
+		}
+		
+		// sub containers
+		String subComponents = component.getSubServType();
+		// have recursive to end point
+		if (HttpUtils.isNull(subComponents)) {
+			return true;
+		}
+		String[] subCmptArr = subComponents.split(",");
+		for (String subCmpt : subCmptArr) {
+			String subNodeType = skeleton.get(subCmpt);
+			//attrJson
+			if (subNodeType.equals(CONSTS.SCHEMA_ARRAY)) {
+				//attrJson.put(subCmpt, new JsonArray());
+				parentJson.put(subCmpt, new JsonArray());
+			} else {
+				//attrJson.put(subCmpt, new JsonObject());
+				parentJson.put(subCmpt, new JsonObject());
+			}
+		}
+		
+		List<InstanceRelationBean> relations = getInstRelations(instID);
+		if (relations == null || relations.isEmpty()) {
+			return true;
+		}
+		
+		// then add attribute of it related nodes by recursively traversal
+		for (InstanceRelationBean relation : relations) {
+			String toeID = (String) relation.getTOE(instID);
+			
+			InstanceBean subInstBean = MetaDataService.getInstance(toeID, resultBean);
+			MetaComponentBean subComponent = MetaData.get().getComponentByID(subInstBean.getCmptID());
+			if (subComponent == null) {
+				return false;
+			}
+			
+			if (skeleton.get(subComponent.getCmptName()).equals(CONSTS.SCHEMA_ARRAY)) {
+				JsonArray subCmptJson = parentJson.getJsonArray(subComponent.getCmptName());
+				JsonObject tmpJson = new JsonObject();
+				if (addInstanceAttribute(toeID, tmpJson, skeleton, deployFlagArr)) {
+					subCmptJson.add(tmpJson);
+				} else {
+					return false;
+				}
+				
+			} else {
+				JsonObject subCmptJson = parentJson.getJsonObject(subComponent.getCmptName());
+				if (!addInstanceAttribute(toeID, subCmptJson, skeleton, deployFlagArr)) {
+					return false;
+				}
+			}
+		}
+		
+		return true;
+	}
+	
+	
+	//Get data from DB
 	public static List<MetaAttributeBean> getAllMetaAttribute() {
 		String sql = "select ATTR_ID, ATTR_NAME, ATTR_NAME_CN, AUTO_GEN from t_meta_attr";
 		List<MetaAttributeBean> metaAttrList = null;
@@ -264,179 +390,6 @@ public class MetaDataService {
 		return cmpt2AttrList;
 	}
 	
-	public static Map<Integer, String> getSubNodesWithType(String parentID, ResultBean result) {
-		Map<Integer, String> ret = null;
-		
-		try {
-			SqlBean sqlBean = new SqlBean(SEL_TOE);
-			sqlBean.addParams(new Object[] { parentID });
-			
-			CRUD c = new CRUD();
-			c.putSqlBean(sqlBean);
-			
-			List<HashMap<String, Object>> resultList = c.queryForList();
-			if (resultList == null || resultList.size() == 0)
-				return null;
-			
-			ret = new HashMap<Integer, String>();
-			for (HashMap<String, Object> item : resultList) {
-				Integer cmptID = (Integer) item.get("CMPT_ID");
-				String instID = (String) item.get("INST_ID");
-				ret.put(cmptID, instID);
-			}
-			
-		} catch (Exception e) {
-			logger.error(e.getMessage(), e);
-			result.setRetCode(CONSTS.REVOKE_NOK);
-			result.setRetInfo(e.getMessage());
-			return null;
-		}
-		
-		return ret;
-	}
-	
-	public static Set<String> getSubNodes(String parentID, ResultBean result) {
-		Set<String> ret = null;
-		
-		try {
-			SqlBean sqlBean = new SqlBean(SEL_TOE);
-			sqlBean.addParams(new Object[] { parentID });
-			
-			CRUD c = new CRUD();
-			c.putSqlBean(sqlBean);
-			
-			List<HashMap<String, Object>> resultList = c.queryForList();
-			if (resultList == null || resultList.size() == 0)
-				return null;
-			
-			ret = new HashSet<String>();
-			for (HashMap<String, Object> item : resultList) {
-				String instID = (String) item.get("INST_ID");
-				ret.add(instID);
-			}
-			
-		} catch (Exception e) {
-			logger.error(e.getMessage(), e);
-			result.setRetCode(CONSTS.REVOKE_NOK);
-			result.setRetInfo(e.getMessage());
-			return null;
-		}
-		
-		return ret;
-	}
-	
-	public static InstanceBean getInstance(String instID, ResultBean result) {
-		InstanceBean instance = null;
-		
-		try {
-			SqlBean sqlBean = new SqlBean(SEL_INSTANCE);
-			sqlBean.addParams(new Object[] { instID });
-			
-			CRUD c = new CRUD();
-			c.putSqlBean(sqlBean);
-			
-			Map<String, Object> resultMap = c.queryForMap();
-			if (resultMap != null) {
-				instance = InstanceBean.convert(resultMap);
-			}
-		} catch (Exception e) {
-			logger.error(e.getMessage(), e);
-			result.setRetCode(CONSTS.REVOKE_NOK);
-			result.setRetInfo(e.getMessage());
-			return null;
-		}
-		
-		return instance;
-	}
-	
-	public static Map<String, InstAttributeBean> getAttribute(String instID, ResultBean result) {
-		Map<String, InstAttributeBean> attrMap = null;
-		
-		try {
-			SqlBean sqlBean = new SqlBean(SEL_ATTRIBUTE);
-			sqlBean.addParams(new Object[] { instID });
-			
-			CRUD c = new CRUD();
-			c.putSqlBean(sqlBean);
-			
-			List<HashMap<String, Object>> resultList = c.queryForList();
-			if (resultList != null && resultList.size() > 0) {
-				attrMap = new HashMap<String, InstAttributeBean>();
-				for (HashMap<String, Object> item : resultList) {
-					InstAttributeBean attrBean = InstAttributeBean.convert(item);
-					attrMap.put(attrBean.getAttrName(), attrBean);
-				}
-			}
-		} catch (Exception e) {
-			logger.error(e.getMessage(), e);
-			result.setRetCode(CONSTS.REVOKE_NOK);
-			result.setRetInfo(e.getMessage());
-			return null;
-		}
-		
-		return attrMap;
-	}
-	
-	public static InstanceDtlBean getInstanceDtl(String instID, ResultBean result) {
-		InstanceBean instanceBean = MetaDataService.getInstance(instID, result);
-		Map<String, InstAttributeBean> instanceAttr = MetaDataService.getAttribute(instID, result);
-		if (instanceBean == null || instanceAttr == null) {
-			return null;
-		}
-		
-		if (result.getRetCode() == CONSTS.REVOKE_NOK) {
-			return null;
-		}
-		
-		return new InstanceDtlBean(instanceBean, instanceAttr);
-	}
-	
-	public static InstanceDtlBean getInstanceDtlWithSubInfo(String instId, ResultBean result) {
-		InstanceDtlBean instDtl = MetaDataService.getInstanceDtl(instId, result);
-		
-		if (instDtl == null) {
-			return null;
-		}
-		
-		Set<String> subIds = MetaDataService.getSubNodes(instId, result);
-		if (subIds == null)
-			return instDtl;
-		
-		for (String id : subIds) {
-			InstanceDtlBean subInstance = MetaDataService.getInstanceDtl(id, result);
-			if (subInstance == null)
-				continue;
-			
-			instDtl.addSubInstance(subInstance);
-		}
-		
-		return instDtl;
-	}
-	
-	public static ServiceBean getService(String instID) {
-		String sql = "select INST_ID, SERV_NAME, SERV_TYPE, IS_DEPLOYED, CREATE_TIME, USER, PASSWORD from t_service where INST_ID = ?";
-		ServiceBean serviceBean = null;
-		
-		try {
-			SqlBean sqlBean = new SqlBean(sql);
-			sqlBean.addParams(new Object[] { instID });
-			
-			CRUD c = new CRUD();
-			c.putSqlBean(sqlBean);
-			
-			Map<String, Object> result = c.queryForMap();
-			if (result == null) {
-				return null;
-			}
-			
-			serviceBean = ServiceBean.convert(result);
-		} catch (Exception e) {
-			logger.error(e.getMessage(), e);
-		}
-		
-		return serviceBean;
-	}
-	
 	public static List<CollectQuotaBean> getAllCollectQuotas() {
 		String sql = "select QUOTA_CODE, QUOTA_NAME from t_meta_collect_quota";
 		List<CollectQuotaBean> quotas = null;
@@ -468,14 +421,13 @@ public class MetaDataService {
 		return quotas;
 	}
 	
-	public static List<ServiceBean> getAllDeployedServices() {
+	public static List<ServiceBean> getAllServices() {
 		String sql = "select INST_ID, SERV_NAME, SERV_TYPE, IS_DEPLOYED, CREATE_TIME, USER, PASSWORD "
-				+ "from t_service where IS_DEPLOYED = ?";
+				+ "from t_service";
 		List<ServiceBean> services = null;
 		
 		try {
 			SqlBean sqlBean = new SqlBean(sql);
-			sqlBean.addParams(new Object[] { CONSTS.DEPLOYED });
 			
 			CRUD c = new CRUD();
 			c.putSqlBean(sqlBean);
@@ -624,9 +576,37 @@ public class MetaDataService {
 		return instAttrs;
 	}
 	
-	public static InstanceDtlBean getInstanceDtl(String instID) {
-		InstanceBean instance = getInstance(instID);
-		List<InstAttributeBean> attrs = getInstanceAttribute(instID);
+	public static List<DeployFileBean> loadDeployFile() {
+		SqlBean sqlInst = new SqlBean(SEL_DEPLOY_FILE);
+		
+		CRUD curd = new CRUD();
+		curd.putSqlBean(sqlInst);
+		
+		List<DeployFileBean> deployFiles = null;
+		
+		try {
+			List<HashMap<String, Object>> queryList = curd.queryForList();
+			if (queryList == null || queryList.isEmpty())
+				return null;
+			
+			deployFiles = new LinkedList<DeployFileBean>();
+			
+			Iterator<HashMap<String, Object>> it = queryList.iterator();
+			while (it.hasNext()) {
+				HashMap<String, Object> mapper = it.next();
+				DeployFileBean deployFile = DeployFileBean.convert(mapper);
+				deployFiles.add(deployFile);
+			}
+		} catch (CRUDException e) {
+			logger.error(e.getMessage(), e);
+		}
+		
+		return deployFiles;
+	}
+	
+	public static InstanceDtlBean getInstanceDtlFromDB(String instID) {
+		InstanceBean instance = getInstanceFromDB(instID);
+		List<InstAttributeBean> attrs = getInstanceAttributeFromDB(instID);
 		
 		if (instance == null)
 			return null;
@@ -639,7 +619,7 @@ public class MetaDataService {
 		return instDtl;
 	}
 	
-	public static InstanceBean getInstance(String instID) {
+	public static InstanceBean getInstanceFromDB(String instID) {
 		String sql = "select INST_ID, CMPT_ID, IS_DEPLOYED, POS_X, POS_Y, WIDTH, HEIGHT, ROW, COL "
 				+ "from t_instance where INST_ID = ?";
 		
@@ -664,7 +644,7 @@ public class MetaDataService {
 		return instance;
 	}
 	
-	public static List<InstAttributeBean> getInstanceAttribute(String instID) {
+	public static List<InstAttributeBean> getInstanceAttributeFromDB(String instID) {
 		String sql = "select INST_ID, ATTR_ID, ATTR_NAME, ATTR_VALUE "
 				+ "from t_instance_attr where INST_ID = ?";
 		
@@ -696,6 +676,30 @@ public class MetaDataService {
 		return attrs;
 	}
 	
+	public static ServiceBean getServiceFromDB(String instID) {
+		String sql = "select INST_ID, SERV_NAME, SERV_TYPE, IS_DEPLOYED, CREATE_TIME, USER, PASSWORD from t_service where INST_ID = ?";
+		ServiceBean serviceBean = null;
+		
+		try {
+			SqlBean sqlBean = new SqlBean(sql);
+			sqlBean.addParams(new Object[] { instID });
+			
+			CRUD c = new CRUD();
+			c.putSqlBean(sqlBean);
+			
+			Map<String, Object> result = c.queryForMap();
+			if (result == null) {
+				return null;
+			}
+			
+			serviceBean = ServiceBean.convert(result);
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+		}
+		
+		return serviceBean;
+	}
+	
 	private static List<InstanceRelationBean> getInstRelations(String instID) {
 		String sql = "select INST_ID1, INST_ID2, TOPO_TYPE from t_topology "
 				+ "where (INST_ID1 = ?) or (INST_ID2 = ? and TOPO_TYPE = ?)";
@@ -724,166 +728,114 @@ public class MetaDataService {
 		return result;
 	}
 	
-	private static boolean addInstanceAttribute(String instID, JsonObject parentJson, Map<String, String> skeleton, JsonArray deployFlagArr) {
-		ResultBean resultBean = new ResultBean();
-		InstanceBean instBean = MetaDataService.getInstance(instID, resultBean);
-		if (instBean == null)
-			return false;
-		
-		int cmptID = instBean.getCmptID();
-		MetaComponentBean component = MetaData.get().getComponentByID(cmptID);
-		if (component == null) {
-			return false;
-		}
-		
-		JsonObject deployJson = new JsonObject();
-		deployJson.put(instID, instBean.getIsDeployed());
-		deployFlagArr.add(deployJson);
-		
-		//JsonObject attrJson = getInstAttr(instID, instBean);
-		//parentJson.put(component.getCmptName(), attrJson);
-		
-		List<InstAttributeBean> attrs = getInstanceAttribute(instID);
-		for (InstAttributeBean attr : attrs) {
-			parentJson.put(attr.getAttrName(), attr.getAttrValue());
-		}
-		
-		// instance POS
-		JsonObject posJson = instBean.getPosAsJson();
-		if (posJson != null) {
-			parentJson.put(FixHeader.HEADER_POS, posJson);
-		}
-		
-		// sub containers
-		String subComponents = component.getSubServType();
-		// have recursive to end point
-		if (HttpUtils.isNull(subComponents)) {
-			return true;
-		}
-		String[] subCmptArr = subComponents.split(",");
-		for (String subCmpt : subCmptArr) {
-			String subNodeType = skeleton.get(subCmpt);
-			//attrJson
-			if (subNodeType.equals(CONSTS.SCHEMA_ARRAY)) {
-				//attrJson.put(subCmpt, new JsonArray());
-				parentJson.put(subCmpt, new JsonArray());
-			} else {
-				//attrJson.put(subCmpt, new JsonObject());
-				parentJson.put(subCmpt, new JsonObject());
-			}
-		}
-		
-		List<InstanceRelationBean> relations = getInstRelations(instID);
-		if (relations == null || relations.isEmpty()) {
-			return true;
-		}
-		
-		// then add attribute of it related nodes by recursively traversal
-		for (InstanceRelationBean relation : relations) {
-			String toeID = (String) relation.getTOE(instID);
-			
-			InstanceBean subInstBean = MetaDataService.getInstance(toeID, resultBean);
-			MetaComponentBean subComponent = MetaData.get().getComponentByID(subInstBean.getCmptID());
-			if (subComponent == null) {
-				return false;
-			}
-			
-			if (skeleton.get(subComponent.getCmptName()).equals(CONSTS.SCHEMA_ARRAY)) {
-				JsonArray subCmptJson = parentJson.getJsonArray(subComponent.getCmptName());
-				JsonObject tmpJson = new JsonObject();
-				if (addInstanceAttribute(toeID, tmpJson, skeleton, deployFlagArr)) {
-					subCmptJson.add(tmpJson);
-				} else {
-					return false;
-				}
-				
-			} else {
-				JsonObject subCmptJson = parentJson.getJsonObject(subComponent.getCmptName());
-				if (!addInstanceAttribute(toeID, subCmptJson, skeleton, deployFlagArr)) {
-					return false;
-				}
-			}
-		}
-		
-		return true;
-	}
 	
-	public static JsonObject loadServiceTopoByInstID(String instID, ResultBean result) {
-		ServiceBean serviceBean = getService(instID);
-		if (serviceBean == null)
-			return null;
-		
-		String servType = serviceBean.getServType();
-		String name = SERVICE_TYPE_MAPPER.get(servType);
-		Map<String, String> skeleton = null;
-		JsonObject topoJson = null;
-		JsonObject attrJson = null;
+	//get data from MetaData
+	public static Map<Integer, String> getSubNodesWithType(String parentID, ResultBean result) {
 		try {
-			skeleton = Validator.getSkeleton(name);
-			
-			topoJson = new JsonObject();
-			attrJson = new JsonObject();
-			
-			JsonArray deployFlagArr = new JsonArray();
-			//if service itself is null, return not init
-			InstanceBean instBean = MetaDataService.getInstance(instID, result);
-			if (instBean == null) {
-				result.setRetCode(CONSTS.SERVICE_NOT_INIT);
-				result.setRetInfo("");
-				return null;
+			Map<Integer, String> res = new HashMap<Integer, String>();
+			Set<String> childs = MetaData.get().getSubNodes(parentID);
+			for (String child : childs) {
+				int cmptID = MetaData.get().getInstanceDtlBean(child).getInstance().getCmptID();
+				res.put(cmptID, child);
 			}
-			MetaComponentBean component = MetaData.get().getComponentByID(instBean.getCmptID());
-			if (component == null) {
-				result.setRetCode(CONSTS.REVOKE_NOK);
-				result.setRetInfo(CONSTS.ERR_METADATA_NOT_FOUND);
-				return null;
-			}
-			
-			if (!addInstanceAttribute(instID, attrJson, skeleton, deployFlagArr)) {
-				result.setRetCode(CONSTS.REVOKE_NOK);
-				result.setRetInfo(CONSTS.ERR_METADATA_NOT_FOUND);
-				return null;
-			}
-			
-			topoJson.put(FixHeader.HEADER_SERV_CLAZZ, component.getServClazz());
-			topoJson.put(component.getCmptName(), attrJson);
-			topoJson.put(FixHeader.HEADER_DEPLOY_FLAG, deployFlagArr);
-		} catch (IOException e) {
+			return res;
+		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 			result.setRetCode(CONSTS.REVOKE_NOK);
 			result.setRetInfo(e.getMessage());
 			return null;
 		}
-		
-		return topoJson;
 	}
 	
-	public static List<DeployFileBean> loadDeployFile() {
-		SqlBean sqlInst = new SqlBean(SEL_DEPLOY_FILE);
-		
-		CRUD curd = new CRUD();
-		curd.putSqlBean(sqlInst);
-		
-		List<DeployFileBean> deployFiles = null;
-		
+	public static Set<String> getSubNodes(String parentID, ResultBean result) {
 		try {
-			List<HashMap<String, Object>> queryList = curd.queryForList();
-			if (queryList == null || queryList.isEmpty())
-				return null;
-			
-			deployFiles = new LinkedList<DeployFileBean>();
-			
-			Iterator<HashMap<String, Object>> it = queryList.iterator();
-			while (it.hasNext()) {
-				HashMap<String, Object> mapper = it.next();
-				DeployFileBean deployFile = DeployFileBean.convert(mapper);
-				deployFiles.add(deployFile);
-			}
-		} catch (CRUDException e) {
+			return MetaData.get().getSubNodes(parentID);
+		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(e.getMessage());
+			return null;
+		}
+	}
+	
+	public static InstanceBean getInstance(String instID, ResultBean result) {
+		try {
+			return MetaData.get().getInstanceDtlBean(instID).getInstance();
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(e.getMessage());
+			return null;
+		}
+	}
+	
+	public static Map<String, InstAttributeBean> getAttribute(String instID, ResultBean result) {
+		try {
+			return MetaData.get().getInstanceDtlBean(instID).getAttrMap();
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(e.getMessage());
+			return null;
+		}
+	}
+	
+	public static InstanceDtlBean getInstanceDtl(String instID, ResultBean result) {
+		try {
+			return MetaData.get().getInstanceDtlBean(instID);
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(e.getMessage());
+			return null;
+		}
+	}
+	
+	public static InstanceDtlBean getInstanceDtlWithSubInfo(String instId, ResultBean result) {
+		InstanceDtlBean instDtl = MetaData.get().getInstanceDtlBean(instId);
+		if (instDtl == null) {
+			return null;
 		}
 		
-		return deployFiles;
+		Set<String> subIds = MetaData.get().getSubNodes(instId);
+		if (subIds == null)
+			return instDtl;
+		
+		for (String id : subIds) {
+			InstanceDtlBean subInstance = MetaData.get().getInstanceDtlBean(id);
+			if (subInstance == null)
+				continue;
+			instDtl.addSubInstance(subInstance);
+		}
+		return instDtl;
 	}
 	
+	public static ServiceBean getService(String servID, ResultBean result) {
+		try {
+			return MetaData.get().getService(servID);
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(e.getMessage());
+			return null;
+		}
+	}
+	
+	public static Set<ServiceBean> getServicesByType(String type, ResultBean result) {
+		try {
+			Set<ServiceBean> res = new HashSet<ServiceBean>();
+			Collection<ServiceBean> services = MetaData.get().getServiceMap().values();
+			for (ServiceBean service : services) {
+				if (service.getServType().equals(type))
+					res.add(service);
+			}
+			return res;
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(e.getMessage());
+			return null;
+		}
+	}
+
 }

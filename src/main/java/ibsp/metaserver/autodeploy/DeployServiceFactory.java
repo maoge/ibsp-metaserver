@@ -39,7 +39,7 @@ public class DeployServiceFactory {
 	}
 	
 	public static boolean deployService(String serviceID, String sessionKey, ResultBean result) {
-		ServiceBean service = MetaDataService.getService(serviceID);
+		ServiceBean service = MetaDataService.getService(serviceID, result);
 		if (service == null) {
 			String err = String.format("service not found, id:%s", serviceID);
 			result.setRetCode(CONSTS.REVOKE_NOK);
@@ -81,7 +81,7 @@ public class DeployServiceFactory {
 	}
 	
 	public static boolean undeployService(String serviceID, String sessionKey, ResultBean result) {
-		ServiceBean service = MetaDataService.getService(serviceID);
+		ServiceBean service = MetaDataService.getService(serviceID, result);
 		if (service == null) {
 			String err = String.format("service not found, id:%s", serviceID);
 			result.setRetCode(CONSTS.REVOKE_NOK);
@@ -122,7 +122,7 @@ public class DeployServiceFactory {
 	public static boolean deployInstance(String serviceID, String instanceID,
 			String sessionKey, ResultBean result) {
 		
-		ServiceBean service = MetaDataService.getService(serviceID);
+		ServiceBean service = MetaDataService.getService(serviceID, result);
 		if (service == null) {
 			String err = String.format("service not found, id:%s", serviceID);
 			result.setRetCode(CONSTS.REVOKE_NOK);
@@ -163,7 +163,7 @@ public class DeployServiceFactory {
 	public static boolean undeployInstance(String serviceID, String instanceID,
 			String sessionKey, ResultBean result) {
 		
-		ServiceBean service = MetaDataService.getService(serviceID);
+		ServiceBean service = MetaDataService.getService(serviceID, result);
 		if (service == null) {
 			String err = String.format("service not found, id:%s", serviceID);
 			result.setRetCode(CONSTS.REVOKE_NOK);
@@ -278,7 +278,7 @@ public class DeployServiceFactory {
 	}
 	
 	public static boolean deleteService(String serviceID, String sessionKey, ResultBean result) {
-		ServiceBean service = MetaDataService.getService(serviceID);
+		ServiceBean service = MetaDataService.getService(serviceID, result);
 		if (service == null) {
 			String err = String.format("service not found, id:%s", serviceID);
 			result.setRetCode(CONSTS.REVOKE_NOK);

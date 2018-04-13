@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,11 +36,10 @@ public class CacheServiceMonitor implements Runnable {
 	@Override
 	public void run() {
 		try {
-			List<ServiceBean> serviceList = MetaDataService.getAllDeployedServices();
-			for (ServiceBean service : serviceList) {
-				if (!service.getServType().equals(CONSTS.SERV_TYPE_CACHE))
-					continue;
+			Set<ServiceBean> serviceSet = MetaDataService.getServicesByType(
+					CONSTS.SERV_TYPE_CACHE, new ResultBean());
 			
+			for (ServiceBean service : serviceSet) {
 				List<InstanceDtlBean> clusterList = new ArrayList<InstanceDtlBean>();
 				ResultBean result = new ResultBean();
 				CacheService.getNodeClustersByServIdOrServiceStub(service.getInstID(), null, clusterList, result);
