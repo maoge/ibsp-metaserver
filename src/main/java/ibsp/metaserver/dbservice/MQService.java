@@ -463,7 +463,7 @@ public class MQService {
 				QueueBean queueBean = MetaData.get().getQueueBeanByName(queueName);
 				if(queueBean != null) {
 					if(CONSTS.NOT_DEPLOYED.equals(queueBean.getDeploy())) {
-						res = releaseQueueToMQ(queueBean, servId, resultBean);
+						res = releaseQueueToMQByServId(queueBean, servId, resultBean);
 						if(res) {
 							resultBean.setRetCode(CONSTS.REVOKE_OK);
 							resultBean.setRetInfo("");
@@ -488,76 +488,25 @@ public class MQService {
 		return res;
 	}
 	
-	private static boolean releaseQueueToMQ(QueueBean queueBean, String servId, ResultBean resultBean) {
-		boolean createOk = false;
+	private static boolean releaseQueueToMQByServId(QueueBean queueBean, String servId, ResultBean resultBean) {
+		boolean createOk = true;
 		List<InstanceDtlBean> list = MetaData.get().getMasterBrokersByServId(servId);
 		
 		if (list!=null&&list.size()>0) {
 			
 			String queueName = queueBean.getQueueName();
-			String queueType = queueBean.getQueueType();//相对C的实现原理,Topic的区分在于消费端,服务端创建Queue和Topic一样
-			
-			String ip = "";
-			String user = "";
-			String pwd ="";
-			String brokerId="";
-			String vhost ="";
 			
 			List<InstanceDtlBean> succList = new ArrayList<>();
 			
 			for (InstanceDtlBean brokerBean : list) {
-				if (createOk)
+				if (!createOk) {
+					deleteRabbitQueueByName(queueName, succList);
 					break;
-				ip = brokerBean.getAttribute(FixHeader.HEADER_IP).getAttrValue();
-				user = CONSTS.MQ_DEFAULT_USER;
-				pwd = CONSTS.MQ_DEFAULT_PWD;
-				
-				brokerId= brokerBean.getInstID();
-				int port = Integer.valueOf(brokerBean.getAttribute(FixHeader.HEADER_PORT).getAttrValue());
-				
-				vhost = CONSTS.MQ_DEFAULT_VHOST;
-				
-				IMQClient c = new MQClientImpl();
-				
-				int cf = c.connect(user, pwd, vhost, ip, port);
-				try {
-					if (cf == 0) {
-						int createRet = -1;
-						if (HttpUtils.isNotNull(queueType)&&queueType.equals("2")) {
-							createRet = c.createTopic(queueName, false, true);
-						} else {
-							createRet = c.createQueue(queueName, false, true);
-						}
-						
-						if (createRet != 0) {
-							String err = String.format("release queue:%s error, user:%s pwd:%s vhost:%s %s:%d",
-									queueName, user, pwd, vhost, ip, port);
-							logger.error(err);
-							
-							createOk = false;
-							break;
-						} else {
-							succList.add(brokerBean);
-							createOk = true;
-						}
-					} else {
-						String err = String.format("create queue on borker:[BrokerId:%s, IP:%s, port:%d] fail.", brokerId, ip, port);
-						resultBean.setRetCode(CONSTS.REVOKE_NOK);
-						resultBean.setRetInfo(err);
-						createOk = false;
-						break;
-					}
-				} catch (Exception e) {
-					createOk = false;
+				}
 					
-					resultBean.setRetCode(CONSTS.REVOKE_NOK);
-					resultBean.setRetInfo(e.getMessage());
-					logger.error(e.getMessage(), e);
-					
-					break;
-				} finally {
-					if(cf==0)
-						c.close();
+				createOk = releaseQueueToMQ(queueName,brokerBean,resultBean);
+				if(createOk) {
+					succList.add(brokerBean);
 				}
 			}
 			
@@ -590,13 +539,73 @@ public class MQService {
 		return createOk;
 	}
 	
+	private static boolean releaseQueueToMQ(String queueName, InstanceDtlBean brokerBean, ResultBean resultBean) {
+		List<String> list = new ArrayList<>();
+		list.add(queueName);
+		return releaseQueuesToMQ(list, brokerBean, resultBean);
+	}
+	
+	private static boolean releaseQueuesToMQ(List<String> queues, InstanceDtlBean brokerBean, ResultBean resultBean) {
+		boolean createOk = true;
+
+		String ip = brokerBean.getAttribute(FixHeader.HEADER_IP).getAttrValue();
+		String user = CONSTS.MQ_DEFAULT_USER;
+		String pwd = CONSTS.MQ_DEFAULT_PWD;
+		String brokerId= brokerBean.getInstID();
+		String vhost = CONSTS.MQ_DEFAULT_VHOST;
+		
+		int port = Integer.valueOf(brokerBean.getAttribute(FixHeader.HEADER_PORT).getAttrValue());
+		
+		IMQClient c = new MQClientImpl();
+				
+		int cf = c.connect(user, pwd, vhost, ip, port);
+		try {
+			if (cf == 0) {
+				int createRet = -1;
+				for(String queueName : queues) {
+					if(!createOk) {
+						break;
+					}
+					createRet = c.createQueue(queueName, false, true);
+					if (createRet != 0) {
+						String err = String.format("release queue:%s error, user:%s pwd:%s vhost:%s %s:%d",
+								queueName, user, pwd, vhost, ip, port);
+						logger.error(err);
+						
+						createOk = false;
+					} else {
+						createOk = true;
+					}
+				}
+			} else {
+				String err = String.format("create queue on borker:[BrokerId:%s, IP:%s, port:%d] fail.", brokerId, ip, port);
+				resultBean.setRetCode(CONSTS.REVOKE_NOK);
+				resultBean.setRetInfo(err);
+				createOk = false;
+			}
+		} catch (Exception e) {
+			createOk = false;
+			
+			resultBean.setRetCode(CONSTS.REVOKE_NOK);
+			resultBean.setRetInfo(e.getMessage());
+			logger.error(e.getMessage(), e);
+			
+		} finally {
+			if(cf==0)
+				c.close();
+		}
+	
+		return createOk;
+	}
+	
 	private static boolean releasePermnentToMQ(String queueName, String servId, ResultBean resultBean) {
 		List<InstanceDtlBean> list = MetaData.get().getMasterBrokersByServId(servId);
+		
 		return releasePermnentToMQ(queueName, list, resultBean);	
 	}
 	
 	private static boolean releasePermnentToMQ(String queueName, List<InstanceDtlBean> list, ResultBean resultBean) {
-		boolean createOk = false;
+		boolean createOk = true;
 		
 		if (list!=null&&list.size()>0) {
 						
@@ -609,7 +618,7 @@ public class MQService {
 			List<InstanceDtlBean> succList = new ArrayList<>();
 			
 			for (InstanceDtlBean brokerBean : list) {
-				if (createOk)
+				if (!createOk)
 					break;
 				ip = brokerBean.getAttribute(FixHeader.HEADER_IP).getAttrValue();
 				user = CONSTS.MQ_DEFAULT_USER;
@@ -995,7 +1004,35 @@ public class MQService {
 		if(queueList == null || queueList.isEmpty()) {
 			return true;
 		}
+		boolean isAllOk = true;
+		List<String> queues = new ArrayList<>();
+
+		for(QueueBean queueBean : queueList) {
+			if(!isAllOk) {
+				break;
+			}
+			if(queueBean != null) {
+				if(CONSTS.TYPE_QUEUE.equals(queueBean.getQueueType())) {
+					String queueName = queueBean.getQueueName();
+					queues.add(queueName);
+				}
+				else {
+					List<PermnentTopicBean> permnentTopics = MetaData.get().getPermnentTopicsByQueueId(queueBean.getQueueId());
+					if(permnentTopics != null) {
+						for(PermnentTopicBean permnenttopicBean : permnentTopics) {
+							queues.add(permnenttopicBean.getRealQueue());
+						}
+					}
+				}
+				
+			}
+		}
 		
-		return true;
+		String masterBrokerId = instDtl.getAttribute(FixHeader.HEADER_MASTER_ID).getAttrValue();
+		InstanceDtlBean broker = MetaData.get().getInstanceDtlBean(masterBrokerId);
+		
+		isAllOk = releaseQueuesToMQ(queues, broker, result);
+		
+		return isAllOk;
 	}
 }

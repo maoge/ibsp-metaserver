@@ -443,13 +443,13 @@ public class MQDeployer implements Deployer {
 		DeployFileBean rabbitMQFile = MetaData.get().getDeployFile(CONSTS.SERV_MQ_RABBIT);
 		String deployMQPath = String.format("%s/%s", CONSTS.MQ_DEPLOY_ROOT_PATH, port);
 		
-		if (executor.isPortUsed(Integer.parseInt(port))) {
+		if (executor.isPortUsed(port,null)) {
 			String info = String.format("port %s is already in use ......", port);
 			DeployLog.pubLog(sessionKey, info);
 			return false;
 		}
 		
-		if (executor.isPortUsed(Integer.parseInt(mgrPort))) {
+		if (executor.isPortUsed(mgrPort,null)) {
 			DeployLog.pubLog(sessionKey, "port "+mgrPort+" is already in use......");
 			return false;
 		}

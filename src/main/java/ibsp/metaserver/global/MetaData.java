@@ -814,6 +814,24 @@ public class MetaData {
 		return queueMap.get(queueId);
 	}
 	
+	public List<PermnentTopicBean> getPermnentTopicsByQueueId(String queueId){
+		if(queueId2ConsumerIdMap == null) {
+			return null;
+		}
+		List<PermnentTopicBean> list = new ArrayList<>();
+
+		IdSetBean<String> idset = queueId2ConsumerIdMap.get(queueId);
+		Iterator<String> it = idset.iterator();
+		while(it.hasNext()) {
+			String consumerId = it.next();
+			PermnentTopicBean bean = permTopicMap.get(consumerId);
+			if(bean != null) {
+				list.add(bean);
+			}
+		}
+		return list;
+	}
+	
 	public PermnentTopicBean getPermnentTopicById(String consumerId) {
 		if(permTopicMap == null)
 			return null;
@@ -1161,6 +1179,10 @@ public class MetaData {
 		List<InstanceDtlBean> vbrokers = getVbrokerByServId(servId);
 		
 		for(InstanceDtlBean vbroker : vbrokers) {
+			String deployed = vbroker.getInstance().getIsDeployed();
+			if(deployed.equals(CONSTS.NOT_DEPLOYED)) {
+				continue;
+			}
 			String masterId = vbroker.getAttribute(FixHeader.HEADER_MASTER_ID).getAttrValue();
 			InstanceDtlBean broker = instanceDtlMap.get(masterId);
 			brokers.add(broker);
