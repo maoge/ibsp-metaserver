@@ -86,6 +86,9 @@ public class CacheService {
 			}
 			
 			Set<String> cacheNodeIds = MetaDataService.getSubNodes(nodeClusterId, result);
+			if (cacheNodeIds == null)
+				continue;
+			
 			for (String cacheNodeId : cacheNodeIds) {
 				InstanceDtlBean cacheNodeInstance = MetaDataService.getInstanceDtl(cacheNodeId, result);
 				if (cacheNodeInstance == null) {
