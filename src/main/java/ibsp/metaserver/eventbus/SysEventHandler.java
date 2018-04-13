@@ -63,7 +63,8 @@ public class SysEventHandler implements Handler<Message<String>> {
 			EventType type      = EventType.get(eventCode);
 			JsonObject json     = new JsonObject(jsonStr);
 
-			logger.info("Received event type " + eventCode);
+			if (eventCode != EventType.e98.getValue())
+				logger.info("Received event type " + eventCode);
 			
 			switch(type) {
 			case e1:

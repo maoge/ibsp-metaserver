@@ -28,6 +28,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -98,6 +99,17 @@ public class MetaDataService {
 		boolean res = false;
 		
 		try {
+			
+			//delete subInstance first(VBroker, cache node cluster)
+			InstanceDtlBean dtl = MetaDataService.getInstanceDtlWithSubInfo(instID, result);
+			if (dtl.getSubInstances()!=null && dtl.getSubInstances().size()>0) {
+				Collection<InstanceDtlBean> subInstances = dtl.getSubInstances().values();
+				for (InstanceDtlBean instance : subInstances) {
+					if (!deleteInstance(instID, instance.getInstID(), result))
+						return false;
+				}
+			}
+			
 			CRUD c = new CRUD();
 			
 			SqlBean sqlBean1 = new SqlBean(DEL_INSTANCE);
@@ -133,8 +145,8 @@ public class MetaDataService {
 			ev2Json.put("INST_ID1", parentID);
 			ev2Json.put("INST_ID2", instID);
 			EventBean ev2 = new EventBean(EventType.e2);
-			ev1.setUuid(MetaData.get().getUUID());
-			ev1.setJsonStr(ev2Json.toString());
+			ev2.setUuid(MetaData.get().getUUID());
+			ev2.setJsonStr(ev2Json.toString());
 			EventBusMsg.publishEvent(ev2);
 		}
 		
@@ -387,6 +399,9 @@ public class MetaDataService {
 		}
 		
 		Set<String> subIds = MetaDataService.getSubNodes(instId, result);
+		if (subIds == null)
+			return instDtl;
+		
 		for (String id : subIds) {
 			InstanceDtlBean subInstance = MetaDataService.getInstanceDtl(id, result);
 			if (subInstance == null)
