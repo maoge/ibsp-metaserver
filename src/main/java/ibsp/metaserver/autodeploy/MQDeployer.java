@@ -338,7 +338,7 @@ public class MQDeployer implements Deployer {
 				
 				if (cnt == 1) {
 					masterID = brokerId;
-					firstNode = String.format("%s@%s", brokerId, host);
+					firstNode = String.format("%s@%s", brokerId, ip);
 				}
 				
 				allOk &= deployRabbit(executor, brokerInstanceDtl, needJoinCluster, needSetHaPlicy,
