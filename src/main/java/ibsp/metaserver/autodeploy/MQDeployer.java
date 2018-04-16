@@ -291,10 +291,11 @@ public class MQDeployer implements Deployer {
 		String erlCookie = ErlUtils.genErlCookie();
 		String masterID = null, firstNode = null;
 		
+		// start with erlang node with -name, no need to set hosts
 		// set host name
-		if (isCluster) {
-			DeployUtils.setHostName(brokers, sessionKey, result);
-		}
+		//if (isCluster) {
+		//	DeployUtils.setHostName(brokers, sessionKey, result);
+		//}
 		
 		Set<Entry<String, InstanceDtlBean>> entrySet = brokers.entrySet();
 		for (Entry<String, InstanceDtlBean> entry : entrySet) {
