@@ -606,6 +606,7 @@ public class MQDeployer implements Deployer {
 				Thread.sleep(3000L);
 			}
 			
+			executor.cd("$HOME", sessionKey);
 			executor.rm(path, true, sessionKey);
 			
 			String endInfo = String.format("undeploy mq: broker id:{%s} %s:%s begin ......", id, ip, port);
