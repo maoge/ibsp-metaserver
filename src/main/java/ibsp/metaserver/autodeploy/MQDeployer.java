@@ -306,7 +306,6 @@ public class MQDeployer implements Deployer {
 			String port     = brokerInstanceDtl.getAttribute("PORT").getAttrValue();
 			String user     = brokerInstanceDtl.getAttribute("OS_USER").getAttrValue();
 			String pwd      = brokerInstanceDtl.getAttribute("OS_PWD").getAttrValue();
-			String host     = brokerInstanceDtl.getAttribute("HOST_NAME").getAttrValue();
 			
 			JschUserInfo ui = null;
 			SSHExecutor executor = null;
@@ -332,17 +331,13 @@ public class MQDeployer implements Deployer {
 				boolean needJoinCluster = isCluster && (cnt > 1);
 				boolean needSetHaPlicy  = isCluster && (size == cnt);
 				
-				if (HttpUtils.isNull(host)) {
-					host = executor.getHostname();
-				}
-				
 				if (cnt == 1) {
 					masterID = brokerId;
 					firstNode = String.format("%s@%s", brokerId, ip);
 				}
 				
 				allOk &= deployRabbit(executor, brokerInstanceDtl, needJoinCluster, needSetHaPlicy,
-										erlCookie, host, firstNode, sessionKey, result);
+										erlCookie, firstNode, sessionKey, result);
 				if (allOk) {
 					success.add(brokerInstanceDtl);
 				} else {
@@ -429,8 +424,8 @@ public class MQDeployer implements Deployer {
 	}
 	
 	private boolean deployRabbit(SSHExecutor executor, InstanceDtlBean brokerInstanceDtl,
-			boolean needJoinCluster, boolean needSetHaPlicy,
-			String erlCookie, String host, String firstNode, String sessionKey, ResultBean result) throws InterruptedException {
+			boolean needJoinCluster, boolean needSetHaPlicy, String erlCookie,
+			String firstNode, String sessionKey, ResultBean result) throws InterruptedException {
 		
 		String ip      = brokerInstanceDtl.getAttribute("IP").getAttrValue();
 		String port    = brokerInstanceDtl.getAttribute("PORT").getAttrValue();
