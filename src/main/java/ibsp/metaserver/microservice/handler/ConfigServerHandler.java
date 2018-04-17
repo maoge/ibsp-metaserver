@@ -213,8 +213,13 @@ public class ConfigServerHandler {
 			} else {
 				ResultBean result = new ResultBean();
 				JsonObject res = ConfigDataService.getMetaDataByInstId(sInstID, result);
-				json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
-				json.put(FixHeader.HEADER_RET_INFO, res);
+				if (res != null) {
+					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+					json.put(FixHeader.HEADER_RET_INFO, res);
+				} else {
+					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+					json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_METADATA_NOT_FOUND);
+				}
 			}
 		}
 		

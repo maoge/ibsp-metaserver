@@ -1112,10 +1112,13 @@ public class MetaData {
 	}
 	
 	public JsonObject getMetaDataByInstId(String instId) {
+		InstanceDtlBean insDtlBean = instanceDtlMap.get(instId);
+		if (insDtlBean == null)
+			return null;
+		
 		JsonObject json = new JsonObject();
 		JsonArray arr = new JsonArray();
 		
-		InstanceDtlBean insDtlBean = instanceDtlMap.get(instId);
 		int cmptId = insDtlBean.getInstance().getCmptID();
 		Map<String, InstAttributeBean> attrmap = insDtlBean.getAttrMap();
 		attrmap.forEach((attrName,attrValue) -> {
