@@ -622,20 +622,7 @@ public class SSHExecutor {
 	}
 
 	public boolean isPortUsed(int port) throws InterruptedException {
-		bout.reset();
-
-		String cmd = String.format("%s -an | awk '{print $4}' | grep :%d$ | wc -l\n", CMD_NETSTAT, port);
-		String context = generalCommand(cmd);
-		if (logger.isTraceEnabled())
-			logger.trace(context);
-
-		int begin = context.indexOf(CMD_NETSTAT);
-		begin = context.indexOf(CMD_NETSTAT, begin + CMD_NETSTAT.length());
-		begin = context.indexOf(CONSTS.LINE_SEP, begin + CMD_NETSTAT.length());
-		int end = context.indexOf(CONSTS.SQUARE_BRACKET_LEFT, begin + CONSTS.LINE_SEP.length());
-		String lines = context.substring(begin + CONSTS.LINE_SEP.length(), end);
-
-		return lines.startsWith("0") ? false : true;
+		return isPortUsed(String.valueOf(port), null);
 	}
 
 	public void echo(String text) throws InterruptedException {
