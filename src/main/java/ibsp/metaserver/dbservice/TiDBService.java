@@ -27,6 +27,7 @@ import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.CRUD;
 import ibsp.metaserver.utils.HttpUtils;
+import ibsp.metaserver.utils.Topology;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
@@ -395,46 +396,32 @@ public class TiDBService {
 		return jsonarray;
 	}
 	
-	public static String getAllAddressByServID(String servID, String type, ResultBean bean) throws Exception {
+	private static String getAddressByServID(String servID, String type) {
 		try {
-			SqlBean sqlBean = new SqlBean(GET_ADDRESS_BY_SERV_ID);
-			sqlBean.addParams(new Object[] { type, servID });
-			CRUD c = new CRUD();
-			c.putSqlBean(sqlBean);
-			JsonArray result = c.queryForJSONArray();
-		
-			StringBuilder addresses = new StringBuilder("");
-			String address = "";
-			for (Object obj : result) {
-				JsonObject json = (JsonObject) obj;
-				if (address.isEmpty()) {
-					address = json.getString("ATTR_VALUE");
-				} else {
-					if (json.getString("ATTR_NAME").equals("IP")) {
-						address = json.getString("ATTR_VALUE")+":"+address;
-					} else {
-						address = address+":"+json.getString("ATTR_VALUE");
+			MetaData data = MetaData.get();
+			Topology topo = data.getTopo();
+			Set<String> containers = topo.get(servID, CONSTS.TOPO_TYPE_CONTAIN);
+			
+			for (String containerID : containers) {
+				InstanceDtlBean container = data.getInstanceDtlBean(containerID);
+				int cmptID = container.getInstance().getCmptID();
+				String cmptName = data.getComponentByID(cmptID).getCmptName();
+				if (cmptName.equals(type+"_CONTAINER")) {
+					Set<String> instances = topo.get(container.getInstID(), CONSTS.TOPO_TYPE_CONTAIN);
+					
+					for (String instanceID : instances) {
+						InstanceDtlBean instance = data.getInstanceDtlBean(instanceID);
+						return instance.getAttribute("IP").getAttrValue()+
+								":"+instance.getAttribute("PORT").getAttrValue();
 					}
-					addresses.append(address);
-					addresses.append(",");
-					address = "";
 				}
 			}
-			return addresses.substring(0, addresses.length()-1);
+			
+			return null;
 		} catch (Exception e) {
-			if (bean!=null) {
-				logger.error("Error get address by service ID...", e);
-				bean.setRetInfo(e.getMessage());
-			} else {
-				throw e;
-			}
+			logger.error("Error get address by service ID...", e);
 			return null;
 		}
-	}
-	
-	private static String getAddressByServID(String servID, String type) throws Exception {
-		String address = getAllAddressByServID(servID, type, null).split(CONSTS.PATH_COMMA)[0];
-		return address;
 	}
 	
 	public static JsonObject callPDApi(String address) throws Exception {
