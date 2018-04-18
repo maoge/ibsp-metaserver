@@ -2,7 +2,6 @@ package ibsp.metaserver.dbservice;
 
 import ibsp.metaserver.autodeploy.utils.JschUserInfo;
 import ibsp.metaserver.autodeploy.utils.SSHExecutor;
-import ibsp.metaserver.bean.DeployFileBean;
 import ibsp.metaserver.bean.IdSetBean;
 import ibsp.metaserver.bean.MetaAttributeBean;
 import ibsp.metaserver.bean.MetaComponentBean;
@@ -59,20 +58,14 @@ public class ConfigDataService {
 	private static final String INS_TOPOLOGY      = "insert into t_topology(INST_ID1,INST_ID2,TOPO_TYPE) "
 	                                              + "values(?,?,?)";
 	
-	private static final String CNT_SERVICE       = "SELECT COUNT(INST_ID) AS CNT FROM t_service where INST_ID=?";
 	private static final String UPDATE_POS        = "update t_instance set POS_X=?,POS_Y=?, WIDTH=?, HEIGHT=?,ROW=?,COL=? "
 	                                              + "where INST_ID = ?";
-	
-	private static final String SEL_DEPLOY_FILE   = "SELECT FILE_TYPE,FILE_NAME,FILE_DIR,IP_ADDRESS,USER_NAME,USER_PWD,FTP_PORT "
-	                                              + "FROM t_file_deploy t1, t_ftp_host t2 "
-	                                              + "WHERE t1.SERV_CLAZZ = ? AND t1.HOST_ID = t2.HOST_ID";
-	
+
 	private static final String MOD_INSTANCE_DEP  = "UPDATE t_instance SET IS_DEPLOYED = ? WHERE INST_ID = ?";
 	private static final String MOD_SERVICE_DEP   = "UPDATE t_service SET IS_DEPLOYED = ? WHERE INST_ID = ?";
 	
 	private static final String SEL_SERVICE_LIST  = "SELECT INST_ID, SERV_NAME, SERV_TYPE, IS_DEPLOYED FROM t_service WHERE 1=1 ";
 	private static final String COUNT_SERVICE_LIST= "SELECT count(0) count FROM t_service WHERE 1=1 ";
-	private static final String GET_IS_PRODUCT    = "SELECT IS_PRODUCT FROM t_service WHERE INST_ID=?";
 	
 	static {
 		SKELETON_SCHEMA_MAPPER = new HashMap<String, String>();
