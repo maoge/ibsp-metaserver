@@ -8,6 +8,7 @@ import ibsp.metaserver.bean.MetaAttributeBean;
 import ibsp.metaserver.bean.MetaComponentBean;
 import ibsp.metaserver.bean.PosBean;
 import ibsp.metaserver.bean.ResultBean;
+import ibsp.metaserver.bean.ServiceBean;
 import ibsp.metaserver.bean.SqlBean;
 import ibsp.metaserver.eventbus.EventBean;
 import ibsp.metaserver.eventbus.EventBusMsg;
@@ -640,49 +641,6 @@ public class ConfigDataService {
 		return ret;
 	}
 	
-	public static boolean isServiceExist(String serviceID, ResultBean result) {
-		int cnt = 0;
-		CRUD curd = new CRUD();
-		
-		SqlBean sql = new SqlBean(CNT_SERVICE);
-		sql.addParams(new Object[] { serviceID });
-		curd.putSqlBean(sql);
-		try {
-			cnt = curd.queryForCount();
-		} catch (CRUDException e) {
-			result.setRetCode(CONSTS.REVOKE_NOK);
-			result.setRetInfo(e.getMessage());
-		}
-		
-		return cnt > 0;
-	}
-	
-	public static boolean loadDeployFile(String servClazz, Map<String, DeployFileBean> deployFileMap, ResultBean result) {
-		SqlBean sqlInst = new SqlBean(SEL_DEPLOY_FILE);
-		sqlInst.addParams(new Object[] { servClazz });
-		
-		CRUD curd = new CRUD();
-		curd.putSqlBean(sqlInst);
-		
-		try {
-			List<HashMap<String, Object>> queryList = curd.queryForList();
-			if (queryList == null || queryList.isEmpty())
-				return false;
-			
-			Iterator<HashMap<String, Object>> it = queryList.iterator();
-			while (it.hasNext()) {
-				HashMap<String, Object> mapper = it.next();
-				DeployFileBean deployFile = DeployFileBean.convert(mapper);
-				deployFileMap.put(deployFile.getFileType(), deployFile);
-			}
-		} catch (CRUDException e) {
-			result.setRetCode(CONSTS.REVOKE_NOK);
-			result.setRetInfo(e.getMessage());
-			return false;
-		}
-		
-		return true;
-	}
 	
 	public static boolean modInstanceDeployFlag(String instID, String deployFlag, ResultBean result) {
 		SqlBean sqlInst = new SqlBean(MOD_INSTANCE_DEP);
@@ -702,6 +660,16 @@ public class ConfigDataService {
 		curd.putSqlBean(sqlInst);
 		
 		return curd.executeUpdate(result);
+	}
+	
+	public static Boolean getIsProductByServId(String serviceID, ResultBean result) {
+		ServiceBean service = MetaData.get().getService(serviceID);
+		if (service == null) {
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo("No service found of "+serviceID);
+			return null;
+		}
+		return service.getProduct().equals(CONSTS.DEPLOYED);
 	}
 
 	public static JsonArray getServiceList(Map<String, String> params, ResultBean result) {
@@ -760,21 +728,5 @@ public class ConfigDataService {
 			}
 		}
 	}
-	
-	public static Boolean getIsProductByServId(String serviceID, ResultBean result) {
-		
-		SqlBean sql = new SqlBean(GET_IS_PRODUCT);
-		sql.addParams(new Object[] {serviceID});
-		CRUD curd = new CRUD();
-		curd.putSqlBean(sql);
-		
-		try {
-			return curd.queryForCount()==1;
-		} catch (CRUDException e) {
-			logger.error(e.getMessage(), e);
-			result.setRetCode(CONSTS.REVOKE_NOK);
-			result.setRetInfo(e.getMessage());
-		}
-		return null;
-	}
+
 }
