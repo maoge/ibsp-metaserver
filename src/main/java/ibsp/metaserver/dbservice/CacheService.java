@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import ibsp.metaserver.bean.InstAttributeBean;
 import ibsp.metaserver.bean.InstanceDtlBean;
 import ibsp.metaserver.bean.ResultBean;
+import ibsp.metaserver.bean.ServiceBean;
 import ibsp.metaserver.bean.SqlBean;
 import ibsp.metaserver.eventbus.EventBean;
 import ibsp.metaserver.eventbus.EventBusMsg;
@@ -21,6 +22,7 @@ import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.CRUD;
 import ibsp.metaserver.utils.FixHeader;
 import ibsp.metaserver.utils.HttpUtils;
+import ibsp.metaserver.utils.Topology;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
@@ -182,75 +184,62 @@ public class CacheService {
 		if (proxy.containsKey("RW_SEPARATE"))
 			res.put("RW_SEPARATE", proxy.get("RW_SEPARATE").getAttrValue());
 			
-		SqlBean sqlBean = new SqlBean(GET_SERVICE_NAME_BY_PROXY_ID);
-		sqlBean.addParams(new Object[] {instID});
-		CRUD c = new CRUD();
-		c.putSqlBean(sqlBean);
-		try {
-			JsonObject object = c.queryForJSONObject();
-			res.put("SERV_ID", object.getString("INST_ID"));
-			res.put("SERV_NAME", object.getString("SERV_NAME"));
-		} catch (Exception e) {
-			logger.error(e.getMessage(), e);
+		Topology topo = MetaData.get().getTopo();
+		String containerID = topo.getParent(instID, CONSTS.TOPO_TYPE_CONTAIN);
+		if (containerID == null) {
 			result.setRetCode(CONSTS.REVOKE_NOK);
-			result.setRetInfo(e.getMessage());
+			result.setRetInfo("No service found for "+instID);
 			return null;
 		}
+		String serviceID = topo.getParent(containerID, CONSTS.TOPO_TYPE_CONTAIN);
+		if (serviceID == null) {
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo("No service found for "+instID);
+			return null;
+		}
+		ServiceBean service = MetaDataService.getService(serviceID, result);
+		if (service == null)
+			return null;
+		res.put("SERV_ID", service.getInstID());
+		res.put("SERV_NAME", service.getServName());
+
 		return res;
 	}
 	
 	public static JsonArray getDeployedProxyByServiceName(String servName, ResultBean result) {
 		
-		JsonArray res = new JsonArray();
-		SqlBean sqlBean = new SqlBean(GET_DEPLOYED_PROXY_BY_SERVICE);
-		sqlBean.addParams(new Object[] {servName});
-		CRUD c = new CRUD();
-		c.putSqlBean(sqlBean);
-		
+		MetaData data = MetaData.get();
 		try {
-			JsonArray proxyArray = c.queryForJSONArray();
-			if (proxyArray == null || proxyArray.size()==0) {
-				result.setRetCode(CONSTS.REVOKE_NOK);
-				result.setRetInfo("No proxy found in service "+servName);
-				return null;
-			}
+			ServiceBean service = data.getServiceByName(servName);
+			Topology topo = data.getTopo();
+			Set<String> containers = topo.get(service.getInstID(), CONSTS.TOPO_TYPE_CONTAIN);
 			
-			//analyze query result
-			Map<String, JsonObject> tmp = new HashMap<String, JsonObject>();
-			for (int i=0; i<proxyArray.size(); i++) {
-				JsonObject obj = proxyArray.getJsonObject(i);
-				String instID = obj.getString("INST_ID");
-				if (!tmp.containsKey(instID)) {
-					tmp.put(instID, new JsonObject());
-				}
-				switch (obj.getString("ATTR_NAME")) {
-				case "IP":
-					tmp.get(instID).put("IP", obj.getString("ATTR_VALUE"));
-					break;
-				case "PORT":
-					tmp.get(instID).put("PORT", obj.getString("ATTR_VALUE"));
-					break;
-				case "CACHE_PROXY_ID":
-					tmp.get(instID).put("ID", obj.getString("ATTR_VALUE"));
-					break;
-				case "CACHE_PROXY_NAME":
-					tmp.get(instID).put("NAME", obj.getString("ATTR_VALUE"));
-					break;
-				default:
-					break;
+			for (String containerID : containers) {
+				InstanceDtlBean container = data.getInstanceDtlBean(containerID);
+				if (container.getInstance().getCmptID()==108) {
+					Set<String> proxies = topo.get(containerID, CONSTS.TOPO_TYPE_CONTAIN);
+					JsonArray res = new JsonArray();
+					
+					for (String proxyID : proxies) {
+						InstanceDtlBean proxy = data.getInstanceDtlBean(proxyID);
+						JsonObject obj = new JsonObject();
+						obj.put("IP", proxy.getAttribute(FixHeader.HEADER_IP).getAttrValue());
+						obj.put("PORT", proxy.getAttribute(FixHeader.HEADER_PORT).getAttrValue());
+						obj.put("ID", proxy.getAttribute("CACHE_PROXY_ID").getAttrValue());
+						obj.put("NAME", proxy.getAttribute("CACHE_PROXY_NAME").getAttrValue());
+						res.add(obj);
+					}
+					return res;
 				}
 			}
-			for (JsonObject obj : tmp.values()) {
-				res.add(obj);
-			}
+			return null;
+			
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 			result.setRetCode(CONSTS.REVOKE_NOK);
 			result.setRetInfo(e.getMessage());
 			return null;
 		}
-		
-		return res;
 	}
 	
 	public static JsonArray getNodeClusterInfo(String servID, ResultBean result) {

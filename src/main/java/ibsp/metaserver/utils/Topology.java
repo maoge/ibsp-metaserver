@@ -53,6 +53,17 @@ public class Topology {
 		return result;
 	}
 	
+	public String getParent(String id, int topoType) {
+		Map<String, Set<String>> map = topoType == CONSTS.TOPO_TYPE_CONTAIN ? mapContain : mapLink;
+		for (String key : map.keySet()) {
+			Set<String> set = map.get(key);
+			if (set.contains(id)) {
+				return key;
+			}
+		}
+		return null;
+	}
+	
 	public boolean isExist(String par, String sub, int topoType) {
 		boolean ret = false;
 		

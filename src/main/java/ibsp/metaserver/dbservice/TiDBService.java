@@ -22,10 +22,8 @@ import ibsp.metaserver.bean.InstAttributeBean;
 import ibsp.metaserver.bean.InstanceBean;
 import ibsp.metaserver.bean.InstanceDtlBean;
 import ibsp.metaserver.bean.ResultBean;
-import ibsp.metaserver.bean.SqlBean;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.utils.CONSTS;
-import ibsp.metaserver.utils.CRUD;
 import ibsp.metaserver.utils.HttpUtils;
 import ibsp.metaserver.utils.Topology;
 import io.vertx.core.json.JsonArray;
@@ -34,14 +32,6 @@ import io.vertx.core.json.JsonObject;
 public class TiDBService {
 	
 	private static Logger logger = LoggerFactory.getLogger(TiDBService.class);
-	private static final String GET_ADDRESS_BY_SERV_ID = 
-			"SELECT ATTR_NAME, ATTR_VALUE FROM "+ 
-			"t_instance_attr att JOIN t_instance ins ON att.INST_ID=ins.INST_ID "+ 
-			"JOIN t_meta_cmpt cmpt ON ins.CMPT_ID=cmpt.CMPT_ID "+
-			"JOIN t_topology top1 ON ins.INST_ID=top1.INST_ID2 "+ 
-			"JOIN t_topology top2 ON top1.INST_ID1=top2.INST_ID2 "+
-			"WHERE (attr_name='IP' OR attr_name='PORT') AND ins.IS_DEPLOYED=1 "+
-			"AND cmpt.CMPT_NAME=? AND top2.INST_ID1=?";
 			
 	
 	public static boolean loadServiceInfo(String serviceID, List<InstanceDtlBean> pdServerList,
