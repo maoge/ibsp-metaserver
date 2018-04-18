@@ -100,6 +100,11 @@ public class SysEventHandler implements Handler<Message<String>> {
 				MetaData.get().doInstanceDeploy(json, type);
 				break;
 			
+			//卸载MQSerivce时候，把所有队列和topic都弄成未发布
+			case e31:
+				MetaData.get().doMQServiceUndeploy(json, type);
+				break;
+				
 			//接入机扩缩容
 			case e61:		
 			case e62:

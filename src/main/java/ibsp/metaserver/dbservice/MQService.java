@@ -53,6 +53,11 @@ public class MQService {
 	private final static String SELECT_PERMNENT_TOPIC  = "SELECT t.CONSUMER_ID, t.REAL_QUEUE, t.MAIN_TOPIC, t.SUB_TOPIC, t.QUEUE_ID FROM t_mq_permnent_topic t where t.CONSUMER_ID = ?";
 	
 	private final static String DEL_PERMNENT_TOPIC     = "DELETE FROM t_mq_permnent_topic where CONSUMER_ID = ?";
+	
+	private final static String DEL_PERMNENT_TOPIC_BY_SERVID       = "DELETE FROM t_mq_permnent_topic where QUEUE_ID in (SELECT QUEUE_ID from t_mq_queue where SERV_ID = ?)";
+	private final static String UPDATE_QUEUE_UNDEPLOYED_BY_SERVID  = "UPDATE t_mq_queue SET IS_DEPLOY = ? where SERV_ID = ? ";
+	private final static String DEL_QUEUE_BY_SERVID                = "DELETE FROM t_mq_queue WHERE SERV_ID = ? "; 
+	
 	public static boolean loadServiceInfo(String serviceID, List<InstanceDtlBean> vbrokerList,
 			InstanceDtlBean collectd, ResultBean result) {
 		
@@ -1038,4 +1043,35 @@ public class MQService {
 		
 		return isAllOk;
 	}
+
+	//卸载面板专用
+	public static boolean undeployServiceRelationByServId(String servId, ResultBean result) {
+		return delQueueByServId(servId, true, result);
+	}
+
+	
+	/**
+	 * @param deleteQueue 是否要删除数据库中队列信息，false把队列部署置为未部署，true则队列删除
+	 */
+	public static boolean delQueueByServId(String servId, boolean deleteQueue, ResultBean result) {
+		boolean isOk  = false;
+		if(HttpUtils.isNull(servId)) {
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(CONSTS.ERR_PARAM_INCOMPLETE);
+			return false;
+		}
+		
+		CRUD crud = new CRUD();
+		crud.putSql(DEL_PERMNENT_TOPIC_BY_SERVID, new Object[] {servId});
+		if(deleteQueue) {
+			crud.putSql(DEL_QUEUE_BY_SERVID, new Object[] {servId});
+
+		}else {
+			crud.putSql(UPDATE_QUEUE_UNDEPLOYED_BY_SERVID, new Object[] {CONSTS.NOT_DEPLOYED,servId});
+		}
+		isOk = crud.executeUpdate(result);
+		
+		return isOk;
+	}
+	
 }

@@ -25,7 +25,6 @@ import ibsp.metaserver.eventbus.EventType;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.ErlUtils;
-import ibsp.metaserver.utils.HttpUtils;
 import ibsp.metaserver.utils.Topology;
 
 public class MQDeployer implements Deployer {
@@ -79,8 +78,14 @@ public class MQDeployer implements Deployer {
 		//  t_service.IS_DEPLOYED = 0
 		if (!ConfigDataService.modServiceDeployFlag(serviceID, CONSTS.NOT_DEPLOYED, result))
 			return false;
-		DeployUtils.publishDeployEvent(EventType.e22, serviceID);
 		
+		if (!MQService.undeployServiceRelationByServId(serviceID, result)) {
+			return false;
+		}
+		
+		DeployUtils.publishDeployEvent(EventType.e22, serviceID);
+		DeployUtils.publishDeployEvent(EventType.e31, serviceID);
+	
 		return true;
 	}
 

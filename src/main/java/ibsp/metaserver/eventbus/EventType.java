@@ -30,6 +30,8 @@ public enum EventType {
 	e23(50023, false, "Instance deployed"),
 	e24(50024, false, "Instance undeployed"),
 	
+	e31(50031, false, "MQService.undeploy"),             //MQService.undeploy
+	
 	e61(50061, false, "cache proxy deployed"),       // 接入机扩容
 	e62(50062, false, "cache proxy undeployed"),       // 接入机缩容
 	e63(50063, true, "redis automatic ha switch"),       // redis故障主从切换

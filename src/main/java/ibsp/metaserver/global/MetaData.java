@@ -1204,6 +1204,44 @@ public class MetaData {
 		return brokers;
 	}
 	
+	public boolean doMQServiceUndeploy(JsonObject json, EventType type) {
+		if (this.queueMap == null)
+			return true;
+
+		String servId = json.getString(FixHeader.HEADER_INSTANCE_ID);
+		if (HttpUtils.isNull(servId))
+			return false;
+
+		switch (type) {
+			case e31:
+				IdSetBean<String> idSet = servId2QueueIdMap.get(servId);
+				Iterator<String> ids = idSet.iterator();
+				while(ids.hasNext()) {
+					String queueId = ids.next();
+					QueueBean bean = queueMap.get(queueId);
+					if(bean != null) {
+						
+						if(bean.getQueueType().equals(CONSTS.TYPE_TOPIC)){
+							IdSetBean<String> permnentTopicIdSet = queueId2ConsumerIdMap.get(queueId);
+							Iterator<String> permnentTopicIds = permnentTopicIdSet.iterator();
+							while(permnentTopicIds.hasNext()) {
+								String consumerId = permnentTopicIds.next();
+								permTopicMap.remove(consumerId);
+							}
+							queueId2ConsumerIdMap.remove(queueId);
+						}
+					}
+					
+					queueMap.remove(queueId);
+				}
+				break;
+			default : 
+				break;
+		
+		}
+		return true;
+	}
+	
 	public String getMetaServUrls() {
 		return metaServUrls;
 	}
