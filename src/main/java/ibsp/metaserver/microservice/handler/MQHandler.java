@@ -16,7 +16,7 @@ import io.vertx.ext.web.RoutingContext;
 import java.util.Map;
 
 @App(path = "/mqsvr")
-public class MQHandle {
+public class MQHandler {
 
 	@Service(id = "sqlExplainService", name = "sqlExplainService", auth = true, bwswitch = true)
 	public static void sqlExplainService(RoutingContext routeContext) {
@@ -203,5 +203,61 @@ public class MQHandle {
 		json.put(FixHeader.HEADER_RET_INFO, resultBean.getRetInfo());
 		
 		HttpUtils.outJsonObject(routeContext, json);
+	}
+	
+	@Service(id = "getQueueByName", name = "getQueueByName", auth = true, bwswitch = true)
+	public static void getQueueByName(RoutingContext routeContext) {
+		ResultBean resultBean = new ResultBean();
+		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
+		JsonObject jsonObject = new JsonObject();
+		
+		if (params == null) {
+			jsonObject.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+			jsonObject.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+		} else {
+			String queueName = params.get(FixHeader.HEADER_QUEUE_NAME);
+			if (!HttpUtils.isNotNull(queueName)) {
+				jsonObject.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+				jsonObject.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+			} else {
+				JsonObject queue = MQService.getQueueByName(queueName, resultBean);
+				if (queue != null) {
+					jsonObject.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+					jsonObject.put(FixHeader.HEADER_RET_INFO, queue);
+				} else {
+					jsonObject.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+					jsonObject.put(FixHeader.HEADER_RET_INFO, resultBean.getRetInfo());
+				}
+			}
+		}
+		HttpUtils.outJsonObject(routeContext, jsonObject);
+	}
+	
+	@Service(id = "getBrokersByQName", name = "getBrokersByQName", auth = true, bwswitch = true)
+	public static void getBrokersByQName(RoutingContext routeContext) {
+		ResultBean resultBean = new ResultBean();
+		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
+		JsonObject jsonObject = new JsonObject();
+		
+		if (params == null) {
+			jsonObject.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+			jsonObject.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+		} else {
+			String queueName = params.get(FixHeader.HEADER_QUEUE_NAME);
+			if (!HttpUtils.isNotNull(queueName)) {
+				jsonObject.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+				jsonObject.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+			} else {
+				JsonObject group = MQService.getBrokersByQName(queueName, resultBean);
+				if (group != null) {
+					jsonObject.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+					jsonObject.put(FixHeader.HEADER_RET_INFO, group);
+				} else {
+					jsonObject.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+					jsonObject.put(FixHeader.HEADER_RET_INFO, resultBean.getRetInfo());
+				}
+			}
+		}
+		HttpUtils.outJsonObject(routeContext, jsonObject);
 	}
 }

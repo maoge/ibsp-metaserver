@@ -4,6 +4,7 @@ import ibsp.metaserver.bean.InstanceDtlBean;
 import ibsp.metaserver.bean.PermnentTopicBean;
 import ibsp.metaserver.bean.QueueBean;
 import ibsp.metaserver.bean.ResultBean;
+import ibsp.metaserver.bean.ServiceBean;
 import ibsp.metaserver.bean.SqlBean;
 import ibsp.metaserver.eventbus.EventBean;
 import ibsp.metaserver.eventbus.EventBusMsg;
@@ -1074,4 +1075,79 @@ public class MQService {
 		return isOk;
 	}
 	
+	
+	//get data from MetaData
+	public static JsonObject getQueueByName(String queueName, ResultBean result) {
+		try {
+			QueueBean queue = MetaData.get().getQueueBeanByName(queueName);
+			if (queue == null) {
+				result.setRetCode(CONSTS.REVOKE_NOK);
+				result.setRetInfo("No queue info found");
+				return null;
+			}
+			return queue.toJsonObject();
+		} catch (Exception e) {
+			logger.error("getQueueByName caught error: ", e);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(e.getMessage());
+			return null;
+		}
+	}
+	
+	public static JsonObject getBrokersByQName(String queueName, ResultBean result) {
+		
+		try {
+			QueueBean queue = MetaData.get().getQueueBeanByName(queueName);
+			if (queue == null) {
+				result.setRetCode(CONSTS.REVOKE_NOK);
+				result.setRetInfo("No queue info found");
+				return null;
+			}
+			String serviceID = queue.getServiceId();
+			ServiceBean service = MetaDataService.getService(serviceID, result);
+			
+			List<InstanceDtlBean> vbrokerList = new ArrayList<InstanceDtlBean>();
+			if (!getVBrokersByServIdOrServiceStub(serviceID, null, vbrokerList, result)) {
+				result.setRetCode(CONSTS.REVOKE_NOK);
+				result.setRetInfo("No VBroker found in service...");
+				return null;
+			}
+			
+			JsonObject vbGroup = new JsonObject();
+			vbGroup.put(FixHeader.HEADER_ID, service.getInstID());
+			vbGroup.put(FixHeader.HEADER_NAME, service.getServName());
+			JsonArray vbrokerArray = new JsonArray();
+			
+			for (InstanceDtlBean vbroker : vbrokerList) {	
+				JsonObject vbrokerObj = new JsonObject();
+				vbrokerObj.put(FixHeader.HEADER_ID, vbroker.getInstID());
+				vbrokerObj.put(FixHeader.HEADER_NAME, vbroker.getAttribute("VBROKER_NAME").getAttrValue());
+				vbrokerObj.put(FixHeader.HEADER_MASTER_ID, vbroker.getAttribute(FixHeader.HEADER_MASTER_ID).getAttrValue());
+				//TODO 
+				vbrokerObj.put(FixHeader.HEADER_IS_WRITABLE, true);
+				
+				Map<String, InstanceDtlBean> brokerList = vbroker.getSubInstances();
+				JsonArray brokerArray = new JsonArray();
+				for (InstanceDtlBean broker : brokerList.values()) {
+					JsonObject brokerObj = new JsonObject();
+					brokerObj.put(FixHeader.HEADER_ID, broker.getInstID());
+					brokerObj.put(FixHeader.HEADER_NAME, broker.getAttribute(FixHeader.HEADER_BROKER_NAME).getAttrValue());
+					brokerObj.put(FixHeader.HEADER_IP, broker.getAttribute(FixHeader.HEADER_IP).getAttrValue());
+					brokerObj.put(FixHeader.HEADER_PORT, broker.getAttribute(FixHeader.HEADER_PORT).getAttrValue());
+					brokerArray.add(brokerObj);
+				}
+				
+				vbrokerObj.put("BROKERS", brokerArray);
+				vbrokerArray.add(vbrokerObj);
+			}
+			vbGroup.put("VBROKERS", vbrokerArray);
+			return vbGroup;
+			
+		} catch (Exception e) {
+			logger.error("getBrokersByQName caught error: ", e);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(e.getMessage());
+			return null;
+		}
+	}
 }

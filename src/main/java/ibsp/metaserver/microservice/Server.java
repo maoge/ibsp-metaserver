@@ -9,7 +9,7 @@ import ibsp.metaserver.microservice.handler.AutoDeployHandler;
 import ibsp.metaserver.microservice.handler.CacheHandler;
 import ibsp.metaserver.microservice.handler.CollectDataHandler;
 import ibsp.metaserver.microservice.handler.ConfigServerHandler;
-import ibsp.metaserver.microservice.handler.MQHandle;
+import ibsp.metaserver.microservice.handler.MQHandler;
 import ibsp.metaserver.microservice.handler.MetaServerHandler;
 import ibsp.metaserver.microservice.handler.ResourceServerHandler;
 import ibsp.metaserver.microservice.handler.TiDBHandler;
@@ -73,7 +73,7 @@ public class Server extends AbstractVerticle {
 		clazzToReg.add(AutoDeployHandler.class);
 		clazzToReg.add(TiDBHandler.class);
 		clazzToReg.add(CacheHandler.class);
-		clazzToReg.add(MQHandle.class);
+		clazzToReg.add(MQHandler.class);
 		clazzToReg.add(CollectDataHandler.class);
 		clazzToReg.add(ResourceServerHandler.class);
 		

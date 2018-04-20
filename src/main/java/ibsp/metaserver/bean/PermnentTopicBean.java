@@ -75,9 +75,4 @@ public class PermnentTopicBean extends BeanMapper {
 		this.queueId = queueId;
 	}
 
-	@Override
-	public String toString() {
-		return toJsonString(this);
-	}
-
 }

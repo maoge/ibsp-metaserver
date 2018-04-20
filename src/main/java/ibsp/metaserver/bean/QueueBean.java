@@ -3,6 +3,7 @@ package ibsp.metaserver.bean;
 import java.util.HashMap;
 
 import ibsp.metaserver.utils.FixHeader;
+import io.vertx.core.json.JsonObject;
 
 public class QueueBean extends BeanMapper {
 	
@@ -57,6 +58,20 @@ public class QueueBean extends BeanMapper {
 		String serviceName = getFixDataAsString(mapper, FixHeader.HEADER_SERVICE_NAME);
 		
 		return new QueueBean(queueId, queueName, durable, ordered, queueType, deploy, serviceId, serviceName);
+	}
+	
+	public JsonObject toJsonObject() {
+		JsonObject result = new JsonObject();
+		
+		result.put(FixHeader.HEADER_QUEUE_ID, this.queueId);
+		result.put(FixHeader.HEADER_QUEUE_NAME, this.queueName);
+		result.put(FixHeader.HEADER_IS_DURABLE, this.durable);
+		result.put(FixHeader.HEADER_GLOBAL_ORDERED, this.ordered);
+		result.put(FixHeader.HEADER_QUEUE_TYPE, this.queueType);
+		result.put(FixHeader.HEADER_IS_DEPLOY, this.deploy);
+		result.put(FixHeader.HEADER_SERVICE_ID, this.serviceId);
+		result.put(FixHeader.HEADER_SERVICE_NAME, this.serviceName);
+		return result;
 	}
 
 	public String getQueueId() {
@@ -127,5 +142,4 @@ public class QueueBean extends BeanMapper {
 	public String toString() {
 		return toJsonString(this);
 	}
-
 }

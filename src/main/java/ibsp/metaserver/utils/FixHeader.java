@@ -4,6 +4,7 @@ public class FixHeader {
 	
 	public static final String HEADER_UUID                     = "UUID";
 	public static final String HEADER_ID                       = "ID";
+	public static final String HEADER_NAME                     = "NAME";
 	public static final String HEADER_OP_TYPE                  = "OP_TYPE";
 	public static final String HEADER_SESSION_KEY              = "SESSION_KEY";
 	
@@ -146,7 +147,6 @@ public class FixHeader {
 	public static final String HEADER_REMOTE_IP                = "REMOTE_IP";
 	public static final String HEADER_REMOTE_PORT              = "REMOTE_PORT";
 	
-	public static final String HEADER_NAME                     = "name";
 	public static final String HEADER_MSG_READY                = "messages_ready";
 	public static final String HEADER_MSG_UNACK                = "messages_unacknowledged";
 	public static final String HEADER_QUEEU_TOTAL_MSG          = "queue_totals.messages";
