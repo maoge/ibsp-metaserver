@@ -44,6 +44,7 @@ public class SSHExecutor {
 	private static final String CMD_HOSTNAME = "hostname";
 	private static final String CMD_HNAME2IP = "hname2ip";
 	private static final String CMD_ERL      = "erl";
+	private static final String CMD_SET_PS1  = "export PS1=\"[\\u@\\h \\W]\\$\" \n";
 	
 	private static final String ERL_ROOT_DIR = "ERL_ROOT_DIR";
 
@@ -78,6 +79,12 @@ public class SSHExecutor {
 		channel.setOutputStream(bout, true);
 
 		channel.connect(CONN_TIMEOUT);
+		
+		// set PS1 to surpport format
+		try {
+			generalCommand(CMD_SET_PS1);
+		} catch (Exception e) {
+		}
 	}
 
 	public void close() {
@@ -640,9 +647,14 @@ public class SSHExecutor {
 		
 		DeployLog.pubLog(sessionKey, context);
 
-		int begin = context.indexOf(CONSTS.LINE_SEP);
-		int end = context.indexOf(CONSTS.SQUARE_BRACKET_LEFT, begin + CONSTS.LINE_SEP.length());
+		int lastLeftBracket = context.lastIndexOf(CONSTS.SQUARE_BRACKET_LEFT);
+		int end = context.lastIndexOf(CONSTS.LINE_SEP, lastLeftBracket);
+		int begin = context.lastIndexOf(CONSTS.LINE_SEP, end - CONSTS.LINE_SEP.length());
 		String lines = context.substring(begin + CONSTS.LINE_SEP.length(), end);
+		
+		//int begin = context.indexOf(CONSTS.LINE_SEP);
+		//int end = context.indexOf(CONSTS.SQUARE_BRACKET_LEFT, begin + CONSTS.LINE_SEP.length());
+		//String lines = context.substring(begin + CONSTS.LINE_SEP.length(), end);
 
 		return !lines.startsWith("0");
 	}
