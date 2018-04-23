@@ -183,11 +183,16 @@ public class MQHandler {
 	public static void savePermnentTopic(RoutingContext routeContext) {
 		ResultBean resultBean = new ResultBean();
 		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
-		MQService.savePermnentTopic(params,resultBean);
-		
+		String realQueue = MQService.savePermnentTopic(params,resultBean);
 		JsonObject json = new JsonObject();
-		json.put(FixHeader.HEADER_RET_CODE, resultBean.getRetCode());
-		json.put(FixHeader.HEADER_RET_INFO, resultBean.getRetInfo());
+		
+		if (realQueue != null) {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+			json.put(FixHeader.HEADER_RET_INFO, realQueue);
+		} else {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+			json.put(FixHeader.HEADER_RET_INFO, resultBean.getRetInfo());
+		}
 		
 		HttpUtils.outJsonObject(routeContext, json);
 	}

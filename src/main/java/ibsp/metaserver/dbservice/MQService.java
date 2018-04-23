@@ -865,8 +865,8 @@ public class MQService {
 		return bean;
 	}
 	
-	public static boolean savePermnentTopic(Map<String, String> params, ResultBean resultBean) {
-		boolean res = false;
+	public static String savePermnentTopic(Map<String, String> params, ResultBean resultBean) {
+
 		if (params != null) {
 			String queueId = params.get(FixHeader.HEADER_QUEUE_ID);
 			String consumerId = params.get(FixHeader.HEADER_CONSUMER_ID);
@@ -876,7 +876,7 @@ public class MQService {
 			if(HttpUtils.isNull(queueId) || HttpUtils.isNull(consumerId)) {
 				resultBean.setRetCode(CONSTS.REVOKE_NOK);
 				resultBean.setRetInfo(CONSTS.ERR_PARAM_INCOMPLETE);
-				return false;
+				return null;
 			}
 			
 			QueueBean queueBean = MetaData.get().getQueueBeanById(queueId);
@@ -885,19 +885,19 @@ public class MQService {
 			if(queueBean == null) {
 				resultBean.setRetCode(CONSTS.REVOKE_NOK);
 				resultBean.setRetInfo(CONSTS.ERR_QUEUE_NOT_EXISTS);
-				return false;
+				return null;
 			}
 			
 			if(queueBean.getQueueType().equals(CONSTS.TYPE_QUEUE)) {
 				resultBean.setRetCode(CONSTS.REVOKE_NOK);
 				resultBean.setRetInfo("not a topic type");
-				return false;
+				return null;
 			}
 			
 			if(MetaData.get().isPermnentTopicExistsById(consumerId)) {
 				resultBean.setRetCode(CONSTS.REVOKE_NOK);
 				resultBean.setRetInfo(CONSTS.ERR_QUEUE_EXISTS);
-				return false;
+				return null;
 			}
 
 			if(HttpUtils.isNull(subtopic)) {
@@ -915,10 +915,11 @@ public class MQService {
 				});
 				
 				curd.putSqlBean(iSqlBean);	
-				res = curd.executeUpdate(resultBean);
+				boolean res = curd.executeUpdate(resultBean);
 				if (!res) {
 					resultBean.setRetCode(CONSTS.REVOKE_NOK);
 					resultBean.setRetInfo(resultBean.getRetInfo());
+					return null;
 				} else {
 					resultBean.setRetCode(CONSTS.REVOKE_OK);
 					resultBean.setRetInfo("");
@@ -933,17 +934,19 @@ public class MQService {
 					ev.setUuid(MetaData.get().getUUID());
 					ev.setJsonStr(evJson.toString());
 					EventBusMsg.publishEvent(ev);
+					
+					return realqueue;
 				}
 			}else {
 				resultBean.setRetCode(CONSTS.REVOKE_NOK);
 				resultBean.setRetInfo("rabbitmq create permnent_topic fail");
+				return null;
 			}
 		} else {
 			resultBean.setRetCode(CONSTS.REVOKE_NOK);
 			resultBean.setRetInfo("params is null");
+			return null;
 		}
-		
-		return res;
 	}
 	
 	public static boolean delPermnentTopic(Map<String, String> params, ResultBean resultBean) {
