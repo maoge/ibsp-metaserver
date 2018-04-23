@@ -700,6 +700,15 @@ public class MetaData {
 		}
 	}
 	
+	public ServiceBean getServiceByQueueId(String queueId) {
+		for (Entry<String, IdSetBean<String>> entry : servId2QueueIdMap.entrySet()) {
+			if (entry.getValue().contains(queueId)) {
+				return this.serviceMap.get(entry.getKey());
+			}
+		}
+		return null;
+	}
+	
 	public boolean isQueueNameExistsByName(String queueName) {
 		if (queueName2IdMap == null)
 			return false;

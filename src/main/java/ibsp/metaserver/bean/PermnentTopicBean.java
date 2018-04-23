@@ -3,6 +3,7 @@ package ibsp.metaserver.bean;
 import java.util.HashMap;
 
 import ibsp.metaserver.utils.FixHeader;
+import io.vertx.core.json.JsonObject;
 
 public class PermnentTopicBean extends BeanMapper {
 	
@@ -33,6 +34,16 @@ public class PermnentTopicBean extends BeanMapper {
 		String queueId    = getFixDataAsString(mapper, FixHeader.HEADER_QUEUE_ID);
 		
 		return new PermnentTopicBean(consumerId, realQueue, mainTopic, subTopic, queueId);
+	}
+	
+	public JsonObject toJson() {
+		JsonObject json = new JsonObject();
+		json.put(FixHeader.HEADER_CONSUMER_ID, this.consumerId);
+		json.put(FixHeader.HEADER_REAL_QUEUE,  this.realQueue);
+		json.put(FixHeader.HEADER_MAIN_TOPIC,  this.mainTopic);
+		json.put(FixHeader.HEADER_SUB_TOPIC,   this.subTopic);
+		json.put(FixHeader.HEADER_QUEUE_ID,    this.queueId);
+		return json;
 	}
 
 	public String getConsumerId() {

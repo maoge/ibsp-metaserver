@@ -260,4 +260,32 @@ public class MQHandler {
 		}
 		HttpUtils.outJsonObject(routeContext, jsonObject);
 	}
+	
+	@Service(id = "getPermnentTopic", name = "getPermnentTopic", auth = true, bwswitch = true)
+	public static void getPermnentTopic(RoutingContext routeContext) {
+		ResultBean resultBean = new ResultBean();
+		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
+		JsonObject jsonObject = new JsonObject();
+		
+		if (params == null) {
+			jsonObject.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+			jsonObject.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+		} else {
+			String consumerID = params.get(FixHeader.HEADER_CONSUMER_ID);
+			if (!HttpUtils.isNotNull(consumerID)) {
+				jsonObject.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+				jsonObject.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+			} else {
+				JsonObject topic = MQService.getPermTopicAsJson(consumerID, resultBean);
+				if (topic != null) {
+					jsonObject.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+					jsonObject.put(FixHeader.HEADER_RET_INFO, topic);
+				} else {
+					jsonObject.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+					jsonObject.put(FixHeader.HEADER_RET_INFO, resultBean.getRetInfo());
+				}
+			}
+		}
+		HttpUtils.outJsonObject(routeContext, jsonObject);
+	}
 }

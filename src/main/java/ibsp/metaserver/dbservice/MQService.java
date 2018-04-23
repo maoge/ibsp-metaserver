@@ -604,75 +604,83 @@ public class MQService {
 		return createOk;
 	}
 	
-	private static boolean releasePermnentToMQ(String queueName, String servId, ResultBean resultBean) {
+	private static boolean releasePermnentToMQ(String queueName, String servId, String subTopic, ResultBean resultBean) {
 		List<InstanceDtlBean> list = MetaData.get().getMasterBrokersByServId(servId);
 		
-		return releasePermnentToMQ(queueName, list, resultBean);	
+		return releasePermnentToMQ(queueName, list, subTopic, resultBean);	
 	}
 	
-	private static boolean releasePermnentToMQ(String queueName, List<InstanceDtlBean> list, ResultBean resultBean) {
-		boolean createOk = true;
+	private static boolean releasePermnentToMQ(String queueName, List<InstanceDtlBean> list, String subTopic, ResultBean resultBean) {
 		
-		if (list!=null&&list.size()>0) {
+		boolean createOk = true;
+		if (list==null || list.size() == 0) {
+			resultBean.setRetCode(CONSTS.REVOKE_NOK);
+			resultBean.setRetInfo("No broker found in service...");
+			return false;
+		}
 						
-			String ip = "";
-			String user = "";
-			String pwd ="";
-			String brokerId="";
-			String vhost ="";
+		String ip = "";
+		String user = "";
+		String pwd ="";
+		String brokerId="";
+		String vhost ="";
+		List<InstanceDtlBean> succList = new ArrayList<>();
 			
-			List<InstanceDtlBean> succList = new ArrayList<>();
+		for (InstanceDtlBean brokerBean : list) {
+			if (!createOk)
+				break;
 			
-			for (InstanceDtlBean brokerBean : list) {
-				if (!createOk)
-					break;
-				ip = brokerBean.getAttribute(FixHeader.HEADER_IP).getAttrValue();
-				user = CONSTS.MQ_DEFAULT_USER;
-				pwd = CONSTS.MQ_DEFAULT_PWD;
-				
-				brokerId= brokerBean.getInstID();
-				int port = Integer.valueOf(brokerBean.getAttribute(FixHeader.HEADER_PORT).getAttrValue());
-				
-				vhost = CONSTS.MQ_DEFAULT_VHOST;
-				
-				IMQClient c = new MQClientImpl();
-				
-				int cf = c.connect(user, pwd, vhost, ip, port);
-				try {
-					if (cf == 0) {
-						int createRet = -1;
-						createRet = c.createQueue(queueName, false, true);
-						
-						if (createRet != 0) {
-							String err = String.format("release queue:%s error, user:%s pwd:%s vhost:%s %s:%d",
-									queueName, user, pwd, vhost, ip, port);
-							logger.error(err);
-							
-							createOk = false;
-							break;
-						} else {
-							succList.add(brokerBean);
-							createOk = true;
-						}
-					} else {
-						String err = String.format("create queue on borker:[BrokerId:%s, IP:%s, port:%d] fail.", brokerId, ip, port);
-						resultBean.setRetCode(CONSTS.REVOKE_NOK);
-						resultBean.setRetInfo(err);
-						createOk = false;
-						break;
-					}
-				} catch (Exception e) {
-					createOk = false;
-					
+			ip = brokerBean.getAttribute(FixHeader.HEADER_IP).getAttrValue();
+			user = CONSTS.MQ_DEFAULT_USER;
+			pwd = CONSTS.MQ_DEFAULT_PWD;
+			brokerId= brokerBean.getInstID();
+			int port = Integer.valueOf(brokerBean.getAttribute(FixHeader.HEADER_PORT).getAttrValue());
+			vhost = CONSTS.MQ_DEFAULT_VHOST;
+			IMQClient c = new MQClientImpl();
+			
+			int cf = c.connect(user, pwd, vhost, ip, port);
+			try {
+				if (cf != 0) {
+					String err = String.format("create queue on borker:[BrokerId:%s, IP:%s, port:%d] fail.", brokerId, ip, port);
 					resultBean.setRetCode(CONSTS.REVOKE_NOK);
-					resultBean.setRetInfo(e.getMessage());
-					logger.error(e.getMessage(), e);
-					
+					resultBean.setRetInfo(err);
+					createOk = false;
 					break;
-				} finally {
-					if(cf==0)
-						c.close();
 				}
+					
+				int createRet = -1;
+				createRet = c.createQueue(queueName, false, true);
+				if (createRet != 0) {
+					String err = String.format("release queue:%s error, user:%s pwd:%s vhost:%s %s:%d",
+							queueName, user, pwd, vhost, ip, port);
+					resultBean.setRetCode(CONSTS.REVOKE_NOK);
+					resultBean.setRetInfo(err);
+					createOk = false;
+					break;
+				}
+
+				//subTopic and mainTopic are the same under permanent mode
+				int retBind = c.queueBind(queueName, "amq.direct", subTopic);
+				if (retBind != 0) {
+					String err = String.format("queue bind on broker %s:%d %s fail.", ip, port, vhost);
+					resultBean.setRetCode(CONSTS.REVOKE_NOK);
+					resultBean.setRetInfo(err);
+					createOk = false;
+					break;
+				}
+					
+				succList.add(brokerBean);
+				createOk = true;
+				
+			} catch (Exception e) {
+				resultBean.setRetCode(CONSTS.REVOKE_NOK);
+				resultBean.setRetInfo(e.getMessage());
+				logger.error(e.getMessage(), e);
+				createOk = false;
+				break;
+			} finally {
+				if(cf==0)
+					c.close();
 			}
 			
 			if (!createOk) {
@@ -896,7 +904,7 @@ public class MQService {
 				subtopic = queueBean.getQueueName();
 			}
 			
-			boolean isCreate = releasePermnentToMQ(realqueue, queueBean.getServiceId(), resultBean);
+			boolean isCreate = releasePermnentToMQ(realqueue, queueBean.getServiceId(), subtopic, resultBean);
 			
 			if(isCreate) {
 				CRUD curd = new CRUD();
@@ -1149,5 +1157,19 @@ public class MQService {
 			result.setRetInfo(e.getMessage());
 			return null;
 		}
+	}
+	
+	public static JsonObject getPermTopicAsJson(String consumerId, ResultBean result) {
+		PermnentTopicBean topicBean = MetaData.get().getPermnentTopicById(consumerId);
+		if (topicBean == null) {
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo("No topic info found");
+			return null;
+		}
+		
+		JsonObject topic = topicBean.toJson();
+		ServiceBean service = MetaData.get().getServiceByQueueId(topicBean.getQueueId());
+		topic.put(FixHeader.HEADER_GROUP_ID, service.getInstID());
+		return topic;
 	}
 }
