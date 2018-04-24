@@ -9,6 +9,7 @@ import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.FixHeader;
 import ibsp.metaserver.utils.HttpUtils;
+import ibsp.metaserver.utils.SRandomGenerator;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
@@ -292,5 +293,14 @@ public class MQHandler {
 			}
 		}
 		HttpUtils.outJsonObject(routeContext, jsonObject);
+	}
+	
+	@Service(id = "genConsumerID", name = "genConsumerID")
+	public static void genConsumerID(RoutingContext routeContext) {
+		JsonObject json = new JsonObject();
+		json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+		json.put(FixHeader.HEADER_RET_INFO, "");
+		json.put(FixHeader.HEADER_CONSUMER_ID, SRandomGenerator.genConsumerID());
+		HttpUtils.outMessage(routeContext, json.toString());
 	}
 }

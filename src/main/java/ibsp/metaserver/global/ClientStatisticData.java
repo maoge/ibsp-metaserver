@@ -22,6 +22,7 @@ public class ClientStatisticData {
 	
 	private Map<String, Long> dbClientMap = null; //db
 	private Map<String, Long> cacheClientMap = null, cacheProxyMap = null; //cache
+	private Map<String, Long> mqClientMap = null; //mq
 	private static Object mtx = null;
 	private static ClientStatisticData theInstance = null;
 	
@@ -38,6 +39,7 @@ public class ClientStatisticData {
 		dbClientMap = new ConcurrentHashMap<String, Long>();
 		cacheClientMap = new ConcurrentHashMap<String, Long>();
 		cacheProxyMap = new ConcurrentHashMap<String, Long>();
+		mqClientMap = new ConcurrentHashMap<String, Long>();
 		
 		expiredCheckerSESvr = Executors.newSingleThreadScheduledExecutor();
 		expiredChecker = new ExpiredDataChecker();
@@ -68,6 +70,9 @@ public class ClientStatisticData {
 		case CONSTS.CLIENT_TYPE_DB:
 			dbClientMap.put(address, System.currentTimeMillis());
 			break;
+		case CONSTS.CLIENT_TYPE_MQ:
+			mqClientMap.put(address, System.currentTimeMillis());
+			break;
 		default:
 			break;
 		}
@@ -83,6 +88,10 @@ public class ClientStatisticData {
 	
 	public Set<String> getDbClients() {
 		return this.dbClientMap.keySet();
+	}
+	
+	public Set<String> getMqClients() {
+		return this.mqClientMap.keySet();
 	}
 	
 	private class ExpiredDataChecker implements Runnable {
