@@ -677,6 +677,26 @@ public class CacheDeployer implements Deployer {
 			executor.connect();
 			connected = true;
 			
+			// deploy jdk
+			String jdkRootPath = String.format("$HOME/jdk_deploy/%s", CONSTS.JDK_DEPLOY_PATH);
+			if (!executor.isDirExistInCurrPath(jdkRootPath, sessionKey)) {
+				executor.mkdir("jdk_deploy", sessionKey);
+				executor.cd("jdk_deploy");
+				
+				DeployFileBean jdkFileBean = MetaData.get().getDeployFile(CONSTS.FILE_TYPE_JDK);
+				String jdkFile = String.format("%s%s", jdkFileBean.getFtpDir(), jdkFileBean.getFileName());
+				String desPath = ".";
+				executor.scp(jdkFileBean.getFtpUser(), jdkFileBean.getFtpPwd(),
+						jdkFileBean.getFtpHost(), jdkFile, desPath,
+						jdkFileBean.getSshPort(), sessionKey);
+				
+				executor.tgzUnpack(jdkFileBean.getFileName(), sessionKey);
+				executor.rm(jdkFileBean.getFileName(), false, sessionKey);
+				
+				executor.cd("$HOME/");
+			}
+			
+			
 			if (executor.isPortUsed(Integer.parseInt(port))) {
 				DeployLog.pubLog(sessionKey, "port "+port+" is already in use......");
 				return false;
@@ -722,6 +742,9 @@ public class CacheDeployer implements Deployer {
 			reader = new BufferedReader(new FileReader("./"+CONSTS.PROXY_PROPERTIES));
 			sb = new StringBuilder();
 			while ((line = reader.readLine()) != null) {
+				if (line.indexOf("JAVA_HOME=")!=-1) {
+					line = line.substring(0, "JAVA_HOME=".length())+jdkRootPath;
+				}
 				if (line.indexOf("proxy.id=")!=-1) {
 					line = line.substring(0, "proxy.id=".length())+id;
 				}

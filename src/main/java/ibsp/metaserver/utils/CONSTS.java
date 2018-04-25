@@ -50,6 +50,8 @@ public class CONSTS {
 	public static final long DISK_FREE_LIMIT           = 6000000000L;
 	public static final float VM_MEMORY_HIGH_WATERMARK = 0.2f;
 	
+	public static final String JDK_DEPLOY_PATH         = "jdk1.8.0_72";
+	
 	public static final int REVOKE_OK                = 0;
 	public static final int REVOKE_NOK               = -1;
 	public static final int REVOKE_NOK_QUEUE_EXIST   = -2;
@@ -117,6 +119,8 @@ public class CONSTS {
 	public static final String CLIENT_TYPE_CACHE     = "CACHE_CLIENT";
 	public static final String CLIENT_TYPE_DB        = "DB_CLIENT";
 	public static final String CLIENT_TYPE_MQ        = "MQ_CLIENT";
+	
+	public static final String FILE_TYPE_JDK         = "JDK";
 	
 	public static final String SCHEMA_OBJECT         = "\"object\"";
 	public static final String SCHEMA_ARRAY          = "\"array\"";

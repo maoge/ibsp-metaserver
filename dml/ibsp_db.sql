@@ -330,7 +330,8 @@ INSERT  INTO `t_file_deploy`(`FILE_ID`,`HOST_ID`,`FILE_TYPE`,`SERV_CLAZZ`,`FILE_
 ('5', '1', 'MQ_RABBIT',   'MQ', 'rabbitmq-server-generic-unix-3.4.3.tar.gz', '/home/mq1/ftp/', 1456105739394),
 ('6', '1', 'MQ_ERLANG',   'MQ', 'otp_R15B.tar.gz',                           '/home/mq1/ftp/', 1456105739394),
 ('7', '1', 'CACHE_PROXY', 'CACHE', 'cache_proxy-1.2.0.tar.gz',               '/home/mq1/ftp/', 1456105739394),
-('8', '1', 'CACHE_NODE',  'CACHE', 'redis_ffcs-2.8.19.tar.gz',               '/home/mq1/ftp/', 1456105739394);
+('8', '1', 'CACHE_NODE',  'CACHE', 'redis_ffcs-2.8.19.tar.gz',               '/home/mq1/ftp/', 1456105739394),
+('9', '1', 'JDK',         '',   'jdk1.8.0_72.tar.gz',                        '/home/mq1/ftp/', 1456105739394);
 
 DROP TABLE IF EXISTS `t_monitor_history`;
 CREATE TABLE `t_monitor_history` (
