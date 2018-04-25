@@ -848,6 +848,17 @@ public class MetaData {
 		return permTopicMap.get(consumerId);
 	}
 	
+	public String getQueueIdByConsumerId(String comsumerId) {
+		if (queueId2ConsumerIdMap == null)
+			return null;
+		Set<Entry<String, IdSetBean<String>>> entrySet = queueId2ConsumerIdMap.entrySet();
+		for (Entry<String, IdSetBean<String>> entry : entrySet) {
+			if (entry.getValue().contains(comsumerId))
+				return entry.getKey();
+		}
+		return null;
+	}
+	
 	public boolean isPermnentTopicExistsById(String consumerId) {
 		if (permTopicMap == null)
 			return false;

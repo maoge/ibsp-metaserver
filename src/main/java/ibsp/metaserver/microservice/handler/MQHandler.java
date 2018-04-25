@@ -141,6 +141,30 @@ public class MQHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 	
+	@Service(id = "createQueueByClient", name = "createQueueByClient")
+	public static void createQueueByClient(RoutingContext routeContext) {
+		ResultBean resultBean = new ResultBean();
+		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
+		MQService.createQueueByClient(params, resultBean);
+		
+		JsonObject json = new JsonObject();
+		json.put(FixHeader.HEADER_RET_CODE, resultBean.getRetCode());
+		json.put(FixHeader.HEADER_RET_INFO, resultBean.getRetInfo());
+		HttpUtils.outJsonObject(routeContext, json);
+	}
+	
+	@Service(id = "deleteQueueByClient", name = "deleteQueueByClient")
+	public static void deleteQueueByClient(RoutingContext routeContext) {
+		ResultBean resultBean = new ResultBean();
+		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
+		MQService.deleteQueueByClient(params, resultBean);
+		
+		JsonObject json = new JsonObject();
+		json.put(FixHeader.HEADER_RET_CODE, resultBean.getRetCode());
+		json.put(FixHeader.HEADER_RET_INFO, resultBean.getRetInfo());
+		HttpUtils.outJsonObject(routeContext, json);
+	}
+	
 	@Service(id = "getPermnentTopicList", name = "getPermnentTopicList")
 	public static void getPermnentTopicList(RoutingContext routeContext){
 		ResultBean resultBean = new ResultBean();

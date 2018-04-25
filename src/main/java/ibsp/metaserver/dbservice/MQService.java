@@ -732,6 +732,29 @@ public class MQService {
 		return res;
 	}
 	
+	public static boolean createQueueByClient(Map<String, String> params, ResultBean resultBean) {
+		//TODO 权限控制
+		return saveQueue(params, resultBean) && 
+				releaseQueue(params, resultBean);
+	}
+	
+	public static boolean deleteQueueByClient(Map<String, String> params, ResultBean resultBean) {
+		//TODO 权限控制
+		if (params == null) {
+			resultBean.setRetCode(CONSTS.REVOKE_NOK);
+			resultBean.setRetInfo(CONSTS.ERR_PARAM_INCOMPLETE);
+			return false;
+		}
+		
+		String queueName = params.get(FixHeader.HEADER_QUEUE_NAME);
+		String queueId = MetaData.get().getQueueBeanByName(queueName).getQueueId();
+		String servId = MetaData.get().getServiceByQueueId(queueId).getInstID();
+		params.put(FixHeader.HEADER_QUEUE_ID, queueId);
+		params.put(FixHeader.HEADER_SERV_ID, servId);
+		
+		return delQueue(params, resultBean);
+	}
+	
 	public static List<PermnentTopicBean> getAllPermnentTopics() {
 		List<PermnentTopicBean> list = null;
 		try {
@@ -955,10 +978,13 @@ public class MQService {
 			String queueId = params.get(FixHeader.HEADER_QUEUE_ID);
 			String consumerId = params.get(FixHeader.HEADER_CONSUMER_ID);
 			
-			if(HttpUtils.isNull(queueId) || HttpUtils.isNull(consumerId)) {
+			if (HttpUtils.isNull(consumerId)) {
 				resultBean.setRetCode(CONSTS.REVOKE_NOK);
 				resultBean.setRetInfo(CONSTS.ERR_PARAM_INCOMPLETE);
 				return false;
+			}
+			if (HttpUtils.isNull(queueId)) {
+				queueId = MetaData.get().getQueueIdByConsumerId(consumerId);
 			}
 			
 			if(!MetaData.get().isPermnentTopicExistsById(consumerId)) {
