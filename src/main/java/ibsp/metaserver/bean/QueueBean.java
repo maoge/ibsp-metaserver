@@ -54,8 +54,8 @@ public class QueueBean extends BeanMapper {
 		String ordered     = getFixDataAsString(mapper, FixHeader.HEADER_GLOBAL_ORDERED);
 		String queueType   = getFixDataAsString(mapper, FixHeader.HEADER_QUEUE_TYPE);
 		String deploy      = getFixDataAsString(mapper, FixHeader.HEADER_IS_DEPLOY);
-		String serviceId   = getFixDataAsString(mapper, FixHeader.HEADER_SERVICE_ID);
-		String serviceName = getFixDataAsString(mapper, FixHeader.HEADER_SERVICE_NAME);
+		String serviceId   = getFixDataAsString(mapper, FixHeader.HEADER_SERV_ID);
+		String serviceName = getFixDataAsString(mapper, FixHeader.HEADER_SERV_NAME);
 		
 		return new QueueBean(queueId, queueName, durable, ordered, queueType, deploy, serviceId, serviceName);
 	}
@@ -69,8 +69,8 @@ public class QueueBean extends BeanMapper {
 		result.put(FixHeader.HEADER_GLOBAL_ORDERED, this.ordered);
 		result.put(FixHeader.HEADER_QUEUE_TYPE, this.queueType);
 		result.put(FixHeader.HEADER_IS_DEPLOY, this.deploy);
-		result.put(FixHeader.HEADER_SERVICE_ID, this.serviceId);
-		result.put(FixHeader.HEADER_SERVICE_NAME, this.serviceName);
+		result.put(FixHeader.HEADER_SERV_ID, this.serviceId);
+		result.put(FixHeader.HEADER_SERV_NAME, this.serviceName);
 		return result;
 	}
 

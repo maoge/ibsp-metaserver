@@ -277,7 +277,7 @@ public class MQService {
 			String _qname = params.get(FixHeader.HEADER_QUEUE_NAME);
 			String _qtype = params.get(FixHeader.HEADER_QUEUE_TYPE);
 			String _durable = params.get(FixHeader.HEADER_IS_DURABLE);
-			String _servid = params.get(FixHeader.HEADER_SERVICE_ID);
+			String _servid = params.get(FixHeader.HEADER_SERV_ID);
 			
 			String ordered = params.get(FixHeader.HEADER_GLOBAL_ORDERED);
 			String _ordered = HttpUtils.isNull(ordered) ? CONSTS.NOT_GLOBAL_ORDERED : ordered;
