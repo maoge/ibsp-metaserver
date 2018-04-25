@@ -51,6 +51,7 @@ public class CONSTS {
 	public static final float VM_MEMORY_HIGH_WATERMARK = 0.2f;
 	
 	public static final String JDK_DEPLOY_PATH         = "jdk1.8.0_72";
+	public static final String JDK_ROOT_PATH           = "%JDK_ROOT_PATH%";
 	
 	public static final int REVOKE_OK                = 0;
 	public static final int REVOKE_NOK               = -1;

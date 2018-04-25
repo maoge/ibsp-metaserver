@@ -678,7 +678,8 @@ public class CacheDeployer implements Deployer {
 			connected = true;
 			
 			// deploy jdk
-			String jdkRootPath = String.format("$HOME/jdk_deploy/%s", CONSTS.JDK_DEPLOY_PATH);
+			String rootPath = executor.getHome();
+			String jdkRootPath = String.format("%s/jdk_deploy/%s", rootPath, CONSTS.JDK_DEPLOY_PATH);
 			if (!executor.isDirExistInCurrPath(jdkRootPath, sessionKey)) {
 				executor.mkdir("jdk_deploy", sessionKey);
 				executor.cd("jdk_deploy");
@@ -742,9 +743,9 @@ public class CacheDeployer implements Deployer {
 			reader = new BufferedReader(new FileReader("./"+CONSTS.PROXY_PROPERTIES));
 			sb = new StringBuilder();
 			while ((line = reader.readLine()) != null) {
-				if (line.indexOf("JAVA_HOME=")!=-1) {
-					line = line.substring(0, "JAVA_HOME=".length())+jdkRootPath;
-				}
+				//if (line.indexOf("JAVA_HOME=")!=-1) {
+				//	line = line.substring(0, "JAVA_HOME=".length())+jdkRootPath;
+				//}
 				if (line.indexOf("proxy.id=")!=-1) {
 					line = line.substring(0, "proxy.id=".length())+id;
 				}
@@ -760,6 +761,12 @@ public class CacheDeployer implements Deployer {
 			
 			//start cache proxy
 			executor.cd("./bin", sessionKey);
+			
+			// sed -i "s/%JDK_ROOT_PATH%/home/g" access.sh
+			// replace JDK env
+			String repSedPath = jdkRootPath.replaceAll("/", "\\\\/");
+			executor.sed(CONSTS.JDK_ROOT_PATH, repSedPath, CONSTS.PROXY_SHELL, sessionKey);
+			
 			executor.execSingleLine("./"+CONSTS.PROXY_SHELL+" start", sessionKey);
 			if (!executor.waitProcessStart(port, sessionKey))
 				return false;

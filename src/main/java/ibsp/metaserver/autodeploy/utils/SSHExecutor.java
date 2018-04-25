@@ -44,6 +44,7 @@ public class SSHExecutor {
 	private static final String CMD_HOSTNAME = "hostname";
 	private static final String CMD_HNAME2IP = "hname2ip";
 	private static final String CMD_ERL      = "erl";
+	private static final String CMD_SED      = "sed";
 	private static final String CMD_SET_PS1  = "export PS1=\"[\\u@\\h \\W]\\$\" \n";
 	
 	private static final String ERL_ROOT_DIR = "ERL_ROOT_DIR";
@@ -196,6 +197,17 @@ public class SSHExecutor {
 		String cmd = String.format("%s -p %s\n", CMD_MKDIR, fileDir);
 		String context = generalCommand(cmd);
 		DeployLog.pubLog(sessionKey, context);
+		return true;
+	}
+	
+	// sed -i "s/%JDK_ROOT_PATH%/home/g" access.sh
+	public boolean sed(String src, String des, String fileName, String sessionKey) throws InterruptedException {
+		String cmd = String.format("sed -i 's/%s/%s/g' %s %s", src, des, fileName, CONSTS.LINE_SEP);
+		String context = generalCommand(cmd);
+		
+		if (sessionKey != null)
+			DeployLog.pubLog(sessionKey, context);
+		
 		return true;
 	}
 
