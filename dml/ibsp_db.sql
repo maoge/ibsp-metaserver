@@ -323,9 +323,9 @@ CREATE TABLE `t_file_deploy` (
 ) ENGINE=INNODB DEFAULT CHARSET=utf8;
 
 INSERT  INTO `t_file_deploy`(`FILE_ID`,`HOST_ID`,`FILE_TYPE`,`SERV_CLAZZ`,`FILE_NAME`,`FILE_DIR`,`CREATE_TIME`) VALUES 
-('1', '1', 'DB_TIDB',     'DB', 'tidb_server-1.0.0.tar.gz',                  '/home/mq1/ftp/', 1456105739394),
-('2', '1', 'DB_TIKV',     'DB', 'tikv_server-1.0.0.tar.gz',                  '/home/mq1/ftp/', 1456105739394),
-('3', '1', 'DB_PD',       'DB', 'pd_server-1.0.0.tar.gz',                    '/home/mq1/ftp/', 1456105739394),
+('1', '1', 'DB_TIDB',     'DB', 'tidb_server-2.0.0.tar.gz',                  '/home/mq1/ftp/', 1456105739394),
+('2', '1', 'DB_TIKV',     'DB', 'tikv_server-2.0.0.tar.gz',                  '/home/mq1/ftp/', 1456105739394),
+('3', '1', 'DB_PD',       'DB', 'pd_server-2.0.0.tar.gz',                    '/home/mq1/ftp/', 1456105739394),
 ('4', '1', 'COLLECTD',    '',   'collectd-1.0.0.tar.gz',                     '/home/mq1/ftp/', 1456105739394),
 ('5', '1', 'MQ_RABBIT',   'MQ', 'rabbitmq-server-generic-unix-3.4.3.tar.gz', '/home/mq1/ftp/', 1456105739394),
 ('6', '1', 'MQ_ERLANG',   'MQ', 'otp_R15B.tar.gz',                           '/home/mq1/ftp/', 1456105739394),
