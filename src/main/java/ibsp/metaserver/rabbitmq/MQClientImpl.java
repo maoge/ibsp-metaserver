@@ -57,7 +57,7 @@ public class MQClientImpl implements IMQClient {
 				cmdChannel = conn.createChannel();
 			}
 			ret = 0;
-		} catch (IOException e) {
+		} catch (Exception e) {
 			lastErrMsg = e.getMessage();
 			logger.error(e.getMessage(), e);
 			return ret;
@@ -70,7 +70,7 @@ public class MQClientImpl implements IMQClient {
 		if (dataChannel != null) {
 			try {
 				dataChannel.close();
-			} catch (IOException e) {
+			} catch (Exception e) {
 				lastErrMsg = "close dataChannel caught exception:"+ e.getMessage();
 				logger.error(e.getMessage(), e);
 			}
@@ -78,7 +78,7 @@ public class MQClientImpl implements IMQClient {
 		if (cmdChannel != null) {
 			try {
 				cmdChannel.close();
-			} catch (IOException e) {
+			} catch (Exception e) {
 				lastErrMsg = "close cmdChannel caught exception:"+ e.getMessage();
 				logger.error(e.getMessage(), e);
 			}
