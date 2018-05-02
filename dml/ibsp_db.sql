@@ -374,6 +374,7 @@ CREATE TABLE `t_mq_queue` (
   `QUEUE_NAME` varchar(48) NOT NULL COMMENT '队列名',
   `IS_DURABLE` varchar(1) DEFAULT '0' COMMENT '0：非持久化；1：持久化',
   `IS_ORDERED` varchar(1) NOT NULL DEFAULT '0' COMMENT '是否全局有序',
+  `IS_PRIORITY` varchar(1) NOT NULL DEFAULT '0' COMMENT '是否优先级队列',
   `QUEUE_TYPE` varchar(1) NOT NULL COMMENT '队列类型（1：队列queue；2：广播topic）',
   `IS_DEPLOY` varchar(1) DEFAULT '0' COMMENT '部署标记(0：未部署；1：已部署)',
   `SERV_ID` varchar(36) NOT NULL COMMENT '所属的服务ID',
