@@ -46,7 +46,7 @@ public class CONSTS {
 	public static final String END_STYLE                         = "</span>";
 	
 	public static final String MQ_DEPLOY_ROOT_PATH     = "mq_deploy";
-	public static final String MQ_DEPLOY_PATH          = "rabbitmq_server-3.4.3";
+	public static final String MQ_DEPLOY_PATH          = "rabbitmq_server-3.7.4";
 	public static final long DISK_FREE_LIMIT           = 6000000000L;
 	public static final float VM_MEMORY_HIGH_WATERMARK = 0.2f;
 	

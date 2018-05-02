@@ -1241,33 +1241,31 @@ public class MetaData {
 		if (HttpUtils.isNull(servId))
 			return false;
 
-		switch (type) {
-			case e31:
-				IdSetBean<String> idSet = servId2QueueIdMap.get(servId);
-				Iterator<String> ids = idSet.iterator();
-				while(ids.hasNext()) {
-					String queueId = ids.next();
-					QueueBean bean = queueMap.get(queueId);
-					if(bean != null) {
-						
-						if(bean.getQueueType().equals(CONSTS.TYPE_TOPIC)){
-							IdSetBean<String> permnentTopicIdSet = queueId2ConsumerIdMap.get(queueId);
-							Iterator<String> permnentTopicIds = permnentTopicIdSet.iterator();
-							while(permnentTopicIds.hasNext()) {
-								String consumerId = permnentTopicIds.next();
-								permTopicMap.remove(consumerId);
-							}
-							queueId2ConsumerIdMap.remove(queueId);
+		if (type == EventType.e31) {
+			IdSetBean<String> idSet = servId2QueueIdMap.get(servId);
+			if (idSet == null || idSet.isEmpty())
+				return true;
+			
+			Iterator<String> ids = idSet.iterator();
+			while(ids.hasNext()) {
+				String queueId = ids.next();
+				QueueBean bean = queueMap.get(queueId);
+				if(bean != null) {
+					if(bean.getQueueType().equals(CONSTS.TYPE_TOPIC)){
+						IdSetBean<String> permnentTopicIdSet = queueId2ConsumerIdMap.get(queueId);
+						Iterator<String> permnentTopicIds = permnentTopicIdSet.iterator();
+						while(permnentTopicIds.hasNext()) {
+							String consumerId = permnentTopicIds.next();
+							permTopicMap.remove(consumerId);
 						}
+						queueId2ConsumerIdMap.remove(queueId);
 					}
-					
-					queueMap.remove(queueId);
 				}
-				break;
-			default : 
-				break;
-		
+				
+				queueMap.remove(queueId);
+			}
 		}
+		
 		return true;
 	}
 	

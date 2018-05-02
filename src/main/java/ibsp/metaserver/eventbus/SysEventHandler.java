@@ -102,7 +102,9 @@ public class SysEventHandler implements Handler<Message<String>> {
 			
 			//卸载MQSerivce时候，把所有队列和topic都弄成未发布
 			case e31:
-				MetaData.get().doMQServiceUndeploy(json, type);
+				if (uuid.equals(MetaData.get().getUUID())) {
+					MetaData.get().doMQServiceUndeploy(json, type);
+				}
 				break;
 				
 			//接入机扩缩容

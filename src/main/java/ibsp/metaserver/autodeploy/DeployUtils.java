@@ -526,6 +526,7 @@ public class DeployUtils {
 		EventBean evBean = new EventBean();
 		evBean.setEvType(type);
 		evBean.setJsonStr(paramsJson.toString());
+		evBean.setUuid(MetaData.get().getUUID());
 		EventBusMsg.publishEvent(evBean);
 	}
 }
