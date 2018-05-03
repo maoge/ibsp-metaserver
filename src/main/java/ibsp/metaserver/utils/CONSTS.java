@@ -101,6 +101,8 @@ public class CONSTS {
 	public static final String MQ_DEFAULT_PWD        = "ibsp_mq@123321";
 	public static final String MQ_DEFAULT_VHOST      = "/";
 	public static final long   MQ_DEPLOY_MAXTIME     = 60000l;
+	public static final int    MQ_MAX_QUEUE_PRIORITY = 10;
+	
 	
 	public static final String SERV_TYPE_MQ          = "MQ";
 	public static final String SERV_TYPE_CACHE       = "CACHE";
@@ -188,12 +190,15 @@ public class CONSTS {
 	public static final String BIND_TYPE_WILD = "2";
 	public static final String NOT_GLOBAL_ORDERED = "0";
 	public static final String GLOBAL_ORDERED = "1";
+	public static final String NOT_PRIORITY = "0";
+	public static final String PRIORITY     = "1";
 	
 	public static final String ERR_CREATE_QUEUE_ON_DB = "create queue/topic error on db .....";
 	public static final String ERR_QUEUE_EXISTS = "queue/topic allready exists .....";
 	public static final String ERR_QUEUE_TYPE_ERROR = "queue/topic type is [1,2]";
 	public static final String ERR_DURABLE_TYPE_ERROR = "durable type is [0,1]";
 	public static final String ERR_ORDERED_TYPE_ERROR = "ordered type is [0,1]";
+	public static final String ERR_PRIORITY_TYPE_ERROR = "priority type is [0,1]";
 	public static final String ERR_QUEUE_ALLREADY_DEPLOYED = "queue/topic allready deployed ......";
 	public static final String ERR_QUEUE_NOT_EXISTS = "queue/topic not exists .....";
 	public static final String ERR_TOPIC_BINDED = "topic has been binded, please unbind first ......";

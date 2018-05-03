@@ -282,6 +282,11 @@ public class MQService {
 			String ordered = params.get(FixHeader.HEADER_GLOBAL_ORDERED);
 			String _ordered = HttpUtils.isNull(ordered) ? CONSTS.NOT_GLOBAL_ORDERED : ordered;
 			
+			String priority = params.get(FixHeader.HEADER_IS_PRIORITY);
+			String _priority = HttpUtils.isNull(priority) ? CONSTS.NOT_PRIORITY : priority;
+			//TODO priority queue
+			123456
+			
 			if(HttpUtils.isNull(_qname) || HttpUtils.isNull(_qtype) || HttpUtils.isNull(_durable) || 
 					HttpUtils.isNull(_servid)) {
 				resultBean.setRetCode(CONSTS.REVOKE_NOK);
@@ -306,6 +311,13 @@ public class MQService {
 			
 			if (!(CONSTS.GLOBAL_ORDERED.equals(_ordered) || CONSTS.NOT_GLOBAL_ORDERED.equals(_ordered))) {
 				String err = String.format("%s, request is:%s", CONSTS.ERR_ORDERED_TYPE_ERROR, _durable);
+				resultBean.setRetCode(CONSTS.REVOKE_NOK);
+				resultBean.setRetInfo(err);
+				return false;
+			}
+			
+			if (!(CONSTS.PRIORITY.equals(_priority) || CONSTS.NOT_PRIORITY.equals(_priority))) {
+				String err = String.format("%s, request is:%s", CONSTS.ERR_PRIORITY_TYPE_ERROR, _priority);
 				resultBean.setRetCode(CONSTS.REVOKE_NOK);
 				resultBean.setRetInfo(err);
 				return false;
@@ -349,9 +361,9 @@ public class MQService {
 				curd.putSqlBean(uSqlBean);
 			} else {//添加
 				qid = UUIDUtils.genUUID();
-				String vbSql = "insert into t_mq_queue(queue_id,queue_name,queue_type,is_durable,is_ordered,serv_id,rec_time)value(?,?,?,?,?,?,?)";
+				String vbSql = "insert into t_mq_queue(queue_id,queue_name,queue_type,is_durable,is_ordered,is_priority,serv_id,rec_time)value(?,?,?,?,?,?,?,?)";
 				SqlBean iSqlBean = new SqlBean(vbSql);
-				iSqlBean.addParams(new Object[]{qid,_qname,_qtype,_durable,_ordered,_servid,HttpUtils.getCurrTimestamp()});
+				iSqlBean.addParams(new Object[]{qid,_qname,_qtype,_durable,_ordered,_priority,_servid,HttpUtils.getCurrTimestamp()});
 				curd.putSqlBean(iSqlBean);	
 			}
 		

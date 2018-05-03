@@ -50,6 +50,7 @@ public class FixHeader {
 	public static final String HEADER_QUEUE_NAME               = "QUEUE_NAME";
 	public static final String HEADER_IS_DURABLE               = "IS_DURABLE";
 	public static final String HEADER_GLOBAL_ORDERED           = "IS_ORDERED";
+	public static final String HEADER_IS_PRIORITY              = "IS_PRIORITY";
 	public static final String HEADER_QUEUE_TYPE               = "QUEUE_TYPE";
 	public static final String HEADER_IS_DEPLOY                = "IS_DEPLOY";
 	public static final String HEADER_ERL_COOKIE               = "ERL_COOKIE";
