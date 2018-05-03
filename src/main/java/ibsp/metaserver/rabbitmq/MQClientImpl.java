@@ -9,6 +9,8 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.AMQP.Queue;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,11 +96,16 @@ public class MQClientImpl implements IMQClient {
 	}
 
 	@Override
-	public int createQueue(String queueName, boolean ordinal, boolean DURABLE) {
+	public int createQueue(String queueName, boolean ordinal, boolean duarable, int nMaxPriority) {
 		int ret = CONSTS.REVOKE_NOK;
 		if (cmdChannel != null) {
 			try {
-				Queue.DeclareOk decResult = cmdChannel.queueDeclare(queueName, DURABLE, false, false, null);
+				Map<String, Object> args = null;
+				if (nMaxPriority > 0) {
+					args = new HashMap<String, Object>();
+					args.put("x-max-priority", (nMaxPriority > CONSTS.MQ_MAX_QUEUE_PRIORITY) ? CONSTS.MQ_MAX_QUEUE_PRIORITY : nMaxPriority);
+				}
+				Queue.DeclareOk decResult = cmdChannel.queueDeclare(queueName, duarable, false, false, args);
 				if (decResult != null && decResult.getQueue().equals(queueName)) {
 					ret = CONSTS.REVOKE_OK;
 				}

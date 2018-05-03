@@ -30,9 +30,10 @@ public interface IMQClient {
 	 * @param queueName
 	 * @param ordinal
 	 * @param DURABLE 是否持久化
+	 * @param nMaxPriority 优先级队列最大优先级，默认0非优先级队列
 	 * @return
 	 */
-	public int createQueue(String queueName, boolean ordinal, boolean DURABLE);
+	public int createQueue(String queueName, boolean ordinal, boolean duarable, int nMaxPriority);
 
 	/**
 	 * 方法说明：删除名称为queueName 队列。返回0代表成功，非0失败

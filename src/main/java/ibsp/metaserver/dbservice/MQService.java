@@ -38,11 +38,11 @@ public class MQService {
 	
 	private static final Logger logger = LoggerFactory.getLogger(MQService.class);
 	
-	private final static String SEL_ALL_QUEUE = "SELECT q.QUEUE_ID, q.QUEUE_NAME, q.IS_DURABLE, q.IS_ORDERED, q.QUEUE_TYPE, q.IS_DEPLOY, q.SERV_ID, t.SERV_NAME "
+	private final static String SEL_ALL_QUEUE = "SELECT q.QUEUE_ID, q.QUEUE_NAME, q.IS_DURABLE, q.IS_ORDERED, q.IS_PRIORITY, q.QUEUE_TYPE, q.IS_DEPLOY, q.SERV_ID, t.SERV_NAME "
 											+     "FROM t_mq_queue q left join t_service t "
 											+     "on q.SERV_ID = t.INST_ID";
 	
-	private final static String SEL_QUEUE     = "SELECT q.QUEUE_ID, q.QUEUE_NAME, q.IS_DURABLE, q.IS_ORDERED, q.QUEUE_TYPE, q.IS_DEPLOY, q.SERV_ID, t.SERV_NAME "
+	private final static String SEL_QUEUE     = "SELECT q.QUEUE_ID, q.QUEUE_NAME, q.IS_DURABLE, q.IS_ORDERED, q.IS_PRIORITY, q.QUEUE_TYPE, q.IS_DEPLOY, q.SERV_ID, t.SERV_NAME "
 											+     "FROM t_mq_queue q left join t_service t "
 											+     "on q.SERV_ID = t.INST_ID "
 											+     "where q.QUEUE_ID = ?";
@@ -284,8 +284,6 @@ public class MQService {
 			
 			String priority = params.get(FixHeader.HEADER_IS_PRIORITY);
 			String _priority = HttpUtils.isNull(priority) ? CONSTS.NOT_PRIORITY : priority;
-			//TODO priority queue
-			123456
 			
 			if(HttpUtils.isNull(_qname) || HttpUtils.isNull(_qtype) || HttpUtils.isNull(_durable) || 
 					HttpUtils.isNull(_servid)) {
@@ -375,7 +373,7 @@ public class MQService {
 				resultBean.setRetCode(CONSTS.REVOKE_OK);
 				resultBean.setRetInfo("");
 				
-				queueBean = new QueueBean(qid, _qname, _durable, _ordered,
+				queueBean = new QueueBean(qid, _qname, _durable, _ordered, _priority,
 						_qtype, CONSTS.NOT_DEPLOYED, _servid, MetaData.get().getServiceName(_servid));
 				MetaData.get().saveQueue(qid, queueBean);
 				
@@ -510,10 +508,9 @@ public class MQService {
 		boolean createOk = true;
 		List<InstanceDtlBean> list = MetaData.get().getMasterBrokersByServId(servId);
 		
-		if (list!=null&&list.size()>0) {
-			
+		if (list != null && !list.isEmpty()) {
 			String queueName = queueBean.getQueueName();
-			
+			boolean priority = queueBean.getPriority().equals(CONSTS.PRIORITY);
 			List<InstanceDtlBean> succList = new ArrayList<>();
 			
 			for (InstanceDtlBean brokerBean : list) {
@@ -521,8 +518,8 @@ public class MQService {
 					deleteRabbitQueueByName(queueName, succList);
 					break;
 				}
-					
-				createOk = releaseQueueToMQ(queueName,brokerBean,resultBean);
+				
+				createOk &= releaseQueueToMQ(queueName, priority, brokerBean, resultBean);
 				if(createOk) {
 					succList.add(brokerBean);
 				}
@@ -557,13 +554,17 @@ public class MQService {
 		return createOk;
 	}
 	
-	private static boolean releaseQueueToMQ(String queueName, InstanceDtlBean brokerBean, ResultBean resultBean) {
-		List<String> list = new ArrayList<>();
-		list.add(queueName);
-		return releaseQueuesToMQ(list, brokerBean, resultBean);
+	private static boolean releaseQueueToMQ(String queueName, boolean priority, InstanceDtlBean brokerBean, ResultBean resultBean) {
+		List<String> queues = new ArrayList<String>();
+		queues.add(queueName);
+		
+		List<Boolean> priorites = new ArrayList<Boolean>();
+		priorites.add(priority);
+		
+		return releaseQueuesToMQ(queues, priorites, brokerBean, resultBean);
 	}
 	
-	private static boolean releaseQueuesToMQ(List<String> queues, InstanceDtlBean brokerBean, ResultBean resultBean) {
+	private static boolean releaseQueuesToMQ(List<String> queues, List<Boolean> priorities, InstanceDtlBean brokerBean, ResultBean resultBean) {
 		boolean createOk = true;
 
 		String ip = brokerBean.getAttribute(FixHeader.HEADER_IP).getAttrValue();
@@ -580,11 +581,16 @@ public class MQService {
 		try {
 			if (cf == 0) {
 				int createRet = -1;
-				for(String queueName : queues) {
+				//for(String queueName : queues) {
+				for (int idx = 0; idx < queues.size(); idx++) {
+					String queueName = queues.get(idx);
+					Boolean priority = priorities.get(idx);
+					int maxPriority = priority.booleanValue() ? CONSTS.MQ_MAX_QUEUE_PRIORITY : CONSTS.MQ_DEFAULT_QUEUE_PRIORITY;
+					
 					if(!createOk) {
 						break;
 					}
-					createRet = c.createQueue(queueName, false, true);
+					createRet = c.createQueue(queueName, false, true, maxPriority);
 					if (createRet != 0) {
 						String err = String.format("release queue:%s error, user:%s pwd:%s vhost:%s %s:%d",
 								queueName, user, pwd, vhost, ip, port);
@@ -619,10 +625,10 @@ public class MQService {
 	private static boolean releasePermnentToMQ(String queueName, String servId, String subTopic, ResultBean resultBean) {
 		List<InstanceDtlBean> list = MetaData.get().getMasterBrokersByServId(servId);
 		
-		return releasePermnentToMQ(queueName, list, subTopic, resultBean);	
+		return releasePermnentToMQ(queueName, CONSTS.MQ_DEFAULT_QUEUE_PRIORITY, list, subTopic, resultBean);
 	}
 	
-	private static boolean releasePermnentToMQ(String queueName, List<InstanceDtlBean> list, String subTopic, ResultBean resultBean) {
+	private static boolean releasePermnentToMQ(String queueName, int maxPriority, List<InstanceDtlBean> list, String subTopic, ResultBean resultBean) {
 		
 		boolean createOk = true;
 		if (list==null || list.size() == 0) {
@@ -661,7 +667,7 @@ public class MQService {
 				}
 					
 				int createRet = -1;
-				createRet = c.createQueue(queueName, false, true);
+				createRet = c.createQueue(queueName, false, true, maxPriority);
 				if (createRet != 0) {
 					String err = String.format("release queue:%s error, user:%s pwd:%s vhost:%s %s:%d",
 							queueName, user, pwd, vhost, ip, port);
@@ -1061,6 +1067,7 @@ public class MQService {
 		}
 		boolean isAllOk = true;
 		List<String> queues = new ArrayList<>();
+		List<Boolean> priorities = new ArrayList<>();
 
 		for(QueueBean queueBean : queueList) {
 			if(!isAllOk) {
@@ -1083,13 +1090,14 @@ public class MQService {
 					}
 				}
 				
+				priorities.add(queueBean.getPriority().equals(CONSTS.PRIORITY) ? true : false);
 			}
 		}
 		
 		String masterBrokerId = instDtl.getAttribute(FixHeader.HEADER_MASTER_ID).getAttrValue();
 		InstanceDtlBean broker = MetaData.get().getInstanceDtlBean(masterBrokerId);
 		
-		isAllOk = releaseQueuesToMQ(queues, broker, result);
+		isAllOk = releaseQueuesToMQ(queues, priorities, broker, result);
 		
 		return isAllOk;
 	}
