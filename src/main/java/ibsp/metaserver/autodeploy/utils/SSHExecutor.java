@@ -171,7 +171,7 @@ public class SSHExecutor {
 		String cmd = String.format("%s %s %s\n", CMD_CP, srcFile, destDir);
 		String context = generalCommand(cmd);
 		
-		if (sessionKey == null)
+		if (sessionKey != null)
 			DeployLog.pubLog(sessionKey, context);
 		
 		return true;
@@ -188,7 +188,7 @@ public class SSHExecutor {
 		String cmd = String.format("%s %s %s\n", CMD_RM, extend, file);
 		String context = generalCommand(cmd);
 		
-		if (sessionKey == null)
+		if (sessionKey != null)
 			DeployLog.pubLog(sessionKey, context);
 		
 		return context.indexOf(CONSTS.NO_SUCH_FILE) != -1 ? true : false;
@@ -198,7 +198,7 @@ public class SSHExecutor {
 		String cmd = String.format("%s -d %s\n", CMD_FILE, fileDir);
 		String context = generalCommand(cmd);
 		
-		if (sessionKey == null)
+		if (sessionKey != null)
 			DeployLog.pubLog(sessionKey, context);
 		
 		if (context.indexOf(CONSTS.COMMAND_NOT_FOUND) != -1) {
@@ -214,7 +214,7 @@ public class SSHExecutor {
 		String cmd = String.format("%s -p %s\n", CMD_MKDIR, fileDir);
 		String context = generalCommand(cmd);
 		
-		if (sessionKey == null)
+		if (sessionKey != null)
 			DeployLog.pubLog(sessionKey, context);
 		
 		return true;
@@ -303,7 +303,7 @@ public class SSHExecutor {
 			Thread.sleep(WAIT_TIMEOUT);
 
 			if (bout.checkYesOrNo()) {
-				if (sessionKey == null)
+				if (sessionKey != null)
 					DeployLog.pubLog(sessionKey, new String(bout.toByteArray()));
 				
 				bout.reset();
@@ -315,7 +315,7 @@ public class SSHExecutor {
 
 					long curr = System.currentTimeMillis();
 					if ((curr - start) > CONSTS.SSH_CMD_TIMEOUT) {
-						if (sessionKey == null)
+						if (sessionKey != null)
 							DeployLog.pubLog(sessionKey, CONSTS.SSH_TIMEOUT_INFO);
 						
 						throw new InterruptedException(CONSTS.SSH_TIMEOUT_INFO);
@@ -328,7 +328,7 @@ public class SSHExecutor {
 
 			long curr = System.currentTimeMillis();
 			if ((curr - start) > CONSTS.SSH_CMD_TIMEOUT) {
-				if (sessionKey == null)
+				if (sessionKey != null)
 					DeployLog.pubLog(sessionKey, CONSTS.SSH_TIMEOUT_INFO);
 				
 				throw new InterruptedException(CONSTS.SSH_TIMEOUT_INFO);
@@ -341,7 +341,7 @@ public class SSHExecutor {
 			throw new InterruptedException(errInfo);
 		}
 		
-		if (sessionKey == null)
+		if (sessionKey != null)
 			DeployLog.pubLog(sessionKey, context);
 		bout.reset();
 
@@ -354,7 +354,7 @@ public class SSHExecutor {
 				if (logger.isTraceEnabled())
 					logger.trace(bout.toString());
 				
-				if (sessionKey == null)
+				if (sessionKey != null)
 					DeployLog.pubLog(sessionKey, new String(bout.toByteArray()));
 
 				if (bout.sshEof()) {
@@ -367,7 +367,7 @@ public class SSHExecutor {
 
 			long curr = System.currentTimeMillis();
 			if ((curr - start) > CONSTS.SSH_CMD_TIMEOUT) {
-				if (sessionKey == null)
+				if (sessionKey != null)
 					DeployLog.pubLog(sessionKey, CONSTS.SSH_TIMEOUT_INFO);
 				
 				throw new InterruptedException(CONSTS.SSH_TIMEOUT_INFO);
@@ -377,7 +377,7 @@ public class SSHExecutor {
 		if (logger.isTraceEnabled())
 			logger.trace(bout.toString());
 		
-		if (sessionKey == null)
+		if (sessionKey != null)
 			DeployLog.pubLog(sessionKey, new String(bout.toByteArray()));
 
 		bout.reset();
@@ -394,14 +394,14 @@ public class SSHExecutor {
 
 			if (!bout.emputy()) {
 				if (bout.sshEof()) {
-					if (sessionKey == null)
+					if (sessionKey != null)
 						DeployLog.pubLog(sessionKey, new String(bout.toByteArray()));
 					
 					bout.reset();
 					break;
 				}
 				
-				if (sessionKey == null)
+				if (sessionKey != null)
 					DeployLog.pubLog(sessionKey, new String(bout.toByteArray()));
 				
 				bout.reset();
@@ -409,7 +409,7 @@ public class SSHExecutor {
 
 			long curr = System.currentTimeMillis();
 			if ((curr - start) > CONSTS.SSH_CMD_TIMEOUT) {
-				if (sessionKey == null)
+				if (sessionKey != null)
 					DeployLog.pubLog(sessionKey, new String(bout.toByteArray()));
 				
 				bout.reset();
@@ -430,7 +430,7 @@ public class SSHExecutor {
 
 			long curr = System.currentTimeMillis();
 			if ((curr - start) > CONSTS.SSH_CMD_TIMEOUT) {
-				if (sessionKey == null)
+				if (sessionKey != null)
 					DeployLog.pubLog(sessionKey, CONSTS.SSH_TIMEOUT_INFO);
 				
 				throw new InterruptedException(CONSTS.SSH_TIMEOUT_INFO);
@@ -445,7 +445,7 @@ public class SSHExecutor {
 
 				long curr = System.currentTimeMillis();
 				if ((curr - start) > CONSTS.SSH_CMD_TIMEOUT) {
-					if (sessionKey == null)
+					if (sessionKey != null)
 						DeployLog.pubLog(sessionKey, CONSTS.SSH_TIMEOUT_INFO);
 					
 					throw new InterruptedException(CONSTS.SSH_TIMEOUT_INFO);
@@ -460,7 +460,7 @@ public class SSHExecutor {
 
 			long curr = System.currentTimeMillis();
 			if ((curr - start) > CONSTS.SSH_CMD_TIMEOUT) {
-				if (sessionKey == null)
+				if (sessionKey != null)
 					DeployLog.pubLog(sessionKey, CONSTS.SSH_TIMEOUT_INFO);
 				
 				throw new InterruptedException(CONSTS.SSH_TIMEOUT_INFO);
@@ -470,7 +470,7 @@ public class SSHExecutor {
 		if (logger.isTraceEnabled())
 			logger.trace(bout.toString());
 		
-		if (sessionKey == null)
+		if (sessionKey != null)
 			DeployLog.pubLog(sessionKey, new String(bout.toByteArray()));
 		
 		bout.reset();
@@ -495,7 +495,7 @@ public class SSHExecutor {
 
 			long curr = System.currentTimeMillis();
 			if ((curr - start) > CONSTS.SSH_CMD_TIMEOUT) {
-				if (sessionKey == null)
+				if (sessionKey != null)
 					DeployLog.pubLog(sessionKey, CONSTS.SSH_TIMEOUT_INFO);
 				
 				throw new InterruptedException(CONSTS.SSH_TIMEOUT_INFO);
@@ -509,7 +509,7 @@ public class SSHExecutor {
 
 			long curr = System.currentTimeMillis();
 			if ((curr - start) > CONSTS.SSH_CMD_TIMEOUT) {
-				if (sessionKey == null)
+				if (sessionKey != null)
 					DeployLog.pubLog(sessionKey, CONSTS.SSH_TIMEOUT_INFO);
 				
 				throw new InterruptedException(CONSTS.SSH_TIMEOUT_INFO);
@@ -523,7 +523,7 @@ public class SSHExecutor {
 
 			long curr = System.currentTimeMillis();
 			if ((curr - start) > CONSTS.SSH_CMD_TIMEOUT) {
-				if (sessionKey == null)
+				if (sessionKey != null)
 					DeployLog.pubLog(sessionKey, CONSTS.SSH_TIMEOUT_INFO);
 				
 				throw new InterruptedException(CONSTS.SSH_TIMEOUT_INFO);
@@ -715,7 +715,7 @@ public class SSHExecutor {
 		String cmd = String.format("%s -an | grep LISTEN | awk '{print $4}' | grep :%s$ | wc -l\n", CMD_NETSTAT, port);
 		String context = generalCommand(cmd);
 		
-		if (sessionKey == null)
+		if (sessionKey != null)
 			DeployLog.pubLog(sessionKey, context);
 
 		int lastLeftBracket = context.lastIndexOf(CONSTS.SQUARE_BRACKET_LEFT);
@@ -749,7 +749,7 @@ public class SSHExecutor {
 
 			long curr = System.currentTimeMillis();
 			if ((curr - start) > CONSTS.SSH_CMD_TIMEOUT) {
-				if (sessionKey == null)
+				if (sessionKey != null)
 					DeployLog.pubLog(sessionKey, CONSTS.SSH_TIMEOUT_INFO);
 				
 				throw new InterruptedException(CONSTS.SSH_TIMEOUT_INFO);
@@ -757,7 +757,7 @@ public class SSHExecutor {
 		}
 
 		String context = bout.toString();
-		if (sessionKey == null)
+		if (sessionKey != null)
 			DeployLog.pubLog(sessionKey, context);
 		bout.reset();
 
@@ -769,7 +769,7 @@ public class SSHExecutor {
 
 				long curr = System.currentTimeMillis();
 				if ((curr - start) > CONSTS.SSH_CMD_TIMEOUT) {
-					if (sessionKey == null)
+					if (sessionKey != null)
 						DeployLog.pubLog(sessionKey, CONSTS.SSH_TIMEOUT_INFO);
 					
 					throw new InterruptedException(CONSTS.SSH_TIMEOUT_INFO);
@@ -779,7 +779,7 @@ public class SSHExecutor {
 
 		context = bout.toString();
 		bout.reset();
-		if (sessionKey == null)
+		if (sessionKey != null)
 			DeployLog.pubLog(sessionKey, context);
 
 		// erl 进程退出比较慢
@@ -799,7 +799,7 @@ public class SSHExecutor {
 
 			long curr = System.currentTimeMillis();
 			if ((curr - start) > CONSTS.SSH_CMD_TIMEOUT) {
-				if (sessionKey == null)
+				if (sessionKey != null)
 					DeployLog.pubLog(sessionKey, CONSTS.SSH_TIMEOUT_INFO);
 				
 				throw new InterruptedException(CONSTS.SSH_TIMEOUT_INFO);
@@ -813,7 +813,7 @@ public class SSHExecutor {
 
 			long curr = System.currentTimeMillis();
 			if ((curr - start) > CONSTS.SSH_CMD_TIMEOUT) {
-				if (sessionKey == null)
+				if (sessionKey != null)
 					DeployLog.pubLog(sessionKey, CONSTS.SSH_TIMEOUT_INFO);
 				
 				throw new InterruptedException(CONSTS.SSH_TIMEOUT_INFO);
@@ -827,7 +827,7 @@ public class SSHExecutor {
 
 			long curr = System.currentTimeMillis();
 			if ((curr - start) > CONSTS.SSH_CMD_TIMEOUT) {
-				if (sessionKey == null)
+				if (sessionKey != null)
 					DeployLog.pubLog(sessionKey, CONSTS.SSH_TIMEOUT_INFO);
 				
 				throw new InterruptedException(CONSTS.SSH_TIMEOUT_INFO);
