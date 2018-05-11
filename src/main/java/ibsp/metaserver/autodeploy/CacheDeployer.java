@@ -322,11 +322,19 @@ public class CacheDeployer implements Deployer {
 			}
 		}
 		if (slotEmpty) {
-			int key = (CONSTS.MAX_CACHE_SLOT+1) / nodeClusterList.size();
+			int beginSlot = 0;
+			
+			int size = nodeClusterList.size();
+			int step = (CONSTS.MAX_CACHE_SLOT+1) / size;
 			Map<String, String> slots = new HashMap<String, String>();
-			for (int i = 0; i < nodeClusterList.size(); i++) {
+			for (int i = 0; i < size; i++) {
 				InstanceDtlBean clusterDtl = nodeClusterList.get(i);
-				String slot = "["+(key*i)+","+(key*(i+1)-1)+"]";
+				
+				int start = beginSlot;
+				int end = (i == size - 1) ? CONSTS.MAX_CACHE_SLOT : start + step;
+				beginSlot = end + 1;
+				
+				String slot = String.format("[%d,%d]", start, end);
 				clusterDtl.setAttribute("CACHE_SLOT", slot);
 				slots.put(clusterDtl.getInstID(), slot);
 			}

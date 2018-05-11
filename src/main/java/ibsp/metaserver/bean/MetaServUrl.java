@@ -30,7 +30,7 @@ public class MetaServUrl extends BeanMapper {
 	}
 	
 	public String getHttpServAddr() {
-		return String.format("http://%s", metaSvrAddr);
+		return String.format("%s", metaSvrAddr);
 	}
 	
 	public static MetaServUrl convert(Map<String, Object> mapper) {
