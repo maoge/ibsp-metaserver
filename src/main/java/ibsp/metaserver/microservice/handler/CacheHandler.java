@@ -54,7 +54,7 @@ public class CacheHandler {
 			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
 			json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
 		} else {
-			String servID = params.get(FixHeader.HEADER_SERV_NAME);
+			String servID = params.get(FixHeader.HEADER_SERV_ID);
 			if (!HttpUtils.isNotNull(servID)) {
 				json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
 				json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);

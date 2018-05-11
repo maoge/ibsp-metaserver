@@ -29,20 +29,20 @@ public class CacheService {
 	
 	private static Logger logger = LoggerFactory.getLogger(CacheService.class);
 	
-	private static final String GET_SERVICE_NAME_BY_PROXY_ID = 
-			"select serv.INST_ID, serv.SERV_NAME FROM "
-			+ "t_service serv JOIN t_topology top1 ON serv.INST_ID=top1.INST_ID1 "
-			+ "JOIN t_topology top2 ON top1.INST_ID2=top2.INST_ID1 "
-			+ "WHERE top2.INST_ID2=?";
-	
-	private static final String GET_DEPLOYED_PROXY_BY_SERVICE = 
-			"SELECT att.INST_ID, ATTR_NAME, ATTR_VALUE FROM "+ 
-			"t_instance_attr att JOIN t_instance ins ON att.INST_ID=ins.INST_ID "+ 
-			"JOIN t_meta_cmpt cmpt ON ins.CMPT_ID=cmpt.CMPT_ID "+
-			"JOIN t_topology top1 ON ins.INST_ID=top1.INST_ID2 "+ 
-			"JOIN t_topology top2 ON top1.INST_ID1=top2.INST_ID2 "+
-			"JOIN t_service serv ON top2.INST_ID1=serv.INST_ID "+
-			"WHERE cmpt.CMPT_NAME='CACHE_PROXY' AND ins.IS_DEPLOYED='1' AND serv.SERV_NAME=?";
+//	private static final String GET_SERVICE_NAME_BY_PROXY_ID = 
+//			"select serv.INST_ID, serv.SERV_NAME FROM "
+//			+ "t_service serv JOIN t_topology top1 ON serv.INST_ID=top1.INST_ID1 "
+//			+ "JOIN t_topology top2 ON top1.INST_ID2=top2.INST_ID1 "
+//			+ "WHERE top2.INST_ID2=?";
+//	
+//	private static final String GET_DEPLOYED_PROXY_BY_SERVICE = 
+//			"SELECT att.INST_ID, ATTR_NAME, ATTR_VALUE FROM "+ 
+//			"t_instance_attr att JOIN t_instance ins ON att.INST_ID=ins.INST_ID "+ 
+//			"JOIN t_meta_cmpt cmpt ON ins.CMPT_ID=cmpt.CMPT_ID "+
+//			"JOIN t_topology top1 ON ins.INST_ID=top1.INST_ID2 "+ 
+//			"JOIN t_topology top2 ON top1.INST_ID1=top2.INST_ID2 "+
+//			"JOIN t_service serv ON top2.INST_ID1=serv.INST_ID "+
+//			"WHERE cmpt.CMPT_NAME='CACHE_PROXY' AND ins.IS_DEPLOYED='1' AND serv.SERV_NAME=?";
 	
 	private static final String UPDATE_MASTER_ID = 
 			"UPDATE t_instance_attr SET ATTR_VALUE=? "
@@ -210,6 +210,13 @@ public class CacheService {
 		MetaData data = MetaData.get();
 		try {
 			ServiceBean service = data.getServiceByID(servID);
+			if (service == null) {
+				String info = String.format("service id:%s, meta data not exists!", servID);
+				result.setRetCode(CONSTS.REVOKE_NOK);
+				result.setRetInfo(info);
+				return null;
+			}
+			
 			Topology topo = data.getTopo();
 			Set<String> containers = topo.get(service.getInstID(), CONSTS.TOPO_TYPE_CONTAIN);
 			

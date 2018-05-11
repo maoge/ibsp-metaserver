@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
 import ibsp.metaserver.bean.InstanceDtlBean;
-import ibsp.metaserver.utils.UUIDUtils;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.http.HttpServer;
