@@ -970,13 +970,11 @@ public class MetaData {
 		return "";
 	}
 	
-	public ServiceBean getServiceByName(String servName) {
-		for (ServiceBean service : serviceMap.values()) {
-			if (service.getServName().equals(servName)) {
-				return service;
-			}
-		}
-		return null;
+	public ServiceBean getServiceByID(String servID) {
+		if (serviceMap == null)
+			return null;
+		
+		return serviceMap.get(servID);
 	}
 	
 	public String getServiceCollectdID(String servID) {

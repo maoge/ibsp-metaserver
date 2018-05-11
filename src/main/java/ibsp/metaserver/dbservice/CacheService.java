@@ -1,7 +1,6 @@
 package ibsp.metaserver.dbservice;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -206,11 +205,11 @@ public class CacheService {
 		return res;
 	}
 	
-	public static JsonArray getDeployedProxyByServiceName(String servName, ResultBean result) {
+	public static JsonArray getDeployedProxyByServiceID(String servID, ResultBean result) {
 		
 		MetaData data = MetaData.get();
 		try {
-			ServiceBean service = data.getServiceByName(servName);
+			ServiceBean service = data.getServiceByID(servID);
 			Topology topo = data.getTopo();
 			Set<String> containers = topo.get(service.getInstID(), CONSTS.TOPO_TYPE_CONTAIN);
 			

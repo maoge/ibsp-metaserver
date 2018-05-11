@@ -54,13 +54,13 @@ public class CacheHandler {
 			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
 			json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
 		} else {
-			String servName = params.get(FixHeader.HEADER_SERV_NAME);
-			if (!HttpUtils.isNotNull(servName)) {
+			String servID = params.get(FixHeader.HEADER_SERV_NAME);
+			if (!HttpUtils.isNotNull(servID)) {
 				json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
 				json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
 			} else {
 				ResultBean result = new ResultBean();
-				JsonArray proxyInfo = CacheService.getDeployedProxyByServiceName(servName, result);
+				JsonArray proxyInfo = CacheService.getDeployedProxyByServiceID(servID, result);
 				if (proxyInfo!=null) {
 					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
 					json.put(FixHeader.HEADER_RET_INFO, proxyInfo);
