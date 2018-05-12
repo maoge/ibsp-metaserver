@@ -45,8 +45,8 @@ public class CacheHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 	
-	@Service(id = "getDeployedProxyByServiceName", name = "getDeployedProxyByServiceName", auth = true, bwswitch = true)
-	public static void getDeployedProxyByServiceName(RoutingContext routeContext) throws Exception {
+	@Service(id = "getDeployedProxyByServiceID", name = "getDeployedProxyByServiceID", auth = true, bwswitch = true)
+	public static void getDeployedProxyByServiceID(RoutingContext routeContext) throws Exception {
 		JsonObject json = new JsonObject();
 		
 		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
