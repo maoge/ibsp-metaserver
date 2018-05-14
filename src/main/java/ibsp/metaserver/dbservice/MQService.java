@@ -185,7 +185,7 @@ public class MQService {
 	public static JsonArray getQueueList(Map<String,String> params, ResultBean resultBean) {
 		JsonArray jsonArray = null;
 		String sql="select q.queue_id, q.queue_name, queue_type, q.is_durable, q.queue_type, "
-				+ "q.is_durable, q.is_ordered, q.is_deploy "
+				+ "q.is_priority, q.is_ordered, q.is_deploy "
 				+ "from t_mq_queue q where q.serv_id = ?";
 		
 		if (params!=null && params.size()>0) {
