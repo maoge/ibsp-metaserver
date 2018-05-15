@@ -553,6 +553,10 @@ public class MQDeployer implements Deployer {
 				executor.execSingleLine(setHaPolicy, sessionKey);
 			}
 			
+			// rabbitmq 3.7 vhost add new properties: max-connections,max-queues
+			String vhostLimits = String.format("./%s/sbin/rabbitmqctl -n %s -l --erlang-cookie %s set_vhost_limits -p %s '{\"max-connections\":%d, \"max-queues\":%d}'",
+													CONSTS.MQ_DEPLOY_PATH, mqName, erlCookie, mqVHost, CONSTS.MQ_VHOST_MAX_CONNS, CONSTS.MQ_VHOST_MAX_QUEUES);
+			executor.execSingleLine(vhostLimits, sessionKey);
 		} else {
 			String err = String.format("%s, port:%s", CONSTS.ERR_MQ_PORT_ISUSED, port);
 			DeployLog.pubLog(sessionKey, err);

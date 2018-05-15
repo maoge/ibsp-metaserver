@@ -27,7 +27,7 @@
       </multicast>
       <tcp-ip enabled="true">
         <!-- interface>192.168.1.10</interface-->
-        <member>192.168.188.71</member>
+        <member>192.168.1.190</member>
       </tcp-ip>
     </join>
     <interfaces enabled="false">
