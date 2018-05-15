@@ -103,6 +103,7 @@ public class CONSTS {
 	public static final long   MQ_DEPLOY_MAXTIME     = 60000l;
 	public static final int    MQ_MAX_QUEUE_PRIORITY = 10;
 	public static final int    MQ_DEFAULT_QUEUE_PRIORITY = 0;
+	public static final int    MQ_HA_SYNC_BATCH_SIZE = 500;
 	
 	
 	public static final String SERV_TYPE_MQ          = "MQ";

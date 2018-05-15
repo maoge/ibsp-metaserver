@@ -548,8 +548,8 @@ public class MQDeployer implements Deployer {
 				// %s@%s set_policy ha-all \".\" '{\"ha-mode\":\"all\",
 				// \"ha-sync-mode\":\"automatic\", \"ha-sync-batch-size\":%d}'", erlCookie,
 				// deployPath, mqSName, mqHost, CONSTS.HA_SYNC_BATCH_SIZE);
-				String setHaPolicy = String.format("./%s/sbin/rabbitmqctl -n %s -l --erlang-cookie %s set_policy ha-all \".\" '{\"ha-mode\":\"all\", \"ha-sync-mode\":\"automatic\"}'",
-													CONSTS.MQ_DEPLOY_PATH, mqName, erlCookie);
+				String setHaPolicy = String.format("./%s/sbin/rabbitmqctl -n %s -l --erlang-cookie %s set_policy ha-all \".\" '{\"ha-mode\":\"all\", \"ha-sync-mode\":\"automatic\", \"ha-sync-batch-size\":%d}'",
+													CONSTS.MQ_DEPLOY_PATH, mqName, erlCookie, CONSTS.MQ_HA_SYNC_BATCH_SIZE);
 				executor.execSingleLine(setHaPolicy, sessionKey);
 			}
 			
