@@ -1101,12 +1101,6 @@ public class MQService {
 		
 		return isAllOk;
 	}
-
-	//卸载面板专用
-	public static boolean undeployServiceRelationByServId(String servId, ResultBean result) {
-		return delQueueByServId(servId, true, result);
-	}
-
 	
 	/**
 	 * @param deleteQueue 是否要删除数据库中队列信息，false把队列部署置为未部署，true则队列删除
@@ -1121,10 +1115,10 @@ public class MQService {
 		
 		CRUD crud = new CRUD();
 		crud.putSql(DEL_PERMNENT_TOPIC_BY_SERVID, new Object[] {servId});
-		if(deleteQueue) {
+		if (deleteQueue) {
 			crud.putSql(DEL_QUEUE_BY_SERVID, new Object[] {servId});
 
-		}else {
+		} else {
 			crud.putSql(UPDATE_QUEUE_UNDEPLOYED_BY_SERVID, new Object[] {CONSTS.NOT_DEPLOYED,servId});
 		}
 		isOk = crud.executeUpdate(result);

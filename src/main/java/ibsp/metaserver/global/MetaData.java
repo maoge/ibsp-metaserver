@@ -1271,6 +1271,9 @@ public class MetaData {
 						}
 						queueId2ConsumerIdMap.remove(queueId);
 					}
+					
+					String queueName = bean.getQueueName();
+					queueName2IdMap.remove(queueName);
 				}
 				
 				queueMap.remove(queueId);

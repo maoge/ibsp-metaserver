@@ -100,7 +100,7 @@ public class SysEventHandler implements Handler<Message<String>> {
 				MetaData.get().doInstanceDeploy(json, type);
 				break;
 			
-			//卸载MQSerivce时候，把所有队列和topic都弄成未发布
+			//卸载MQSerivce时候，把所有队列和topic删除
 			case e31:
 				if (uuid.equals(MetaData.get().getUUID())) {
 					MetaData.get().doMQServiceUndeploy(json, type);

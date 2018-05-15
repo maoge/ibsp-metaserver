@@ -79,11 +79,13 @@ public class MQDeployer implements Deployer {
 		if (!ConfigDataService.modServiceDeployFlag(serviceID, CONSTS.NOT_DEPLOYED, result))
 			return false;
 		
-		if (!MQService.undeployServiceRelationByServId(serviceID, result)) {
+		// delete all queue
+		if (!MQService.delQueueByServId(serviceID, true, result)) {
 			return false;
 		}
 		
 		DeployUtils.publishDeployEvent(EventType.e22, serviceID);
+		// TODO e31 delete global data queue data
 		DeployUtils.publishDeployEvent(EventType.e31, serviceID);
 	
 		return true;
