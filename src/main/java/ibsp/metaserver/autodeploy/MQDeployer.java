@@ -378,10 +378,12 @@ public class MQDeployer implements Deployer {
 		if (allOk) {
 			// write back VBROKER attribute: MASTER_ID
 			int attrID = vbrokerInstanceDtl.getAttribute("MASTER_ID").getAttrID();
+			vbrokerInstanceDtl.setAttribute("MASTER_ID", masterID);
 			ConfigDataService.modComponentAttribute(vbrokerId, attrID, masterID, result);
 			
 			ConfigDataService.modInstanceDeployFlag(vbrokerId, CONSTS.DEPLOYED, result);
 			DeployUtils.publishDeployEvent(EventType.e23, vbrokerId);
+			DeployUtils.publishInstanceEvent(EventType.e4, vbrokerId);
 		} else {
 			// uninstall the success
 			for (InstanceDtlBean brokerInstanceDtl : success) {

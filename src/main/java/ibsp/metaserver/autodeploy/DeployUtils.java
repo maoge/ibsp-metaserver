@@ -529,4 +529,14 @@ public class DeployUtils {
 		evBean.setUuid(MetaData.get().getUUID());
 		EventBusMsg.publishEvent(evBean);
 	}
+	
+	public static void publishInstanceEvent(EventType type, String id) {
+		JsonObject paramsJson = new JsonObject();
+		paramsJson.put(FixHeader.HEADER_INSTANCE_ID, id);
+		EventBean evBean = new EventBean();
+		evBean.setEvType(type);
+		evBean.setJsonStr(paramsJson.toString());
+		evBean.setUuid(MetaData.get().getUUID());
+		EventBusMsg.publishEvent(evBean);
+	}
 }

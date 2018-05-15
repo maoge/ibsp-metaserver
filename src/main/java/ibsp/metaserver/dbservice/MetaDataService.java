@@ -134,6 +134,7 @@ public class MetaDataService {
 			JsonObject ev2Json = new JsonObject();
 			ev2Json.put("INST_ID1", parentID);
 			ev2Json.put("INST_ID2", instID);
+			ev2Json.put("TOPO_TYPE", CONSTS.TOPO_TYPE_CONTAIN);
 			EventBean ev2 = new EventBean(EventType.e2);
 			ev2.setUuid(MetaData.get().getUUID());
 			ev2.setJsonStr(ev2Json.toString());
