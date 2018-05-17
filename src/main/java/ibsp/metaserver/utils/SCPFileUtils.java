@@ -1,4 +1,4 @@
-package ibsp.metaserver.autodeploy.utils;
+package ibsp.metaserver.utils;
 
 import java.io.File;
 import java.io.IOException;
