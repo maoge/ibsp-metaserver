@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 
 import ibsp.metaserver.autodeploy.utils.DeployLog;
 import ibsp.metaserver.autodeploy.utils.JschUserInfo;
-import ibsp.metaserver.autodeploy.utils.SCPFileUtils;
 import ibsp.metaserver.autodeploy.utils.SSHExecutor;
 import ibsp.metaserver.bean.DeployFileBean;
 import ibsp.metaserver.bean.InstanceBean;
@@ -31,6 +30,7 @@ import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.FixHeader;
 import ibsp.metaserver.utils.HttpUtils;
 import ibsp.metaserver.utils.RedisUtils;
+import ibsp.metaserver.utils.SCPFileUtils;
 import ibsp.metaserver.utils.Topology;
 import io.vertx.core.json.JsonObject;
  
@@ -729,52 +729,23 @@ public class CacheDeployer implements Deployer {
 			executor.tgzUnpack(proxyFile.getFileName(), sessionKey);
 			executor.rm(proxyFile.getFileName(), false, sessionKey);
 			
-			// modify access.sh and init.properties
-			String homeDir = executor.getHome();
-			SCPFileUtils scp = new SCPFileUtils(ip, user, pwd, CONSTS.SSH_PORT_DEFAULT);
+			// modify init.properties
+			executor.cd("./conf", sessionKey);
+			executor.sed(CONSTS.PROXY_ID, id, CONSTS.PROXY_PROPERTIES, sessionKey);
+			executor.sed(CONSTS.METASVR_ROOTURL, MetaData.get().getMetaServUrls(), CONSTS.PROXY_PROPERTIES, sessionKey);
 			
-			scp.getFile(homeDir + "/" + deployRootPath + "/bin/" + CONSTS.PROXY_SHELL);
-			BufferedReader reader = new BufferedReader(new FileReader("./"+CONSTS.PROXY_SHELL));
-			StringBuilder sb = new StringBuilder();
-			String line;
-			while ((line = reader.readLine()) != null) {
-				if (line.indexOf("COMMAND=")!=-1) {
-					line = line.substring(0, "COMMAND=".length())+id;
-				}
-				sb.append(line).append("\n");
-			}
-			scp.putFile(sb.toString(), CONSTS.PROXY_SHELL, homeDir + "/" + deployRootPath + "/bin");
-			reader.close();
-			scp.deleteLocalFile(CONSTS.PROXY_SHELL);
 			
-			scp.getFile(homeDir + "/" + deployRootPath + "/conf/" + CONSTS.PROXY_PROPERTIES);
-			reader = new BufferedReader(new FileReader("./"+CONSTS.PROXY_PROPERTIES));
-			sb = new StringBuilder();
-			while ((line = reader.readLine()) != null) {
-				//if (line.indexOf("JAVA_HOME=")!=-1) {
-				//	line = line.substring(0, "JAVA_HOME=".length())+jdkRootPath;
-				//}
-				if (line.indexOf("proxy.id=")!=-1) {
-					line = line.substring(0, "proxy.id=".length())+id;
-				}
-				if (line.indexOf("metasvr.rooturl=")!=-1) {
-					line = line.substring(0, "metasvr.rooturl=".length())+MetaData.get().getMetaServUrls();
-				}
-				sb.append(line).append("\n");
-			}
-			scp.putFile(sb.toString(), CONSTS.PROXY_PROPERTIES, homeDir + "/" + deployRootPath + "/conf");
-			reader.close();
-			scp.deleteLocalFile(CONSTS.PROXY_PROPERTIES);
-			scp.close();
-			
-			//start cache proxy
-			executor.cd("./bin", sessionKey);
-			
+			executor.cd("../bin", sessionKey);
+			// modify access.sh
 			// sed -i "s/%JDK_ROOT_PATH%/home/g" access.sh
 			// replace JDK env
 			String repSedPath = jdkRootPath.replaceAll("/", "\\\\/");
 			executor.sed(CONSTS.JDK_ROOT_PATH, repSedPath, CONSTS.PROXY_SHELL, sessionKey);
 			
+			//%PROCESS_FLAG%
+			executor.sed(CONSTS.PROCESS_FLAG, id, CONSTS.PROXY_SHELL, sessionKey);
+			
+			//start cache proxy
 			executor.execSingleLine("./"+CONSTS.PROXY_SHELL+" start", sessionKey);
 			if (!executor.waitProcessStart(port, sessionKey))
 				return false;
