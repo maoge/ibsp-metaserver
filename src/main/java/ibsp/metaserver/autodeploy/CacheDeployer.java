@@ -515,10 +515,13 @@ public class CacheDeployer implements Deployer {
 			String logFile = String.format("log_%s.log", port);
 			String maxMem = String.format("%dgb", maxMemory);
 			
+			String repPifFile = pifFile.replaceAll("/", "\\\\/");
+			String repRedisDir = redisDir.replaceAll("/", "\\\\/");
+			
 			//modify redis.conf
 			executor.cd("./conf", sessionKey);
-			executor.sed(CONSTS.REDIS_PID_FILE, pifFile, CONSTS.REDIS_PROPERTIES, sessionKey);
-			executor.sed(CONSTS.REDIS_DIR, redisDir, CONSTS.REDIS_PROPERTIES, sessionKey);
+			executor.sed(CONSTS.REDIS_PID_FILE, repPifFile, CONSTS.REDIS_PROPERTIES, sessionKey);
+			executor.sed(CONSTS.REDIS_DIR, repRedisDir, CONSTS.REDIS_PROPERTIES, sessionKey);
 			executor.sed(CONSTS.REDIS_PORT, port, CONSTS.REDIS_PROPERTIES, sessionKey);
 			executor.sed(CONSTS.REDIS_LOG_FILE, logFile, CONSTS.REDIS_PROPERTIES, sessionKey);
 			executor.sed(CONSTS.REDIS_MAX_MEM, maxMem, CONSTS.REDIS_PROPERTIES, sessionKey);
