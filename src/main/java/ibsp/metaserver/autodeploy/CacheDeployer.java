@@ -1,7 +1,5 @@
  package ibsp.metaserver.autodeploy;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -30,7 +28,6 @@ import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.FixHeader;
 import ibsp.metaserver.utils.HttpUtils;
 import ibsp.metaserver.utils.RedisUtils;
-import ibsp.metaserver.utils.SCPFileUtils;
 import ibsp.metaserver.utils.Topology;
 import io.vertx.core.json.JsonObject;
  
@@ -511,48 +508,31 @@ public class CacheDeployer implements Deployer {
 					proxyFile.getSshPort(), sessionKey);
 			executor.tgzUnpack(proxyFile.getFileName(), sessionKey);
 			executor.rm(proxyFile.getFileName(), false, sessionKey);
-				
-			//modify redis.conf
+
 			String homeDir = executor.getHome();
-			SCPFileUtils scp = new SCPFileUtils(ip, user, pwd, CONSTS.SSH_PORT_DEFAULT);
-				
-			scp.getFile(homeDir + "/" + deployRootPath + "/conf/" + CONSTS.REDIS_PROPERTIES);
-			BufferedReader reader = new BufferedReader(new FileReader("./"+CONSTS.REDIS_PROPERTIES));
-			StringBuilder sb = new StringBuilder();
-			String line;
-			while ((line = reader.readLine()) != null) {
-				String header = line.split(" ")[0];
-				switch (header) {
-				case "maxmemory":
-					line = line.substring(0, "maxmemory".length()+1)+maxMemory+"gb";
-					break;
-				case "logfile":
-					line = line.substring(0, "logfile".length()+1)+"log_"+port+".log";
-					break;
-				case "port":
-					line = line.substring(0, "port".length()+1)+port;
-					break;
-				case "dir":
-					line = line.substring(0, "dir".length()+1)+homeDir+"/"+deployRootPath+"/data";
-					break;
-				case "pidfile":
-					line = line.substring(0, "pidfile".length()+1)+homeDir+"/"+deployRootPath+"/data/redis"+port+".pid";
-					break;
-				default:
-					break;
-				}
-				sb.append(line).append("\n");
+			String pifFile = String.format("%s/%s/data/redis_%s.pid", homeDir, deployRootPath, port);
+			String redisDir = String.format("%s/%s/data", homeDir, deployRootPath);
+			String logFile = String.format("log_%s.log", port);
+			String maxMem = String.format("%dgb", maxMemory);
+			
+			//modify redis.conf
+			executor.cd("./conf", sessionKey);
+			executor.sed(CONSTS.REDIS_PID_FILE, pifFile, CONSTS.REDIS_PROPERTIES, sessionKey);
+			executor.sed(CONSTS.REDIS_DIR, redisDir, CONSTS.REDIS_PROPERTIES, sessionKey);
+			executor.sed(CONSTS.REDIS_PORT, port, CONSTS.REDIS_PROPERTIES, sessionKey);
+			executor.sed(CONSTS.REDIS_LOG_FILE, logFile, CONSTS.REDIS_PROPERTIES, sessionKey);
+			executor.sed(CONSTS.REDIS_MAX_MEM, maxMem, CONSTS.REDIS_PROPERTIES, sessionKey);
+			
+			executor.rmLine(CONSTS.REDIS_SLAVEOF, CONSTS.REDIS_PROPERTIES, sessionKey);
+			if (!HttpUtils.isNull(master)) {
+				String slaveof = String.format("%s %s", CONSTS.REDIS_SLAVEOF, master);
+				executor.addLine(slaveof, CONSTS.REDIS_PROPERTIES, sessionKey);
 			}
-			if (master != null) {
-				sb.append("slaveof ").append(master).append("\n");
-			}
-			scp.putFile(sb.toString(), CONSTS.REDIS_PROPERTIES, homeDir + "/" + deployRootPath + "/conf");
-			reader.close();
-			scp.deleteLocalFile(CONSTS.REDIS_PROPERTIES);
-			scp.close();
 			
 			//start redis instance
-			executor.execSingleLine("bin/redis-server conf/redis.conf", sessionKey);
+			executor.cd("..", sessionKey);
+			String start = String.format("./%s start", CONSTS.REDIS_SHELL);
+			executor.execSingleLine(start, sessionKey);
 			if (!executor.waitProcessStart(port, sessionKey))
 				return false;
 			
@@ -617,7 +597,8 @@ public class CacheDeployer implements Deployer {
 			if (executor.isDirExistInCurrPath(deployRootPath, sessionKey)) {
 				executor.cd("$HOME/" + deployRootPath, sessionKey);
 				if (executor.isPortUsed(Integer.parseInt(port))) {
-					executor.execSingleLine("bin/redis-cli -p "+port+" shutdown", sessionKey);
+					String stop = String.format("./%s stop", CONSTS.REDIS_SHELL);
+					executor.execSingleLine(stop, sessionKey);
 				}
 				if (!executor.waitProcessStop(port, sessionKey))
 					return false;

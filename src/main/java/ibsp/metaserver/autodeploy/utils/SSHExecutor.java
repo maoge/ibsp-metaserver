@@ -230,6 +230,27 @@ public class SSHExecutor {
 		
 		return true;
 	}
+	
+	public boolean rmLine(String s, String fileName, String sessionKey) throws InterruptedException {
+		String cmd = String.format("%s -i '/^%s/d' %s %s", CMD_SED, s, fileName, CONSTS.LINE_SEP);
+		String context = generalCommand(cmd);
+		
+		if (sessionKey != null)
+			DeployLog.pubLog(sessionKey, context);
+		
+		return true;
+	}
+	
+	public boolean addLine(String s, String fileName, String sessionKey) throws InterruptedException {
+		// sed -i '$a aaa' test.txt
+		String cmd = String.format("%s -i '$a %s' %s %s",  CMD_SED, s, fileName, CONSTS.LINE_SEP);
+		String context = generalCommand(cmd);
+		
+		if (sessionKey != null)
+			DeployLog.pubLog(sessionKey, context);
+		
+		return true;
+	}
 
 	public boolean isFileExistInCurrPath(String file, String sessionKey) throws InterruptedException {
 		String cmd = String.format("%s -al\n", CMD_LS);

@@ -32,7 +32,11 @@ public class CacheServiceMonitor implements Runnable {
 	
 	private static Logger logger = LoggerFactory.getLogger(CacheServiceMonitor.class);
 	private static Map<String, Integer> replicationCountMap = new HashMap<String, Integer>(); //check for replication status
-
+	
+	public CacheServiceMonitor() {
+		super();
+	}
+	
 	@Override
 	public void run() {
 		try {
@@ -58,7 +62,6 @@ public class CacheServiceMonitor implements Runnable {
 				            logger.info("该主节点没有从节点！尝试拉起该实例！");
 							this.pullUpInstance(master, null);
 						} else {
-							
 							//only one master and one slave is allowed
 							InstanceDtlBean slave = null;
 							for (String slaveID : cluster.getSubInstances().keySet()) {

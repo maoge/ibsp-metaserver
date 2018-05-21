@@ -32,15 +32,15 @@ public enum EventType {
 	
 	e31(50031, false, "MQService.undeploy"),             //MQService.undeploy
 	
-	e61(50061, false, "cache proxy deployed"),       // 接入机扩容
-	e62(50062, false, "cache proxy undeployed"),       // 接入机缩容
+	e61(50061, false, "cache proxy deployed"),           // 接入机扩容
+	e62(50062, false, "cache proxy undeployed"),         // 接入机缩容
 	e63(50063, true, "redis automatic ha switch"),       // redis故障主从切换
-	e64(50064, true, "redis instance down"),       // redis实例故障
+	e64(50064, true, "redis instance down"),             // redis实例故障
 	
-	e71(50071, false, "tidb server deployed"),       // TIDB层扩容
-	e72(50072, false, "tidb server undeployed"),       // TIDB层缩容
+	e71(50071, false, "tidb server deployed"),           // TIDB层扩容
+	e72(50072, false, "tidb server undeployed"),         // TIDB层缩容
 	
-	e98(50098, false, "client put collect event");       // 瀹㈡埛绔笂浼犻噰闆嗕俊鎭� 
+	e98(50098, false, "client put collect event");       // Client端定时上传统计信息
 	
 
 	private final int     value;

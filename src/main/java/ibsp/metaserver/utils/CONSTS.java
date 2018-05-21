@@ -55,6 +55,13 @@ public class CONSTS {
 	public static final String PROCESS_FLAG            = "%PROCESS_FLAG%";
 	public static final String PROXY_ID                = "%PROXY_ID%";
 	public static final String METASVR_ROOTURL         = "%METASVR_ROOTURL%";
+	public static final String REDIS_PID_FILE          = "%REDIS_PID_FILE%";
+	public static final String REDIS_DIR               = "%REDIS_DIR%";
+	public static final String REDIS_PORT              = "%REDIS_PORT%";
+	public static final String REDIS_LOG_FILE          = "%REDIS_LOG_FILE%";
+	public static final String REDIS_MAX_MEM           = "%REDIS_MAX_MEM%";
+	public static final String REDIS_SLAVEOF           = "slaveof";
+	public static final String REDIS_SHELL             = "redis.sh";
 	
 	public static final int REVOKE_OK                = 0;
 	public static final int REVOKE_NOK               = -1;

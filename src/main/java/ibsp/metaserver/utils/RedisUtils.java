@@ -1,13 +1,13 @@
 package ibsp.metaserver.utils;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ibsp.metaserver.autodeploy.utils.JschUserInfo;
+import ibsp.metaserver.autodeploy.utils.SSHExecutor;
 import redis.clients.jedis.Jedis;
 
 
@@ -17,35 +17,63 @@ public class RedisUtils {
 	
 	public static boolean updateConfForRemoveSlave(String homeDir, String ip, String port, String user, String pwd) {
 		String deployRootPath = String.format("cache_node_deploy/%s", port);
+		
+		JschUserInfo ui = null;
+		SSHExecutor executor = null;
 		boolean connected = false;
-		SCPFileUtils scp = null;
-    	
-    	try {
-			scp = new SCPFileUtils(ip, user, pwd, CONSTS.SSH_PORT_DEFAULT);
+		
+		try {
+			ui = new JschUserInfo(user, pwd, ip, CONSTS.SSH_PORT_DEFAULT);
+			executor = new SSHExecutor(ui);
+			executor.connect();
 			connected = true;
 			
-			scp.getFile(homeDir + "/" + deployRootPath + "/conf/" + CONSTS.REDIS_PROPERTIES);
-			BufferedReader reader = new BufferedReader(new FileReader("./"+CONSTS.REDIS_PROPERTIES));
-			StringBuilder sb = new StringBuilder();
-			String line;
-			while ((line = reader.readLine()) != null) {
-				if (line.indexOf("slaveof ")!=-1)
-					continue;
-				sb.append(line).append("\n");
-			}
-			scp.putFile(sb.toString(), CONSTS.REDIS_PROPERTIES, homeDir + "/" + deployRootPath + "/conf");
-			reader.close();
-			scp.deleteLocalFile(CONSTS.REDIS_PROPERTIES);
-			
-			return true;
-    	} catch (Exception e) {
-    		logger.error("修改redis配置文件失败！", e);
-    		return false;
-    	} finally {
+			String confPath = String.format("%HOME/%s/%s", deployRootPath, "conf");
+			executor.cd(confPath, null);
+			executor.rmLine(CONSTS.REDIS_SLAVEOF, CONSTS.REDIS_PROPERTIES, null);
+		} catch (Exception e) {
+			logger.error("修改redis配置文件失败！", e);
+			return false;
+		} finally {
 			if (connected) {
-				scp.close();
+				executor.close();
 			}
-    	}
+		}
+		
+		return true;
+    }
+
+    public static boolean updateConfForAddSlave(String homeDir, String ip, String port, String user, String pwd, 
+    		String targetIp, String targetPort) {
+    	String deployRootPath = String.format("cache_node_deploy/%s", port);
+    	
+    	JschUserInfo ui = null;
+		SSHExecutor executor = null;
+		boolean connected = false;
+		
+		try {
+			ui = new JschUserInfo(user, pwd, ip, CONSTS.SSH_PORT_DEFAULT);
+			executor = new SSHExecutor(ui);
+			executor.connect();
+			connected = true;
+			
+			String confPath = String.format("%HOME/%s/%s", deployRootPath, "conf");
+			executor.cd(confPath, null);
+			executor.rmLine(CONSTS.REDIS_SLAVEOF, CONSTS.REDIS_PROPERTIES, null);
+			
+			String slaveof = String.format("%s %s %s", CONSTS.REDIS_SLAVEOF, targetIp, targetPort);
+			executor.addLine(slaveof, CONSTS.REDIS_PROPERTIES, null);
+			
+		} catch (Exception e) {
+			logger.error("修改redis配置文件失败！", e);
+			return false;
+		} finally {
+			if (connected) {
+				executor.close();
+			}
+		}
+    	
+    	return true;
     }
 	
 	public static boolean removeSlave(String ip, String port) {
@@ -63,42 +91,6 @@ public class RedisUtils {
 			}
 		}
 	}
-    
-    public static boolean updateConfForAddSlave(String homeDir, String ip, String port, String user, String pwd, 
-    		String targetIp, String targetPort) {
-    	String deployRootPath = String.format("cache_node_deploy/%s", port);
-		boolean connected = false;
-		SCPFileUtils scp = null;
-    	
-    	try {
-			scp = new SCPFileUtils(ip, user, pwd, CONSTS.SSH_PORT_DEFAULT);
-			connected = true;
-			
-			scp.getFile(homeDir + "/" + deployRootPath + "/conf/" + CONSTS.REDIS_PROPERTIES);
-			BufferedReader reader = new BufferedReader(new FileReader("./"+CONSTS.REDIS_PROPERTIES));
-			StringBuilder sb = new StringBuilder();
-			String line;
-			while ((line = reader.readLine()) != null) {
-				if (line.indexOf("slaveof ")!=-1)
-					continue;
-				sb.append(line).append("\n");
-			}
-			sb.append("slaveof ").append(targetIp).append(" ").append(targetPort).append("\n");
-			scp.putFile(sb.toString(), CONSTS.REDIS_PROPERTIES, homeDir + "/" + deployRootPath + "/conf");
-			reader.close();
-			scp.deleteLocalFile(CONSTS.REDIS_PROPERTIES);
-			scp.close();
-			
-			return true;
-    	} catch (Exception e) {
-    		logger.error("修改redis配置文件失败！", e);
-    		return false;
-    	} finally {
-			if (connected) {
-				scp.close();
-			}
-    	}
-    }
     
 	public static boolean addSlave(String ip, String port, String targetIp, String targetPort) {
     	Jedis jedis = null;
