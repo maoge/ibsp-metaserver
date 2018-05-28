@@ -275,6 +275,8 @@ public class MetaData {
 				return;
 			}
 			
+			queueMap.clear();
+			
 			Iterator<QueueBean> iter = queueList.iterator();
 			while (iter.hasNext()) {
 				QueueBean queue = iter.next();
@@ -299,6 +301,8 @@ public class MetaData {
 				logger.info("LoadPermnentTopic: no data loaded ......");
 				return;
 			}
+			
+			permTopicMap.clear();
 			
 			Iterator<PermnentTopicBean> iter = permnentTopicList.iterator();
 			while (iter.hasNext()) {
