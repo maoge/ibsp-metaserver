@@ -402,7 +402,7 @@ CREATE TABLE `t_metasvr_url` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 INSERT INTO `t_metasvr_url`(`METASVR_ID`, `METASVR_ADDR`) VALUES
-(1, '192.168.14.206:19991');
+(1, '127.0.0.1:9991');
 
 DROP TABLE IF EXISTS `t_alarm`;
 CREATE TABLE `t_alarm` (
@@ -434,6 +434,13 @@ CREATE TABLE `t_alarm_message` (
   `SEND_FLAG`   tinyint     DEFAULT 0 COMMENT '0未发送 1已发送',
   KEY `ALARM_MESSAGE_IDX0` (`ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+DROP TABLE IF EXISTS `t_sequence`;
+CREATE TABLE `t_sequence` (
+  `seq_name`      varchar(80) NOT NULL,
+  `current_value` bigint UNSIGNED DEFAULT 1 NOT NULL,
+  PRIMARY KEY (`seq_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
