@@ -219,4 +219,8 @@ public class CONSTS {
 	public static final String ERR_DECLARE_ON_BROKER = "declare queue/topic error on broker ......";
 	public static final String ERR_DELETE_FROM_RABBIT = "delete error on rabbit ......";
 	public static final String ERR_DELETE_FROM_DB = "delete error on database ......";
+	public static final String ERR_FETCH_SEQ_SQL_NOT_MATCH = "fetch sequence sql not match ......";
+	public static final String ERR_SEQ_STEP_ILLEGAL = "sequence step illegal, must >= 1 ......";
+	public static final String ERR_SEQ_NOT_EXISTS = "sequence not exists ......";
+	
 }

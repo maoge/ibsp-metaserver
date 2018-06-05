@@ -6,6 +6,7 @@ import ibsp.metaserver.bean.InstAttributeBean;
 import ibsp.metaserver.bean.InstanceBean;
 import ibsp.metaserver.bean.InstanceDtlBean;
 import ibsp.metaserver.bean.InstanceRelationBean;
+import ibsp.metaserver.bean.LongMargin;
 import ibsp.metaserver.bean.MetaAttributeBean;
 import ibsp.metaserver.bean.MetaComponentBean;
 import ibsp.metaserver.bean.MetaServUrl;
@@ -37,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,11 +60,18 @@ public class MetaDataService {
 	private static final String DEL_TOPOLOGY = "delete from t_topology where INST_ID2 = ?";
 	private static final String DEL_SERVICE = "delete from t_service where INST_ID = ?";
 	
+	private static final String SQL_NEXT_SEQ_LOCk = "set AUTOCOMMIT=0; begin; select current_value as CURR_VALUE from t_sequence where seq_name = ? for update;";
+	private static final String SQL_NEXT_SEQ_UPDATE = "update t_sequence set current_value = current_value + %d where seq_name = ?; commit;";
+	
+	private static ReentrantLock SEQ_LOCK = null;
+	
 	static {
 		SERVICE_TYPE_MAPPER = new ConcurrentHashMap<String, String>();
 		SERVICE_TYPE_MAPPER.put(CONSTS.SERV_TYPE_DB, "tidb");
 		SERVICE_TYPE_MAPPER.put(CONSTS.SERV_TYPE_MQ, "mq");
 		SERVICE_TYPE_MAPPER.put(CONSTS.SERV_TYPE_CACHE, "cache");
+		
+		SEQ_LOCK = new ReentrantLock();
 	}
 	
 	public static boolean testDB() {
@@ -81,6 +90,34 @@ public class MetaDataService {
 			}
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
+		}
+		
+		return ret;
+	}
+	
+	public static LongMargin getNextSeqMargin(String seqName, int step, ResultBean result) {
+		LongMargin ret = null;
+		
+		try {
+			SEQ_LOCK.lock();
+			
+			CRUD c = new CRUD();
+			
+			SqlBean sqlBean1 = new SqlBean(SQL_NEXT_SEQ_LOCk);
+			sqlBean1.addParams(new Object[] { seqName });
+			c.putSqlBean(sqlBean1);
+			
+			String sql2 = String.format(SQL_NEXT_SEQ_UPDATE, step);
+			SqlBean sqlBean2 = new SqlBean(sql2);
+			sqlBean2.addParams(new Object[] { seqName });
+			c.putSqlBean(sqlBean2);
+	
+			ret = c.getNextSeqMargin(step, result);
+			if (result.getRetCode() == CONSTS.REVOKE_NOK)
+				return null;
+			
+		} finally {
+			SEQ_LOCK.unlock();
 		}
 		
 		return ret;

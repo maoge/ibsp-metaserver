@@ -8,7 +8,9 @@ import org.slf4j.LoggerFactory;
 
 import ibsp.metaserver.annotation.App;
 import ibsp.metaserver.annotation.Service;
+import ibsp.metaserver.bean.LongMargin;
 import ibsp.metaserver.bean.MetaAttributeBean;
+import ibsp.metaserver.bean.ResultBean;
 import ibsp.metaserver.dbservice.MetaDataService;
 import ibsp.metaserver.eventbus.EventBean;
 import ibsp.metaserver.eventbus.EventBusMsg;
@@ -66,6 +68,44 @@ public class MetaServerHandler {
 		} else {
 			json.put(FixHeader.HEADER_RET_CODE,    CONSTS.REVOKE_NOK);
 			json.put(FixHeader.HEADER_RET_INFO,    "HttpServerRequest null.");
+		}
+		
+		HttpUtils.outJsonObject(routeContext, json);
+	}
+	
+	@Service(id = "nextSeqMargin", name = "nextSeqMargin", auth = false, bwswitch = false)
+	public static void nextSeqMargin(RoutingContext routeContext) {
+		JsonObject json = new JsonObject();
+		
+		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
+		if(params == null) {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+			json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+		} else {
+			String seqName = params.get(FixHeader.HEADER_SEQ_NAME);
+			String step    = params.get(FixHeader.HEADER_SEQ_STEP);
+			
+			if (!HttpUtils.isNotNull(seqName) || !HttpUtils.isNotNull(step)) {
+				json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+				json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+			} else {
+				int stepMargin = Integer.valueOf(step);
+				if (stepMargin < 1) {
+					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+					json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_SEQ_STEP_ILLEGAL);
+				} else {
+					ResultBean result = new ResultBean();
+					LongMargin margin = MetaDataService.getNextSeqMargin(seqName, stepMargin, result);
+					if (margin != null) {
+						json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+						json.put(FixHeader.HEADER_START,    margin.getStart());
+						json.put(FixHeader.HEADER_END,      margin.getEnd());
+					} else {
+						json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+						json.put(FixHeader.HEADER_RET_INFO, result.getRetInfo());
+					}
+				}
+			}
 		}
 		
 		HttpUtils.outJsonObject(routeContext, json);

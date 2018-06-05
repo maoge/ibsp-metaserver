@@ -18,6 +18,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ibsp.metaserver.bean.LongMargin;
 import ibsp.metaserver.bean.ResultBean;
 import ibsp.metaserver.bean.SqlBean;
 import ibsp.metaserver.dbpool.ConnectionPool;
@@ -198,6 +199,71 @@ public class CRUD {
 				}
 			}
 		}
+		return res;
+	}
+	
+	public LongMargin getNextSeqMargin(int step, ResultBean result) {
+		return getNextSeqMargin(step, true, result);
+	}
+	
+	public LongMargin getNextSeqMargin(int step, boolean recycle, ResultBean result) {
+		if (conn == null) {
+			try {
+				getConn();
+			} catch (CRUDException e) {
+				logger.error(e.getMessage(), e);
+				return null;
+			}
+		}
+		
+		LongMargin res = null;
+		try {
+			if (queue.size() != 2) {
+				result.setRetCode(CONSTS.REVOKE_NOK);
+				result.setRetInfo(CONSTS.ERR_FETCH_SEQ_SQL_NOT_MATCH);
+				return null;
+			}
+			
+			// first select for update.
+			SqlBean sb1 = queue.poll();
+			String sql1 = sb1.getSql();
+			List<Object> objs1 = sb1.getParams();
+			Map<String, Object> selectMap = queryForMap(conn, sql1, objs1 != null ? objs1.toArray() : null);
+			Object curr_value = selectMap.get(FixHeader.HEADER_CURR_VALUE);
+			if (curr_value == null) {
+				result.setRetCode(CONSTS.REVOKE_NOK);
+				result.setRetInfo(CONSTS.ERR_SEQ_NOT_EXISTS);
+				return null;
+			}
+			
+			// second update current_value to new value.
+			SqlBean sb2 = queue.poll();
+			String sql2 = sb2.getSql();
+			List<Object> objs2 = sb2.getParams();
+			UPDATE(conn, sql2, objs2 != null ? objs2.toArray() : null);
+			
+			long start = Long.valueOf((String) curr_value);
+			long end   = start + step - 1;
+			res = new LongMargin(start, end);
+		} catch (Exception e) {
+			try {
+				conn.rollback();
+			} catch (SQLException e1) {
+				logger.error(e1.getMessage(), e1);
+			}
+			logger.error(e.getMessage(), e);
+			
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(e.getMessage());
+		} finally {
+			if(recycle){
+				if (null != conn) {
+					pool.recycle(conn);
+					conn = null;
+				}
+			}
+		}
+		
 		return res;
 	}
 

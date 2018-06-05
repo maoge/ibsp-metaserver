@@ -231,4 +231,11 @@ public class FixHeader {
 	
 	public static final String HEADER_CLUSTER_ID               = "CLUSTER_ID";
 	public static final String HEADER_NEW_MASTER_ID            = "NEW_MASTER_ID";
+	
+	public static final String HEADER_SEQ_NAME                 = "SEQ_NAME";
+	public static final String HEADER_SEQ_STEP                 = "SEQ_STEP";
+	public static final String HEADER_START                    = "START";
+	public static final String HEADER_END                      = "END";
+	public static final String HEADER_CURR_VALUE               = "CURR_VALUE";
+	
 }
