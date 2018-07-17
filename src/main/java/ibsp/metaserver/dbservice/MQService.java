@@ -244,11 +244,21 @@ public class MQService {
 		if (params!=null && params.size()>0) {
 		
 			String servId = params.get(FixHeader.HEADER_SERV_ID);
-			
+			String queueType = params.get(FixHeader.HEADER_QUEUE_TYPE);
+			String queueName = params.get(FixHeader.HEADER_QUEUE_NAME);
+
 			if(HttpUtils.isNull(servId)) {
 				resultBean.setRetCode(CONSTS.REVOKE_NOK);
 				resultBean.setRetInfo(CONSTS.ERR_PARAM_INCOMPLETE);
 				return null;
+			}
+
+			if(HttpUtils.isNotNull(queueName)) {
+				sql += " and q.queue_name like '%" + queueName +  "%' ";
+			}
+
+			if(HttpUtils.isNotNull(queueType)) {
+				sql += " and q.queue_type = '"+queueType+"' ";
 			}
 
 			CRUD crud = new CRUD();
