@@ -1,5 +1,8 @@
 package ibsp.metaserver.startup;
 
+import com.hazelcast.core.Hazelcast;
+import com.hazelcast.core.HazelcastInstance;
+import ibsp.metaserver.monitor.ClusterActiveCollect;
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.PropertiesUtils;
 import ibsp.metaserver.utils.SysConfig;
@@ -36,6 +39,7 @@ public class BootStrap {
 		bootLoggerConfig();
 		bootSingleInstance();
 		bootMicroService();
+		ClusterActiveCollect.get();
 	}
 	
 	private static void bootLoggerConfig() {
@@ -74,7 +78,9 @@ public class BootStrap {
 			cfg = new XmlConfigBuilder(Thread.currentThread().getContextClassLoader()
 					.getResourceAsStream(CONSTS.HAZELCAST_CONF_FILE)).build();
 
-			ClusterManager mgr = new HazelcastClusterManager(cfg);
+			HazelcastInstance hzInstance = Hazelcast.newHazelcastInstance(cfg);
+			ClusterManager mgr = new HazelcastClusterManager(hzInstance);
+			ServiceData.get().setHzInstance(hzInstance);
 			vertxOptions.setClusterManager(mgr);
 			
 			Vertx.clusteredVertx(vertxOptions, res -> {

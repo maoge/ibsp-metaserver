@@ -62,7 +62,16 @@ public class MetaDataService {
 	
 	private static final String SQL_NEXT_SEQ_LOCk = "set AUTOCOMMIT=0; begin; select current_value as CURR_VALUE from t_sequence where seq_name = ? for update;";
 	private static final String SQL_NEXT_SEQ_UPDATE = "update t_sequence set current_value = current_value + %d where seq_name = ?; commit;";
-	
+
+	private static final String MOD_INSTANCE_ATTR = "UPDATE t_instance_attr set ATTR_VALUE = ? WHERE INST_ID = ? AND " +
+			"ATTR_ID = ?";
+
+	private static final String FIND_ALARM = "SELECT COUNT(1) FROM t_alarm_log WHERE ALARM_CODE = ? AND SERVICE_ID = ? " +
+			"AND INSTANCE_ID = ?";
+	private static final String SAVE_ALARM = "INSERT INTO t_alarm_log(ALARM_CODE, SERVICE_ID, INSTANCE_ID, ALARM_DESC," +
+			"REC_TIME) VALUES(?,?,?,?,?)";
+	private static final String UPDATE_ALARM = "UPDATE t_alarm_log SET REC_TIME = ? WHERE ALARM_CODE=? AND SERVICE_ID" +
+			"=? AND INSTANCE_ID = ?";
 	private static ReentrantLock SEQ_LOCK = null;
 	
 	static {
@@ -874,6 +883,65 @@ public class MetaDataService {
 			result.setRetInfo(e.getMessage());
 			return null;
 		}
+	}
+
+	public static boolean saveAlarm(EventBean eventBean, ResultBean result) {
+		if (eventBean == null)
+			return false;
+
+		boolean res = false;
+		int code = eventBean.getEvType().getValue();
+		long time = System.currentTimeMillis();
+		String desc = eventBean.getEvType().getInfo();
+
+		String servID = eventBean.getServID();
+		JsonObject json = new JsonObject(eventBean.getJsonStr());
+		String instID = json.getString(FixHeader.HEADER_INSTANCE_ID);
+
+		CRUD crud = new CRUD();
+		crud.putSql(FIND_ALARM, new Object[]{
+				String.valueOf(code), servID, instID
+		});
+		int count = 0;
+		try {
+			count = crud.queryForCount();
+			crud = new CRUD();
+			if(count == 0) {
+				crud.putSql(SAVE_ALARM, new Object[]{
+						String.valueOf(code), servID, instID, desc, time
+				});
+			}else {
+				crud.putSql(UPDATE_ALARM, new Object[]{
+						time, String.valueOf(code), servID, instID
+				});
+			}
+			res = crud.executeUpdate(result);
+		} catch (CRUDException e) {
+			logger.error(e.getMessage(), e);
+		}
+
+		return res;
+	}
+
+	public static boolean modComponentAttribute(String instID, int attrID, String attrValue, ResultBean result) {
+		CRUD crud = new CRUD();
+		SqlBean sqlBean = new SqlBean(MOD_INSTANCE_ATTR);
+		sqlBean.addParams(new Object[]{attrValue, instID, attrID});
+
+		crud.putSqlBean(sqlBean);
+		boolean res = crud.executeUpdate(true, result);
+
+		if(res){
+			JsonObject json = new JsonObject();
+			json.put(FixHeader.HEADER_INSTANCE_ID, instID);
+			EventBean eventBean = new EventBean(EventType.e4);
+			eventBean.setUuid(MetaData.get().getUUID());
+			eventBean.setJsonStr(json.toString());
+
+			EventBusMsg.publishEvent(eventBean);
+		}
+
+		return res;
 	}
 
 }

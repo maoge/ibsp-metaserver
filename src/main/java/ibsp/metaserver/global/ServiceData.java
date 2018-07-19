@@ -3,6 +3,7 @@ package ibsp.metaserver.global;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.hazelcast.core.HazelcastInstance;
 import ibsp.metaserver.bean.InstanceDtlBean;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.MessageConsumer;
@@ -16,6 +17,7 @@ public class ServiceData {
 	private MessageConsumer<String> sysEvMsgConsumer;
 	
 	private SharedData sharedData;
+	private HazelcastInstance hzInstance;
 	
 	private static ServiceData theInstance = null;
 	private static ReentrantLock intanceLock = null;
@@ -79,7 +81,15 @@ public class ServiceData {
 	public void setSharedData(SharedData sharedData) {
 		this.sharedData = sharedData;
 	}
-	
+
+	public HazelcastInstance getHzInstance() {
+		return hzInstance;
+	}
+
+	public void setHzInstance(HazelcastInstance hzInstance) {
+		this.hzInstance = hzInstance;
+	}
+
 	public boolean isServContainSingleVBroker(String servId) {
 		List<InstanceDtlBean> list = MetaData.get().getVbrokerByServId(servId);
 		if(list != null && list.size() > 1) {

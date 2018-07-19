@@ -106,6 +106,18 @@ public class SysEventHandler implements Handler<Message<String>> {
 					MetaData.get().doMQServiceUndeploy(json, type);
 				}
 				break;
+
+			//broker down
+			case e54:
+				break;
+
+			//主从切换
+			case e56:
+				if (uuid.equals(MetaData.get().getUUID())) {
+					generalNotify(type, servId, jsonStr,
+							ClientStatisticData.get().getMqClients());
+				}
+				break;
 				
 			//接入机扩缩容
 			case e61:		

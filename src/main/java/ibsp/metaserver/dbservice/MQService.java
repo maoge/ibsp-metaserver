@@ -1,5 +1,8 @@
 package ibsp.metaserver.dbservice;
 
+import com.jcraft.jsch.JSchException;
+import ibsp.metaserver.autodeploy.utils.JschUserInfo;
+import ibsp.metaserver.autodeploy.utils.SSHExecutor;
 import ibsp.metaserver.bean.InstanceDtlBean;
 import ibsp.metaserver.bean.PermnentTopicBean;
 import ibsp.metaserver.bean.QueueBean;
@@ -10,6 +13,7 @@ import ibsp.metaserver.eventbus.EventBean;
 import ibsp.metaserver.eventbus.EventBusMsg;
 import ibsp.metaserver.eventbus.EventType;
 import ibsp.metaserver.exception.CRUDException;
+import ibsp.metaserver.exception.DeployException;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.global.ServiceData;
 import ibsp.metaserver.rabbitmq.IMQClient;
@@ -1224,5 +1228,115 @@ public class MQService {
 		ServiceBean service = MetaData.get().getServiceByQueueId(topicBean.getQueueId());
 		topic.put(FixHeader.HEADER_GROUP_ID, service.getInstID());
 		return topic;
+	}
+
+	public static boolean checkBrokerRunning(InstanceDtlBean broker) {
+		if (broker == null)
+			return false;
+
+		boolean ret = false;
+		SSHExecutor executor = null;
+		boolean connected = false;
+
+		try {
+			JschUserInfo ui = new JschUserInfo(
+					broker.getAttribute(FixHeader.HEADER_OS_USER).getAttrValue(),
+					broker.getAttribute(FixHeader.HEADER_OS_PWD).getAttrValue(),
+					broker.getAttribute(FixHeader.HEADER_IP).getAttrValue(),
+					CONSTS.SSH_PORT_DEFAULT);
+			executor = new SSHExecutor(ui);
+			executor.connect();
+			connected = true;
+			executor.echo("test");  // 有的机器中间加了跳转和管控防止ssh登录"Last login:xxxxx"串到输出一起显示
+			ret = executor.isRabbitRunning(broker.getAttribute(FixHeader.HEADER_PORT).getAttrValue(), "");
+
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+		} finally {
+			if (connected) {
+				executor.close();
+			}
+		}
+
+		return ret;
+	}
+
+	public static void startBroker(String brokerId, String sessionKey, ResultBean result) {
+		excuteBroker(brokerId, sessionKey, result, "start.sh");
+	}
+
+	public static void stopBroker(String brokerId, String sessionKey, ResultBean result) {
+		excuteBroker(brokerId, sessionKey, result, "stop.sh");
+	}
+
+	public static void excuteBroker(String brokerId, String sessionKey, ResultBean result, String cmd) {
+		InstanceDtlBean broker = MetaData.get().getInstanceDtlBean(brokerId);
+		if(broker == null) {
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(String.format("broker id : %s not found", brokerId));
+			return;
+		}
+
+		SSHExecutor executor = null;
+		boolean connected = false;
+
+		try{
+			JschUserInfo ui = new JschUserInfo(broker.getAttribute(FixHeader.HEADER_OS_USER).getAttrValue(),
+					broker.getAttribute(FixHeader.HEADER_OS_PWD).getAttrValue(),
+					broker.getAttribute(FixHeader.HEADER_IP).getAttrValue(),
+					CONSTS.SSH_PORT_DEFAULT);
+			executor = new SSHExecutor(ui);
+			executor.connect();
+			connected = true;
+			executor.echo("test"); //有的机器中间加了跳转和管控防止ssh登录“last login:xxxxxx”串到输出一起显示
+
+			String port = broker.getAttribute(FixHeader.HEADER_PORT).getAttrValue();
+			String rootPath = String.format("$HOME/%s/%s", CONSTS.MQ_DEPLOY_ROOT_PATH, port);
+			executor.cd(rootPath, sessionKey);
+
+			if(!executor.isFileExistInCurrPath(cmd, sessionKey)){
+				result.setRetCode(CONSTS.REVOKE_NOK);
+				result.setRetInfo(String.format("broker id : %s may not deployed", brokerId));
+				return;
+			}
+
+			if("start.sh".equalsIgnoreCase(cmd)){
+				if(executor.isRabbitRunning(port, sessionKey)) {
+					result.setRetCode(CONSTS.REVOKE_OK);
+					String info = String.format("broker id:%s is already running, does not need start !");
+					result.setRetInfo(info);
+				}else {
+					executor.execStartShell(sessionKey);
+
+					long beginTS = System.currentTimeMillis();
+					long currTS = beginTS;
+					long maxTS = 60000L;
+					do{
+						Thread.sleep(1000L);
+						currTS = System.currentTimeMillis();
+						if(currTS - beginTS > maxTS) {
+							result.setRetCode(CONSTS.REVOKE_NOK);
+							result.setRetInfo(String.format("broker id:%s execute start.sh time out", brokerId));
+							break;
+						}
+					}while(!executor.isPortUsed(port, sessionKey));
+
+					if(executor.isPortUsed(port, sessionKey)) {
+						result.setRetCode(CONSTS.REVOKE_OK);
+					}
+				}
+			}else if ("stop.sh".equalsIgnoreCase(cmd)){
+				executor.execStopShell(sessionKey);
+			}
+		} catch (Exception e) {
+			String errorMess = String.format("excute MQ broker id : %s cmd %s faild ",brokerId, cmd );
+			logger.error(errorMess, e);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(errorMess);
+		} finally {
+			if(connected) {
+				executor.close();
+			}
+		}
 	}
 }

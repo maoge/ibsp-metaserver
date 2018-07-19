@@ -116,6 +116,7 @@ public class CONSTS {
 	public static final int    MQ_HA_SYNC_BATCH_SIZE = 500;
 	public static final int    MQ_VHOST_MAX_CONNS    = 4096;
 	public static final int    MQ_VHOST_MAX_QUEUES   = 2048;
+	public static final int    STUCK_NO_OPER_MESSAGE = 1000000; //超过100W不进行拉起broker操作
 	
 	
 	public static final String SERV_TYPE_MQ          = "MQ";
@@ -206,7 +207,13 @@ public class CONSTS {
 	public static final String GLOBAL_ORDERED = "1";
 	public static final String NOT_PRIORITY = "0";
 	public static final String PRIORITY     = "1";
-	
+
+	public static final String HTTP_STR = "http://";
+	public static final String COLON = ":";
+	public static final String RABBIT_MRG_API = "api";
+
+
+
 	public static final String ERR_CREATE_QUEUE_ON_DB = "create queue/topic error on db .....";
 	public static final String ERR_QUEUE_EXISTS = "queue/topic allready exists .....";
 	public static final String ERR_QUEUE_TYPE_ERROR = "queue/topic type is [1,2]";
@@ -222,5 +229,5 @@ public class CONSTS {
 	public static final String ERR_FETCH_SEQ_SQL_NOT_MATCH = "fetch sequence sql not match ......";
 	public static final String ERR_SEQ_STEP_ILLEGAL = "sequence step illegal, must >= 1 ......";
 	public static final String ERR_SEQ_NOT_EXISTS = "sequence not exists ......";
-	
+
 }

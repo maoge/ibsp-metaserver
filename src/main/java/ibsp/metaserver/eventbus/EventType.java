@@ -31,6 +31,14 @@ public enum EventType {
 	e24(50024, false, "Instance undeployed"),
 	
 	e31(50031, false, "MQService.undeploy"),             //MQService.undeploy
+
+	e51(50051, false, "stop send/publish msg on vbroker"), //缩容前的停写
+	e52(50052, false, "add vbroker to group"), //vbroker扩容
+	e53(50053, false, "remove vbroker from group"),//vbroker 缩容
+	e54(50054, true, "broker down"),
+	e55(50055, false, "broker recovered"),
+	e56(50056, true, "mq cluster ha switch"),
+	e57(50057, false, "vbroker connection stuck"), //sync 队列数据时候连接卡住
 	
 	e61(50061, false, "cache proxy deployed"),           // 接入机扩容
 	e62(50062, false, "cache proxy undeployed"),         // 接入机缩容

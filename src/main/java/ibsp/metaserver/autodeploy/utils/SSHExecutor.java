@@ -924,6 +924,15 @@ public class SSHExecutor {
 		
 		return ret;
 	}
+
+	public boolean isRabbitRunning(String port, String sessionKey) throws InterruptedException {
+		String cmd = String.format("ps -ef | grep erl | grep \"{\\\"auto\\\",%s}\" %s", port, CONSTS.LINE_SEP);
+		String context = generalCommand(cmd);
+
+		DeployLog.pubLog(sessionKey, context);
+
+		return  context.indexOf("rabbitmq") != -1;
+	}
 	
 	public JschUserInfo getUserInfo() {
 		return ui;
