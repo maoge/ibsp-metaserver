@@ -93,6 +93,11 @@ public class MQServiceMonitor {
                 if (needCheckSwitch) {
 
                     String realMasterID = getMasterIdFromRabbit(broker.getInstID(), result);
+                    //获取masterID失败，可能是正好上面检查broker的时候正常，但是检查是否主从切换的时候挂了，
+                    // ，等另外一个broker进行主从切换检查，或者只有一个节点等下一个轮回检查broker是不是正常。
+                    if(HttpUtils.isNull(realMasterID)){
+                        continue;
+                    }
                     if (!masterID.equals(realMasterID)) {
                         boolean modMasterID =
                                 MetaDataService.modComponentAttribute(vbroker.getInstID(),
@@ -163,6 +168,12 @@ public class MQServiceMonitor {
 
         try {
             JsonArray jsonArray = getJsonArrayByInst(broker, "nodes", "name,uptime");
+            if(jsonArray == null) {
+                //代表查询失败，可能是broker挂了。等下一次检查broker running的时候启动
+                result.setRetCode(CONSTS.REVOKE_NOK);
+                result.setRetInfo("get master id from rabbitmq error !");
+                return null;
+            }
             Long maxTime = 0L;
             String masterNode = "";
             for (int i = 0, len = jsonArray.size(); i < len; i++) {
