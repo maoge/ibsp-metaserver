@@ -5,14 +5,7 @@ import ibsp.metaserver.annotation.Service;
 import ibsp.metaserver.dbpool.DbSource;
 import ibsp.metaserver.eventbus.SysEventHandler;
 import ibsp.metaserver.global.ServiceData;
-import ibsp.metaserver.microservice.handler.AutoDeployHandler;
-import ibsp.metaserver.microservice.handler.CacheHandler;
-import ibsp.metaserver.microservice.handler.CollectDataHandler;
-import ibsp.metaserver.microservice.handler.ConfigServerHandler;
-import ibsp.metaserver.microservice.handler.MQHandler;
-import ibsp.metaserver.microservice.handler.MetaServerHandler;
-import ibsp.metaserver.microservice.handler.ResourceServerHandler;
-import ibsp.metaserver.microservice.handler.TiDBHandler;
+import ibsp.metaserver.microservice.handler.*;
 import ibsp.metaserver.monitor.ActiveCollect;
 import ibsp.metaserver.singleton.AllServiceMap;
 import ibsp.metaserver.singleton.ServiceStatInfo;
@@ -76,6 +69,7 @@ public class Server extends AbstractVerticle {
 		clazzToReg.add(MQHandler.class);
 		clazzToReg.add(CollectDataHandler.class);
 		clazzToReg.add(ResourceServerHandler.class);
+		clazzToReg.add(MetaHandle.class);
 		
 		registerRoute(router, clazzToReg);
 		

@@ -105,9 +105,9 @@ public class HttpUtils {
 			response.putHeader("Access-Control-Allow-Origin", "*");
 		response.putHeader("Content-type", "application/json; charset=UTF-8");
 		if (jsonArray != null) {
-			response.end(jsonArray != null ? jsonArray.toString() : "[]");
+			response.end(jsonArray.toString());
 		} else
-			response.end();
+			response.end("[]");
 	}
 
 	public static void writeRetBuffer(HttpServerResponse response, int retCode, String retInfo) {

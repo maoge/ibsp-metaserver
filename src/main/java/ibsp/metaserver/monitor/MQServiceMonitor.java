@@ -107,7 +107,7 @@ public class MQServiceMonitor {
                             JsonObject paramsJson = new JsonObject();
                             paramsJson.put(FixHeader.HEADER_VBROKER_ID, vbroker.getInstID());
                             paramsJson.put(FixHeader.HEADER_INSTANCE_ID, vbroker.getInstID());
-                            paramsJson.put(FixHeader.HEADER_MASTER_ID, realMasterID);
+                            paramsJson.put(FixHeader.HEADER_BROKER_ID, realMasterID);
                             EventBean evBean = new EventBean();
                             evBean.setEvType(EventType.e56);
                             evBean.setServID(instID);
