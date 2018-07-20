@@ -106,7 +106,12 @@ public class SysEventHandler implements Handler<Message<String>> {
 					MetaData.get().doMQServiceUndeploy(json, type);
 				}
 				break;
-
+			case e46:
+			case e47:
+			case e48:
+			case e49:
+			case e50:
+				break;
 			//broker down
 			case e54:
 				break;

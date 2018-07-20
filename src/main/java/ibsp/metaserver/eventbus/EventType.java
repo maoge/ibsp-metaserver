@@ -32,6 +32,11 @@ public enum EventType {
 	
 	e31(50031, false, "MQService.undeploy"),             //MQService.undeploy
 
+	e46(50046, true, "Network partition"), //脑裂
+	e47(50047, true, "Message accumlated"), //消息发生了堆积
+	e48(50048, true, "memory highwater mark"), //内存使用高水位
+	e49(50049, true, "disk highwater mark"), //磁盘使用高水位
+	e50(50050, true, "too many connections"), //连接数太多
 	e51(50051, false, "stop send/publish msg on vbroker"), //缩容前的停写
 	e52(50052, false, "add vbroker to group"), //vbroker扩容
 	e53(50053, false, "remove vbroker from group"),//vbroker 缩容

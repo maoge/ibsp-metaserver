@@ -1,17 +1,17 @@
 package ibsp.metaserver.monitor;
 
-import ibsp.metaserver.bean.InstanceDtlBean;
-import ibsp.metaserver.bean.ResultBean;
-import ibsp.metaserver.bean.ServiceBean;
+import ibsp.metaserver.bean.*;
 import ibsp.metaserver.dbservice.MQService;
 import ibsp.metaserver.dbservice.MetaDataService;
 import ibsp.metaserver.eventbus.EventBean;
 import ibsp.metaserver.eventbus.EventBusMsg;
 import ibsp.metaserver.eventbus.EventType;
 import ibsp.metaserver.global.MetaData;
+import ibsp.metaserver.global.MonitorData;
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.FixHeader;
 import ibsp.metaserver.utils.HttpUtils;
+import ibsp.metaserver.utils.SysConfig;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.json.JsonArray;
 import org.slf4j.Logger;
@@ -29,7 +29,7 @@ public class MQServiceMonitor {
 
     static {
         paramsMap.put("overview",
-                "cluster_name,statistics_db_node,object_totals,contexts,message_stats.publish," +
+                "cluster_name,object_totals,contexts,message_stats.publish," +
                         "message_stats.publish_details,message_stats.ack,message_stats.ack_details," +
                         "queue_totals.messages");
         paramsMap.put("queues",
@@ -37,7 +37,7 @@ public class MQServiceMonitor {
                         "message_bytes_ram,message_bytes_persistent,message_stats.publish,message_stats.ack," +
                         "message_stats.publish_details,message_stats.ack_details");
         paramsMap.put("connections","recv_oct_details,state");
-        paramsMap.put("nodes","disk_free,mem_used,mem_limit,partitions,name");
+        paramsMap.put("nodes","disk_free,disk_free_limit,mem_used,mem_limit,partitions,name");
         paramsMap.put("channels","message_stats,number,name,connection_details,state");
     }
 
@@ -46,11 +46,11 @@ public class MQServiceMonitor {
             return;
         }
 
-        String instID = serviceBean.getInstID();
+        String servId = serviceBean.getInstID();
         List<InstanceDtlBean> vbrokerList = new ArrayList<>();
         ResultBean result = new ResultBean();
 
-        if(! MQService.getVBrokersByServIdOrServiceStub(instID, null, vbrokerList, result)) {
+        if(! MQService.getVBrokersByServIdOrServiceStub(servId, null, vbrokerList, result)) {
             return;
         }
 
@@ -65,13 +65,14 @@ public class MQServiceMonitor {
             String vbrokerId = vbroker.getInstID();
 
             try {
-                checkRunning(vbroker, instID, masterID, result);
-                /*getOverViewInfo(master, servId);
+                checkRunningAndHASwitch(vbroker, servId, masterID, result);
+                getOverViewInfo(master, servId, result);
                 getNodesInfo(master, servId, vbrokerId, result);
-                getChannelsInfo(master, servId, vbrokerId);
+                getChannelsInfo(master, vbrokerId);
                 getQueuesInfo(master, vbrokerId);
-                // 检查connections是不是flow 并且recv_oct_details底下的rate是不是0 是的话 要重启从节点
+                /*// 检查connections是不是flow 并且recv_oct_details底下的rate是不是0 是的话 要重启从节点
                 checkConnectionFlowAndRateToZero(master, servId, vbrokerId, result);*/
+                //TODO 发送事件同步采集数据
             }catch (Exception e){
                 logger.error(e.getMessage(), e);
             }
@@ -79,7 +80,8 @@ public class MQServiceMonitor {
 
     }
 
-    private static void checkRunning(InstanceDtlBean vbroker, String instID, String masterID, ResultBean result) {
+    //检测vbroker下的broker是不是挂了，检测是不是发生了主从切换
+    private static void checkRunningAndHASwitch(InstanceDtlBean vbroker, String servId, String masterID, ResultBean result) {
 
         boolean needCheckSwitch = true;
 
@@ -110,7 +112,7 @@ public class MQServiceMonitor {
                             paramsJson.put(FixHeader.HEADER_BROKER_ID, realMasterID);
                             EventBean evBean = new EventBean();
                             evBean.setEvType(EventType.e56);
-                            evBean.setServID(instID);
+                            evBean.setServID(servId);
                             evBean.setJsonStr(paramsJson.toString());
                             evBean.setUuid(MetaData.get().getUUID());
                             EventBusMsg.publishEvent(evBean);
@@ -125,7 +127,7 @@ public class MQServiceMonitor {
                 paramsJson.put(FixHeader.HEADER_INSTANCE_ID, broker.getInstID());
                 EventBean evBean = new EventBean();
                 evBean.setEvType(EventType.e54);
-                evBean.setServID(instID);
+                evBean.setServID(servId);
                 evBean.setJsonStr(paramsJson.toString());
                 EventBusMsg.publishEvent(evBean);
                 MetaDataService.saveAlarm(evBean, result);
@@ -156,7 +158,236 @@ public class MQServiceMonitor {
         }
     }
 
+    //检查是不是消息堆积了
+    private static void getOverViewInfo(InstanceDtlBean master, String servId, ResultBean result) {
+        JsonObject json = getJsonByInst(master, "overview");
+        if(json == null) {
+            return;
+        }
 
+        logger.debug("overview : " + json.toString());
+        if(HttpUtils.isNotNull(json)) {
+            Long accumulate      = json.getJsonObject("queue_totals").getLong("messages");
+            //TODO 后期改为从数据库获取这个service的message accumulate limit数量
+            long accumulateLimit = SysConfig.get().getMsgAccumulateHighWaterMark();
+
+            if(accumulate > accumulateLimit){
+                JsonObject alarmMess = new JsonObject();
+                EventBean ev = new EventBean();
+                ev.setEvType(EventType.e47);
+                ev.setServID(servId);
+
+                alarmMess.put("accumulate", accumulate);
+                alarmMess.put(FixHeader.HEADER_INSTANCE_ID, master.getInstID());
+
+                ev.setJsonStr(alarmMess.toString());
+                EventBusMsg.publishEvent(ev);
+
+                /* 保存到数据库 */
+                boolean success = MetaDataService.saveAlarm(ev, result);
+                if(!success) {
+                    logger.error("broker id:{} save alarm message accumulate fail : {}" ,master.getInstID(), result.getRetInfo());
+                }
+            }
+        }
+    }
+
+    //检测内存、磁盘高水位和脑裂 ，保存数据到内存
+    private static void getNodesInfo(InstanceDtlBean master, String servId, String vbrokerId, ResultBean result){
+        JsonArray jsonArray = getJsonArrayByInst(master, "nodes");
+
+        if(jsonArray == null || jsonArray.size() == 0){
+            return;
+        }
+
+        logger.debug("nodes : " + jsonArray.toString());
+        boolean stopPartionNode = false;
+
+        if(HttpUtils.isNotNull(jsonArray)){
+            for(int i=0,len=jsonArray.size(); i < len; i++) {
+                JsonObject json = jsonArray.getJsonObject(i);
+                if (json == null)
+                    continue;
+
+                Long diskFree = json.getLong("disk_free");
+                Long diskFreeLimit = json.getLong("disk_free_limit");
+
+                Long memUse = json.getLong("mem_used");
+                Long memLimit = json.getLong("mem_limit");
+
+                String nodeName = json.getString("name");
+                String instId = nodeName.split(CONSTS.NAME_SPLIT)[0];
+
+                //磁盘使用高水位
+                if (diskFree != null && diskFreeLimit != null && diskFree <= diskFreeLimit) {
+                    EventBean ev = new EventBean();
+                    ev.setEvType(EventType.e49);
+                    ev.setServID(servId);
+
+                    JsonObject alarmMess = new JsonObject();
+                    alarmMess.put(FixHeader.HEADER_INSTANCE_ID, master.getInstID());
+                    ev.setJsonStr(alarmMess.toString());
+                    EventBusMsg.publishEvent(ev);
+                    boolean success = MetaDataService.saveAlarm(ev, result);
+                    if (!success) {
+                        logger.error("broker id:{} save alarm disk highwater mark fail : {}", master.getInstID(), result.getRetInfo());
+                    }
+                }
+
+                //内存使用高水位
+                if (memUse != null && memLimit != null && memUse > memLimit) {
+                    EventBean ev = new EventBean();
+                    ev.setEvType(EventType.e48);
+                    ev.setServID(servId);
+
+                    JsonObject alarmMess = new JsonObject();
+                    alarmMess.put(FixHeader.HEADER_INSTANCE_ID, master.getInstID());
+                    ev.setJsonStr(alarmMess.toString());
+                    EventBusMsg.publishEvent(ev);
+                    boolean success = MetaDataService.saveAlarm(ev, result);
+                    if (!success) {
+                        logger.error("broker id:{} save alarm memory highwater mark fail : {}", master.getInstID(), result.getRetInfo());
+                    }
+                }
+
+                //脑裂检测
+                JsonArray partitions = json.getJsonArray("partitions");
+                if (partitions != null && partitions.size() > 0) {
+                    //集群中检测到脑裂只要重启一次
+                    if (!stopPartionNode) {
+                        EventBean ev = new EventBean();
+                        ev.setEvType(EventType.e46);
+                        ev.setServID(servId);
+
+                        JsonObject alarmMess = new JsonObject();
+                        alarmMess.put(FixHeader.HEADER_INSTANCE_ID, instId);
+                        ev.setJsonStr(alarmMess.toString());
+                        EventBusMsg.publishEvent(ev);
+                        boolean success = MetaDataService.saveAlarm(ev, result);
+                        if (!success) {
+                            logger.error("save alarm network partition fail : " + result.getRetInfo());
+                        }
+
+                        // 停止从节点，恢复脑裂
+                        InstanceDtlBean slaveBean = MetaData.get().getSlaveBrokersByVrokerId(vbrokerId);
+                        MQService.stopBroker(slaveBean.getInstID(), "", result);
+                        if (result.getRetCode() != CONSTS.REVOKE_OK) {
+                            logger.error("broker id:{} stop fail: {}.", slaveBean.getInstID(), result.getRetInfo());
+                        }
+                        stopPartionNode = true;
+                    }
+                }
+
+                //保存数据到内存
+                MQNodeInfoBean nodeInfoBean = new MQNodeInfoBean();
+                nodeInfoBean.setInstId(instId);
+                nodeInfoBean.setDiskFree(diskFree);
+                nodeInfoBean.setDiskFreeLimit(diskFreeLimit);
+                nodeInfoBean.setMemUse(memUse);
+                nodeInfoBean.setMemLimit(memLimit);
+                MonitorData.get().saveMQNodeInfo(vbrokerId, nodeInfoBean);
+
+            }
+        }
+    }
+
+    //保存vbroker连接信息
+    private static void getChannelsInfo(InstanceDtlBean master, String vbrokerId) {
+        JsonArray jsonArray = getJsonArrayByInst(master, "channels");
+
+        if(jsonArray == null || jsonArray.size() == 0){
+            return;
+        }
+
+        logger.debug("channels : " + jsonArray.toString());
+
+        for(int i=0,len=jsonArray.size();i<len;i++){
+            JsonObject json = jsonArray.getJsonObject(i);
+            if(json == null)
+                continue;
+
+            int num = json.getInteger("number");
+            if (num == CONSTS.CMD_CHANNEL_ID)
+                continue;
+
+
+            String sourceAddr = json.getJsonObject("connection_details").getString("name");
+
+            MQConnectionInfoBean connectionInfo = new MQConnectionInfoBean();
+            connectionInfo.setSourceAddress(sourceAddr);
+
+            JsonObject messageStates = json.getJsonObject("message_stats");
+
+            if (num == CONSTS.SEND_CHANNEL_ID) {
+                long publish = messageStates.getLong("publish");
+                long rate    = messageStates.getJsonObject("publish_details").getLong("rate");
+                int type     = connectionInfo.getConnType().getValue() | ConnType.SEND.getValue();
+                connectionInfo.setProduceCounts(publish);
+                connectionInfo.setProduceRate(rate);
+                connectionInfo.setConnType(ConnType.get(type));
+            }else if(num >= CONSTS.REV_CHANNEL_START) {
+                long ack     = messageStates.getLong("ack");
+                long rate    = messageStates.getJsonObject("ack_details").getLong("rate");
+                int type     = connectionInfo.getConnType().getValue() | ConnType.RECEIVE.getValue();
+                connectionInfo.setConsumerCounts(ack);
+                connectionInfo.setConsumerRate(rate);
+                connectionInfo.setConnType(ConnType.get(type));
+            }
+
+            MonitorData.get().saveMQConnInfo(vbrokerId, connectionInfo);
+        }
+    }
+
+    //统计队列信息,并且统计所有队列的速率和总数的总和，加到vbroker的统计信息中
+    private static void getQueuesInfo(InstanceDtlBean master, String vbrokerId) {
+        JsonArray jsonArray = getJsonArrayByInst(master, "queues");
+
+        if(jsonArray == null)
+            return;
+
+        logger.debug("queues : " + jsonArray.toString());
+
+        //统计vbroker下的速率和总数
+        long vbrokerProduceCounts  = 0L;
+        long vbrokerProduceRate   = 0L;
+        long vbrokerConsumerCounts = 0L;
+        long vbrokerConsumerRate  = 0L;
+
+        for(int i=0,len=jsonArray.size();i<len;i++) {
+
+            JsonObject json = jsonArray.getJsonObject(i);
+            JsonObject messageState = json.getJsonObject("message_stats");
+
+            if(messageState != null){
+
+                Long publish      = messageState.getLong("publish");
+                Long ack          = messageState.getLong("ack");
+                Long publishRate  = 0L;
+                Long consumerRate = 0L;
+
+                if(publish != null) {
+                    publishRate = messageState.getJsonObject("publish_details").getLong("rate");
+                    publishRate = publishRate == null? 0L : publishRate;
+
+                }else{
+                    consumerRate = messageState.getJsonObject("ack_details").getLong("rate");
+                    consumerRate = consumerRate == null? 0L : consumerRate;
+                }
+
+                publish = publish == null? 0L : publish;
+                ack = ack == null? 0L : ack;
+
+                vbrokerProduceCounts += publish;
+                vbrokerProduceRate += publishRate;
+                vbrokerConsumerCounts += ack;
+                vbrokerConsumerRate += consumerRate;
+
+            }
+        }
+
+        MonitorData.get().saveMQVbrokerCollectInfo(vbrokerId, vbrokerProduceRate, vbrokerProduceCounts,
+                vbrokerConsumerRate, vbrokerConsumerCounts);
+    }
 
     private static String getMasterIdFromRabbit(String brokerId, ResultBean result) {
         InstanceDtlBean broker = MetaData.get().getInstanceDtlBean(brokerId);
@@ -219,10 +450,10 @@ public class MQServiceMonitor {
             return -1;
         }
         Integer iObj = json.getJsonObject(FixHeader.HEADER_QUEUE_TOTALS).getInteger(FixHeader.HEADER_MESSAGES);
-        int count = iObj.intValue();
+
 
         result.setRetCode(CONSTS.REVOKE_OK);
-        return count;
+        return iObj;
     }
 
     private static JsonObject getJsonByInst(InstanceDtlBean instanceDtlBean, String api){

@@ -7,8 +7,8 @@ import java.util.Map;
 public enum ConnType {
     DEFAULT(0),
     SEND(1),
-    RECIEVE(2),
-    SENDANDRECIEVE(3);
+    RECEIVE(2),
+    SENDANDRECEIVE(3);
 
     private int value;
     private static final Map<Integer, ConnType> map = new HashMap<>();
@@ -30,4 +30,5 @@ public enum ConnType {
     public int getValue() {
         return value;
     }
+
 }

@@ -117,6 +117,9 @@ public class CONSTS {
 	public static final int    MQ_VHOST_MAX_CONNS    = 4096;
 	public static final int    MQ_VHOST_MAX_QUEUES   = 2048;
 	public static final int    STUCK_NO_OPER_MESSAGE = 1000000; //超过100W不进行拉起broker操作
+	public static final int    CMD_CHANNEL_ID = 1;
+	public static final int    SEND_CHANNEL_ID = 2;
+	public static final int    REV_CHANNEL_START = 3;
 	
 	
 	public static final String SERV_TYPE_MQ          = "MQ";
@@ -210,6 +213,7 @@ public class CONSTS {
 
 	public static final String HTTP_STR = "http://";
 	public static final String COLON = ":";
+	public static final String NAME_SPLIT = "@";
 	public static final String RABBIT_MRG_API = "api";
 
 

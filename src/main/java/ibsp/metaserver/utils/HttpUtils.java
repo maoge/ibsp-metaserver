@@ -4,6 +4,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
@@ -21,17 +22,13 @@ import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.DecimalFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Base64;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -376,5 +373,41 @@ public class HttpUtils {
 		}
 		
 		return ret;
+	}
+
+	public static <T> JsonObject mapToJson(Map<String, T> map) {
+		JsonObject json = new JsonObject();
+
+		if(map == null || map.size() == 0)
+			return json;
+
+		Set<Entry<String, T>> entrySet =  map.entrySet();
+		for(Entry<String, T> entry : entrySet) {
+			String key = entry.getKey();
+			T t = entry.getValue();
+			String s = Json.encode(t);
+			JsonObject subJson = new JsonObject(s);
+			json.put(key, subJson);
+		}
+
+		return json;
+	}
+
+	public static <T> Map<String, T> jsonToMap(JsonObject json, Class<T> clazz) {
+		if(isNull(json)) {
+			return null;
+		}
+
+		Iterator<Map.Entry<String, Object>> iter = json.iterator();
+		Map<String, T> map = new ConcurrentHashMap<>();
+		while(iter.hasNext()) {
+			Map.Entry<String, Object> entry = iter.next();
+			String key = entry.getKey();
+			JsonObject value = (JsonObject) entry.getValue();
+			T t = Json.decodeValue(value.toString(), clazz);
+			map.put(key, t);
+		}
+
+		return map;
 	}
 }

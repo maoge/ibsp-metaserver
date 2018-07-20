@@ -36,6 +36,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
+import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1246,6 +1247,24 @@ public class MetaData {
 		}
 		
 		return brokers;
+	}
+
+	public InstanceDtlBean getSlaveBrokersByVrokerId(String vbrokerId) {
+		InstanceDtlBean vbroker = instanceDtlMap.get(vbrokerId);
+		if(vbroker == null)
+			return null;
+
+		Map<String, InstanceDtlBean> brokers = vbroker.getSubInstances();
+		if(brokers == null || brokers.size() <= 0)
+			return null;
+
+		String masterId = vbroker.getAttribute(FixHeader.HEADER_MASTER_ID).getAttrValue();
+		for(InstanceDtlBean bean : brokers.values()) {
+			if(masterId.equalsIgnoreCase(bean.getInstID())) {
+				return bean;
+			}
+		}
+		return  null;
 	}
 	
 	public boolean doMQServiceUndeploy(JsonObject json, EventType type) {
