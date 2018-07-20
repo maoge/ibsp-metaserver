@@ -14,6 +14,10 @@ public class MQConnectionInfoBean {
 
     public MQConnectionInfoBean() {
         this.connType = ConnType.DEFAULT;
+        produceRate = 0L;
+        produceCounts = 0L;
+        consumerRate = 0L;
+        consumerCounts = 0L;
     }
 
     public ConnType getConnType() {

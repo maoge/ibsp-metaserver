@@ -318,6 +318,13 @@ public class MQServiceMonitor {
 
             JsonObject messageStates = json.getJsonObject("message_stats");
 
+            //只有连接，一直没有开始生产或者消费的连接
+            if(messageStates == null || messageStates.size() == 0) {
+                int type     = connectionInfo.getConnType().getValue() | ConnType.SEND.getValue();
+                connectionInfo.setConnType(ConnType.get(type));
+                continue;
+            }
+
             if (num == CONSTS.SEND_CHANNEL_ID) {
                 long publish = messageStates.getLong("publish");
                 long rate    = messageStates.getJsonObject("publish_details").getLong("rate");
