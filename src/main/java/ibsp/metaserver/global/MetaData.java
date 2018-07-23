@@ -827,6 +827,23 @@ public class MetaData {
 		
 		return queueMap.get(queueId);
 	}
+
+	//如果是队列直接返回，如果是topic返回topicID
+	public QueueBean getQueueBeanByRealQueueName(String realQueueName) {
+		QueueBean queueBean = getQueueBeanByName(realQueueName);
+		if(queueBean != null) {
+			return queueBean;
+		}
+
+		for(PermnentTopicBean topicBean : permTopicMap.values()) {
+			if(topicBean.getRealQueue().equalsIgnoreCase(realQueueName)) {
+				String cid = topicBean.getConsumerId();
+				return getQueueBeanById(getQueueIdByConsumerId(cid));
+			}
+		}
+
+		return null;
+	}
 	
 	public List<PermnentTopicBean> getPermnentTopicsByQueueId(String queueId){
 		if(queueId2ConsumerIdMap == null) {
@@ -851,6 +868,21 @@ public class MetaData {
 			return null;
 		
 		return permTopicMap.get(consumerId);
+	}
+
+	public boolean isPermnentTopicInQueue(String realQueueName, String queueId) {
+		List<PermnentTopicBean> permnentTopicBeans = getPermnentTopicsByQueueId(queueId);
+
+		if(permnentTopicBeans == null)
+			return false;
+
+		for(PermnentTopicBean bean : permnentTopicBeans) {
+			if(bean.getRealQueue().equalsIgnoreCase(realQueueName)){
+				return true;
+			}
+		}
+
+		return false;
 	}
 	
 	public String getQueueIdByConsumerId(String comsumerId) {

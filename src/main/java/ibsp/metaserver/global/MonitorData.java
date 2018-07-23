@@ -1,8 +1,6 @@
 package ibsp.metaserver.global;
 
-import ibsp.metaserver.bean.MQConnectionInfoBean;
-import ibsp.metaserver.bean.MQNodeInfoBean;
-import ibsp.metaserver.bean.MQVbrokerCollectInfo;
+import ibsp.metaserver.bean.*;
 import ibsp.metaserver.monitor.ConnType;
 import ibsp.metaserver.utils.HttpUtils;
 import io.vertx.core.json.JsonObject;
@@ -12,10 +10,13 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class MonitorData {
     private static MonitorData monitorData = new MonitorData();
-    private Map<String, MQVbrokerCollectInfo> mqVbrokerCollectInfoMap;
+
+    private Map<String, MQVbrokerCollectInfo> mqVbrokerCollectInfoMap;//vbrokerID -> MQVbrokerCollectInfo
+    private Map<String, MQQueueCollectInfo> mqQueueCollectInfoMap;//queueId -> MQQueueCollectInfo
 
     private MonitorData() {
         mqVbrokerCollectInfoMap = new ConcurrentHashMap<>();
+        mqQueueCollectInfoMap   = new ConcurrentHashMap<>();
     }
 
     public static MonitorData get() {
@@ -59,6 +60,23 @@ public class MonitorData {
         collectInfo.setProduceCounts(produceCounts);
         collectInfo.setConsumerRate(consumerRate);
         collectInfo.setConsumerCounts(consumerCounts);
+        collectInfo.setTimestamp(System.currentTimeMillis());
+    }
+
+    public void saveQueueInfo(MQQueueInfoBean mqQueueInfoBean) {
+        if(mqQueueInfoBean == null)
+            return;
+
+        QueueBean queueBean = MetaData.get().getQueueBeanByRealQueueName(mqQueueInfoBean.getQueueName());
+        String queueName = queueBean.getQueueName();
+        String queueId   = queueBean.getQueueId();
+
+        MQQueueCollectInfo mqQueueCollectInfo = mqQueueCollectInfoMap.get(queueId);
+        if(mqQueueCollectInfo == null) {
+            mqQueueCollectInfo = new MQQueueCollectInfo(queueName);
+            mqQueueCollectInfoMap.put(queueId, mqQueueCollectInfo);
+        }
+        mqQueueCollectInfo.saveQueueInfoBean(mqQueueInfoBean);
     }
 
     public Map<String, MQVbrokerCollectInfo> getMqVbrokerCollectInfoMap() {
@@ -67,12 +85,16 @@ public class MonitorData {
 
 
     public JsonObject toJson() {
-        return new JsonObject().put("mqVbrokerCollectInfoMap" , HttpUtils.mapToJson(mqVbrokerCollectInfoMap));
+        return new JsonObject().put("mqVbrokerCollectInfoMap" , HttpUtils.mapToJson(mqVbrokerCollectInfoMap))
+                .put("mqQueueCollectInfoMap", HttpUtils.mapToJson(mqQueueCollectInfoMap));
     }
 
     public static MonitorData fromJson(JsonObject json) {
         MonitorData m = new MonitorData();
-        m.mqVbrokerCollectInfoMap = HttpUtils.jsonToMap(json.getJsonObject("mqVbrokerCollectInfoMap"), MQVbrokerCollectInfo.class);
+        m.mqVbrokerCollectInfoMap = HttpUtils.jsonToMap(json.getJsonObject("mqVbrokerCollectInfoMap"),
+                MQVbrokerCollectInfo.class);
+        m.mqQueueCollectInfoMap   = HttpUtils.jsonToMap(json.getJsonObject("mqQueueCollectInfoMap"),
+                MQQueueCollectInfo.class);
         return m;
     }
 

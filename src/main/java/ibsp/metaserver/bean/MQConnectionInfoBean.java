@@ -1,7 +1,6 @@
 package ibsp.metaserver.bean;
 
 import ibsp.metaserver.monitor.ConnType;
-import io.vertx.core.json.Json;
 
 public class MQConnectionInfoBean {
     private ConnType connType;

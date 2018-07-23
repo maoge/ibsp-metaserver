@@ -19,6 +19,8 @@ public class MQVbrokerCollectInfo {
     private long consumerRate;
     private long consumerCounts;
 
+    private long timestamp;
+
     public MQVbrokerCollectInfo() {
         nodeInfoMap = new ConcurrentHashMap<>();
         connInfoMap = new ConcurrentHashMap<>();
@@ -129,5 +131,13 @@ public class MQVbrokerCollectInfo {
 
     public void setConsumerCounts(long consumerCounts) {
         this.consumerCounts = consumerCounts;
+    }
+
+    public long getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
     }
 }

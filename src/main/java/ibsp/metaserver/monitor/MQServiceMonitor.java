@@ -361,6 +361,8 @@ public class MQServiceMonitor {
         long vbrokerConsumerRate  = 0L;
 
         for(int i=0,len=jsonArray.size();i<len;i++) {
+            //queue队列统计的元数据
+            MQQueueInfoBean mqQueueInfoBean = new MQQueueInfoBean();
 
             JsonObject json = jsonArray.getJsonObject(i);
             JsonObject messageState = json.getJsonObject("message_stats");
@@ -384,12 +386,46 @@ public class MQServiceMonitor {
                 publish = publish == null? 0L : publish;
                 ack = ack == null? 0L : ack;
 
+                mqQueueInfoBean.setProduceRate(publishRate);
+                mqQueueInfoBean.setProduceCounts(publish);
+                mqQueueInfoBean.setConsumerRate(consumerRate);
+                mqQueueInfoBean.setConsumerCounts(ack);
+
                 vbrokerProduceCounts += publish;
                 vbrokerProduceRate += publishRate;
                 vbrokerConsumerCounts += ack;
                 vbrokerConsumerRate += consumerRate;
-
             }
+
+            String queueName   = json.getString("name");
+            String nodeName    = json.getString("node");
+            String vhost       = json.getString("vhost");
+            String durable     = json.getBoolean("durable").toString();
+            String autoDelete  = json.getBoolean("auto_delete").toString();
+            String arguments   = json.getJsonObject("arguments").toString();
+
+            long memory        = json.getLong("memory");
+            long msgRam        = json.getLong("message_bytes_ram");
+            long msgPersistent = json.getLong("message_bytes_persistent");
+
+            long msgReady      = json.getLong("messages_ready");
+            long msgUnAck      = json.getLong("messages_unacknowledged");
+
+            mqQueueInfoBean.setVbrokerId(vbrokerId);
+            mqQueueInfoBean.setQueueName(queueName);
+            mqQueueInfoBean.setNode(nodeName);
+            mqQueueInfoBean.setVhost(vhost);
+            mqQueueInfoBean.setDurable(durable);
+            mqQueueInfoBean.setAutoDelete(autoDelete);
+            mqQueueInfoBean.setArguments(arguments);
+            mqQueueInfoBean.setMemory(memory);
+            mqQueueInfoBean.setMsgRam(msgRam);
+            mqQueueInfoBean.setMsgPersistent(msgPersistent);
+            mqQueueInfoBean.setMsgReady(msgReady);
+            mqQueueInfoBean.setMsgUnAck(msgUnAck);
+            mqQueueInfoBean.setTimestamp(System.currentTimeMillis());
+
+            MonitorData.get().saveQueueInfo(mqQueueInfoBean);
         }
 
         MonitorData.get().saveMQVbrokerCollectInfo(vbrokerId, vbrokerProduceRate, vbrokerProduceCounts,
