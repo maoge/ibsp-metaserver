@@ -9,6 +9,7 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Set;
 
+import ibsp.metaserver.global.MonitorData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -172,7 +173,19 @@ public class SysEventHandler implements Handler<Message<String>> {
 				ClientStatisticData.get().put(clientType, lsnrAddr);
 				
 				break;
-				
+			case e99:
+				if (!uuid.equals(MetaData.get().getUUID())) {
+					JsonObject jsonObject = new JsonObject(jsonStr);
+					if(jsonObject != null){
+						String servType = jsonObject.getString(FixHeader.HEADER_SERV_TYPE);
+						if(CONSTS.SERV_TYPE_MQ.equalsIgnoreCase(servType)) {
+							MonitorData.get().syncMqJson(jsonObject.getJsonObject(FixHeader.HEADER_JSONSTR), servId);
+						}
+					}
+
+
+				}
+				break;
 			default:
 				break;
 			}

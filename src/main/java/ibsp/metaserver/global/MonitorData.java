@@ -3,12 +3,18 @@ package ibsp.metaserver.global;
 import ibsp.metaserver.bean.*;
 import ibsp.metaserver.monitor.ConnType;
 import ibsp.metaserver.utils.HttpUtils;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class MonitorData {
+    private static final Logger logger = LoggerFactory.getLogger(MonitorData.class);
     private static MonitorData monitorData = new MonitorData();
 
     private Map<String, MQVbrokerCollectInfo> mqVbrokerCollectInfoMap;//vbrokerID -> MQVbrokerCollectInfo
@@ -79,10 +85,63 @@ public class MonitorData {
         mqQueueCollectInfo.saveQueueInfoBean(mqQueueInfoBean);
     }
 
+    public JsonObject getMqSyncJson(String servId) {
+        JsonObject jsonObject = new JsonObject();
+        List<InstanceDtlBean> vbrokers = MetaData.get().getVbrokerByServId(servId);
+        JsonObject vbJsonObject = new JsonObject();
+        for(InstanceDtlBean vbroker : vbrokers) {
+            vbJsonObject.put(vbroker.getInstID(), Json.encode(mqVbrokerCollectInfoMap.get(vbroker.getInstID())));
+        }
+        jsonObject.put("vbrokers",vbJsonObject);
+
+        List<QueueBean> queues= MetaData.get().getQueueListByServId(servId);
+        JsonObject queueJsonObject = new JsonObject();
+        for(QueueBean queue : queues) {
+            queueJsonObject.put(queue.getQueueId(), Json.encode(mqQueueCollectInfoMap.get(queue.getQueueId())));
+        }
+        jsonObject.put("queues", queueJsonObject);
+        return jsonObject;
+    }
+
+    public void syncMqJson(JsonObject jsonObject, String servId) {
+
+        if(jsonObject == null)
+            return;
+
+        JsonObject vbJsonObject = jsonObject.getJsonObject("vbrokers");
+        Iterator<Map.Entry<String, Object>> vbIter = vbJsonObject.iterator();
+        while(vbIter.hasNext()) {
+            Map.Entry<String, Object> entry = vbIter.next();
+            String key = entry.getKey();
+            JsonObject json = new JsonObject(entry.getValue().toString());
+            try {
+                mqVbrokerCollectInfoMap.put(key, Json.decodeValue(json.toString(), MQVbrokerCollectInfo.class));
+            }catch (Exception e) {
+            }
+        }
+
+        JsonObject queueJsonObject = jsonObject.getJsonObject("queues");
+
+        Iterator<Map.Entry<String, Object>> queueIter = queueJsonObject.iterator();
+        while(queueIter.hasNext()) {
+            Map.Entry<String, Object> entry = queueIter.next();
+            String key = entry.getKey();
+            JsonObject json = new JsonObject(entry.getValue().toString());
+            try {
+                mqQueueCollectInfoMap.put(key, Json.decodeValue(json.toString(), MQQueueCollectInfo.class));
+            }catch (Exception e) {
+                logger.error("sync queue data fail : {}", e.getMessage());
+            }
+        }
+    }
+
     public Map<String, MQVbrokerCollectInfo> getMqVbrokerCollectInfoMap() {
         return mqVbrokerCollectInfoMap;
     }
 
+    public Map<String, MQQueueCollectInfo> getMqQueueCollectInfoMap() {
+        return mqQueueCollectInfoMap;
+    }
 
     public JsonObject toJson() {
         return new JsonObject().put("mqVbrokerCollectInfoMap" , HttpUtils.mapToJson(mqVbrokerCollectInfoMap))

@@ -884,6 +884,20 @@ public class MetaData {
 
 		return false;
 	}
+
+    public String getConsumerIdByRealQueueName(String realQueueName) {
+
+        if(permTopicMap == null)
+            return null;
+
+        for(PermnentTopicBean bean : permTopicMap.values()) {
+            if(bean.getRealQueue().equalsIgnoreCase(realQueueName)){
+                return bean.getConsumerId();
+            }
+        }
+
+        return null;
+    }
 	
 	public String getQueueIdByConsumerId(String comsumerId) {
 		if (queueId2ConsumerIdMap == null)

@@ -13,6 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MQQueueCollectInfo {
 
     private String queueName;
+    //如果是队列的话 就是queueId， 如果是topic的话 就是地下的consumerId
     private String queueId;
     private String queueType;
 
@@ -28,12 +29,16 @@ public class MQQueueCollectInfo {
     private long ready;
     private long unack;
 
+    public MQQueueCollectInfo(){}
+
     public MQQueueCollectInfo(String queueName) {
         this.queueName = queueName;
         QueueBean queueBean = MetaData.get().getQueueBeanByName(queueName);
         if(queueBean != null) {
             queueId = queueBean.getQueueId();
             queueType = queueBean.getQueueType();
+        }else {
+            queueId = MetaData.get().getConsumerIdByRealQueueName(queueName);
         }
         queueInfoBeanMap = new ConcurrentHashMap<>();
         produceRate    = 0L;
@@ -182,6 +187,58 @@ public class MQQueueCollectInfo {
 
     public long getUnack() {
         return unack;
+    }
+
+    public void setQueueName(String queueName) {
+        this.queueName = queueName;
+    }
+
+    public void setQueueId(String queueId) {
+        this.queueId = queueId;
+    }
+
+    public void setQueueType(String queueType) {
+        this.queueType = queueType;
+    }
+
+    public void setProduceRate(long produceRate) {
+        this.produceRate = produceRate;
+    }
+
+    public void setProduceCounts(long produceCounts) {
+        this.produceCounts = produceCounts;
+    }
+
+    public void setConsumerRate(long consumerRate) {
+        this.consumerRate = consumerRate;
+    }
+
+    public void setConsumerCounts(long consumerCounts) {
+        this.consumerCounts = consumerCounts;
+    }
+
+    public void setMemory(long memory) {
+        this.memory = memory;
+    }
+
+    public void setReady(long ready) {
+        this.ready = ready;
+    }
+
+    public void setUnack(long unack) {
+        this.unack = unack;
+    }
+
+    public void setQueueInfoBeanMap(Map<String, MQQueueInfoBean> queueInfoBeanMap) {
+        this.queueInfoBeanMap = queueInfoBeanMap;
+    }
+
+    public void setTopicInfoBeanMap(Map<String, MQQueueCollectInfo> topicInfoBeanMap) {
+        this.topicInfoBeanMap = topicInfoBeanMap;
+    }
+
+    public String getQueueType() {
+        return queueType;
     }
 
 }

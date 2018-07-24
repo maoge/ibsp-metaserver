@@ -70,14 +70,16 @@ public class MQServiceMonitor {
                 getNodesInfo(master, servId, vbrokerId, result);
                 getChannelsInfo(master, vbrokerId);
                 getQueuesInfo(master, vbrokerId);
-                /*// 检查connections是不是flow 并且recv_oct_details底下的rate是不是0 是的话 要重启从节点
-                checkConnectionFlowAndRateToZero(master, servId, vbrokerId, result);*/
-                //TODO 发送事件同步采集数据
+                // TODO 检查connections是不是flow 并且recv_oct_details底下的rate是不是0 是的话 要重启从节点
+                //checkConnectionFlowAndRateToZero(master, servId, vbrokerId, result);
+
             }catch (Exception e){
                 logger.error(e.getMessage(), e);
             }
         }
 
+        MQService.saveCollectInfo(servId, result);
+        syncCollectData(servId);
     }
 
     //检测vbroker下的broker是不是挂了，检测是不是发生了主从切换
@@ -430,6 +432,18 @@ public class MQServiceMonitor {
 
         MonitorData.get().saveMQVbrokerCollectInfo(vbrokerId, vbrokerProduceRate, vbrokerProduceCounts,
                 vbrokerConsumerRate, vbrokerConsumerCounts);
+    }
+
+    private static void syncCollectData(String servId) {
+        JsonObject paramsJson = new JsonObject();
+        paramsJson.put(FixHeader.HEADER_SERV_TYPE, CONSTS.SERV_TYPE_MQ);
+        paramsJson.put(FixHeader.HEADER_JSONSTR, MonitorData.get().getMqSyncJson(servId));
+        EventBean evBean = new EventBean();
+        evBean.setEvType(EventType.e99);
+        evBean.setServID(servId);
+        evBean.setJsonStr(paramsJson.toString());
+        evBean.setUuid(MetaData.get().getUUID());
+        EventBusMsg.publishEvent(evBean);
     }
 
     private static String getMasterIdFromRabbit(String brokerId, ResultBean result) {

@@ -1,20 +1,14 @@
 package ibsp.metaserver.dbservice;
 
-import com.jcraft.jsch.JSchException;
 import ibsp.metaserver.autodeploy.utils.JschUserInfo;
 import ibsp.metaserver.autodeploy.utils.SSHExecutor;
-import ibsp.metaserver.bean.InstanceDtlBean;
-import ibsp.metaserver.bean.PermnentTopicBean;
-import ibsp.metaserver.bean.QueueBean;
-import ibsp.metaserver.bean.ResultBean;
-import ibsp.metaserver.bean.ServiceBean;
-import ibsp.metaserver.bean.SqlBean;
+import ibsp.metaserver.bean.*;
 import ibsp.metaserver.eventbus.EventBean;
 import ibsp.metaserver.eventbus.EventBusMsg;
 import ibsp.metaserver.eventbus.EventType;
 import ibsp.metaserver.exception.CRUDException;
-import ibsp.metaserver.exception.DeployException;
 import ibsp.metaserver.global.MetaData;
+import ibsp.metaserver.global.MonitorData;
 import ibsp.metaserver.global.ServiceData;
 import ibsp.metaserver.rabbitmq.IMQClient;
 import ibsp.metaserver.rabbitmq.MQClientImpl;
@@ -62,7 +56,16 @@ public class MQService {
 	private final static String DEL_PERMNENT_TOPIC_BY_SERVID       = "DELETE FROM t_mq_permnent_topic where QUEUE_ID in (SELECT QUEUE_ID from t_mq_queue where SERV_ID = ?)";
 	private final static String UPDATE_QUEUE_UNDEPLOYED_BY_SERVID  = "UPDATE t_mq_queue SET IS_DEPLOY = ? where SERV_ID = ? ";
 	private final static String DEL_QUEUE_BY_SERVID                = "DELETE FROM t_mq_queue WHERE SERV_ID = ? "; 
-	
+
+	private final static String INSERT_VBROKER_COLLECT_INFO        = "INSERT INTO t_mo_mq_collect (VBROKER_ID,PRODUCE_RATE," +
+			"PRODUCE_COUNTS,CONSUMER_RATE,CONSUMER_COUNTS,REC_TIME) values (?,?,?,?,?,?)";
+
+	private final static String INSERT_QUEUE_COLLECT_INFO          = "INSERT INTO t_mo_mq_collect (QUEUE_ID,PRODUCE_RATE," +
+			"PRODUCE_COUNTS,CONSUMER_RATE,CONSUMER_COUNTS,REC_TIME) values (?,?,?,?,?,?)";
+
+	private final static String INSERT_QUEUE_COLLECT_DETAIL_INFO   = "INSERT INTO t_mo_mq_queue_detail (VBROKER_ID, QUEUE_ID,CONSUMER_ID,PRODUCE_RATE," +
+            "PRODUCE_COUNTS,CONSUMER_RATE,CONSUMER_COUNTS,REC_TIME) values (?,?,?,?,?,?,?,?)";
+
 	public static boolean loadServiceInfo(String serviceID, List<InstanceDtlBean> vbrokerList,
 			InstanceDtlBean collectd, ResultBean result) {
 		
@@ -1339,4 +1342,111 @@ public class MQService {
 			}
 		}
 	}
+
+	public static boolean saveCollectInfo(String servId, ResultBean result) {
+		boolean res = true;
+		if(!saveVbrokersCollectInfo(servId, result)){
+		   res = false;
+		   logger.error("save vbroker collect info fail : {}" , result.getRetInfo());
+		}
+		if(!saveQueuesCollectInfo(servId, result)){
+			res = false;
+			logger.error("save queue collect info fail : {}" , result.getRetInfo());
+		}
+		if(!saveQueuesCollectDetailInfo(servId, result)){
+			res = false;
+			logger.error("save queue collect detail info fail : {}" , result.getRetInfo());
+		}
+		return res;
+	}
+
+	public static boolean saveVbrokersCollectInfo (String servId, ResultBean result) {
+		boolean res = false;
+
+		List<InstanceDtlBean> vbrokers = MetaData.get().getVbrokerByServId(servId);
+		if(vbrokers == null || vbrokers.size() == 0) {
+			return true;
+		}
+		Map<String, MQVbrokerCollectInfo> vbrokerCollectInfoMap = MonitorData.get().getMqVbrokerCollectInfoMap();
+		CRUD crud = new CRUD();
+		for(InstanceDtlBean vbroker : vbrokers) {
+			SqlBean sqlBean = new SqlBean(INSERT_VBROKER_COLLECT_INFO);
+
+			String vbrokerId = vbroker.getInstID();
+			MQVbrokerCollectInfo collectInfo = vbrokerCollectInfoMap.get(vbrokerId);
+			sqlBean.addParams(new Object[]{
+					vbroker.getInstID(), collectInfo.getProduceRate(), collectInfo.getProduceCounts(),
+					collectInfo.getConsumerRate(), collectInfo.getConsumerCounts(), collectInfo.getTimestamp()
+			});
+			crud.putSqlBean(sqlBean);
+		}
+		res = crud.executeUpdate(result);
+		return res;
+	}
+
+	public static boolean saveQueuesCollectInfo (String servId, ResultBean result) {
+		boolean res = false;
+		List<QueueBean> queueBeans = MetaData.get().getQueueListByServId(servId);
+		if(queueBeans == null || queueBeans.size() == 0) {
+			return true;
+		}
+		Map<String, MQQueueCollectInfo> mqQueueCollectInfoMap = MonitorData.get().getMqQueueCollectInfoMap();
+		CRUD crud = new CRUD();
+
+		for(QueueBean queueBean : queueBeans) {
+			SqlBean sqlBean = new SqlBean(INSERT_QUEUE_COLLECT_INFO);
+			MQQueueCollectInfo collectInfo = mqQueueCollectInfoMap.get(queueBean.getQueueId());
+			sqlBean.addParams(new Object[]{
+					queueBean.getQueueId(), collectInfo.getProduceRate(), collectInfo.getProduceCounts(),
+					collectInfo.getConsumerRate(), collectInfo.getConsumerCounts(),System.currentTimeMillis()
+			});
+			crud.putSqlBean(sqlBean);
+		}
+		res = crud.executeUpdate(result);
+		return res;
+	}
+
+	public static boolean saveQueuesCollectDetailInfo(String servId, ResultBean result) {
+	    boolean res = false;
+	    List<QueueBean> queueBeans = MetaData.get().getQueueListByServId(servId);
+	    if(queueBeans == null || queueBeans.size() == 0) {
+	        return true;
+        }
+
+        Map<String, MQQueueCollectInfo> mqQueueCollectInfoMap = MonitorData.get().getMqQueueCollectInfoMap();
+
+        CRUD crud = new CRUD();
+        for(QueueBean queueBean : queueBeans) {
+
+            MQQueueCollectInfo collectInfo = mqQueueCollectInfoMap.get(queueBean.getQueueId());
+
+            if(CONSTS.TYPE_QUEUE.equalsIgnoreCase(queueBean.getQueueType())) {
+                for(MQQueueInfoBean queueInfoBean : collectInfo.getQueueInfoBeanMap().values()) {
+					SqlBean sqlBean = new SqlBean(INSERT_QUEUE_COLLECT_DETAIL_INFO);
+                    sqlBean.addParams(new Object[]{
+                            queueInfoBean.getVbrokerId(), queueBean.getQueueId(), "", queueInfoBean.getProduceRate(),
+                            queueInfoBean.getProduceCounts(), queueInfoBean.getConsumerRate(),
+                            queueInfoBean.getConsumerCounts(), queueInfoBean.getTimestamp()
+                    });
+					crud.putSqlBean(sqlBean);
+                }
+            }else {
+                Map<String, MQQueueCollectInfo> topicCollectInfoMap = collectInfo.getTopicInfoBeanMap();
+                for(MQQueueCollectInfo topicCoolectInfo : topicCollectInfoMap.values()) {
+                    for(MQQueueInfoBean queueInfoBean : topicCoolectInfo.getQueueInfoBeanMap().values()) {
+						SqlBean sqlBean = new SqlBean(INSERT_QUEUE_COLLECT_DETAIL_INFO);
+                        sqlBean.addParams(new Object[]{
+                                queueInfoBean.getVbrokerId(), queueBean.getQueueId(), topicCoolectInfo.getQueueId(), queueInfoBean.getProduceRate(),
+                                queueInfoBean.getProduceCounts(), queueInfoBean.getConsumerRate(),
+                                queueInfoBean.getConsumerCounts(), queueInfoBean.getTimestamp()
+                        });
+						crud.putSqlBean(sqlBean);
+                    }
+                }
+            }
+        }
+        res = crud.executeUpdate(result);
+
+        return res;
+    }
 }
