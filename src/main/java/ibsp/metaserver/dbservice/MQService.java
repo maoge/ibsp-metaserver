@@ -66,6 +66,11 @@ public class MQService {
 	private final static String INSERT_QUEUE_COLLECT_DETAIL_INFO   = "INSERT INTO t_mo_mq_queue_detail (VBROKER_ID, QUEUE_ID,CONSUMER_ID,PRODUCE_RATE," +
             "PRODUCE_COUNTS,CONSUMER_RATE,CONSUMER_COUNTS,REC_TIME) values (?,?,?,?,?,?,?,?)";
 
+	private final static String SEL_VBROKER_MONITOR_COLLECT = "SELECT VBROKER_ID,PRODUCE_RATE," +
+			"CONSUMER_RATE,REC_TIME from t_mo_mq_collect WHERE REC_TIME BETWEEN ? AND ? AND VBROKER_ID = ?";
+	private final static String SEL_QUEUE_MONITOR_COLLECT   = "SELECT QUEUE_ID,PRODUCE_RATE," +
+			"CONSUMER_RATE,REC_TIME from t_mo_mq_collect WHERE REC_TIME BETWEEN ? AND ? AND QUEUE_ID = ?";
+
 	public static boolean loadServiceInfo(String serviceID, List<InstanceDtlBean> vbrokerList,
 			InstanceDtlBean collectd, ResultBean result) {
 		
@@ -1306,7 +1311,7 @@ public class MQService {
 			if("start.sh".equalsIgnoreCase(cmd)){
 				if(executor.isRabbitRunning(port, sessionKey)) {
 					result.setRetCode(CONSTS.REVOKE_OK);
-					String info = String.format("broker id:%s is already running, does not need start !");
+					String info = String.format("broker id:%s is already running, does not need start !", brokerId);
 					result.setRetInfo(info);
 				}else {
 					executor.execStartShell(sessionKey);
@@ -1448,5 +1453,53 @@ public class MQService {
         res = crud.executeUpdate(result);
 
         return res;
+    }
+
+	public static JsonArray getVbrokerHisData(String vbrokerId, long startTs, long endTs, ResultBean result) {
+        JsonArray jsonArray = null;
+        InstanceDtlBean vbroker = MetaData.get().getInstanceDtlBean(vbrokerId);
+        if(vbroker == null) {
+            return null;
+        }
+
+        CRUD crud = new CRUD();
+        SqlBean sqlBean = new SqlBean(SEL_VBROKER_MONITOR_COLLECT);
+        sqlBean.addParams(new Object[]{
+                startTs, endTs, vbrokerId
+        });
+        crud.putSqlBean(sqlBean);
+        try {
+            jsonArray = crud.queryForJSONArray();
+        } catch (CRUDException e) {
+            result.setRetCode(CONSTS.REVOKE_NOK);
+            result.setRetInfo(String.format("getVBrokerHisData fail : %s", e.getMessage()));
+            logger.error(e.getMessage(), e);
+        }
+
+        return jsonArray;
+    }
+
+    public static JsonArray getQueueHisData(String queueId, long startTs, long endTs, ResultBean result) {
+        JsonArray jsonArray = null;
+        QueueBean queue = MetaData.get().getQueueBeanById(queueId);
+        if(queue == null) {
+            return null;
+        }
+
+        CRUD crud = new CRUD();
+        SqlBean sqlBean = new SqlBean(SEL_QUEUE_MONITOR_COLLECT);
+        sqlBean.addParams(new Object[]{
+                startTs, endTs, queueId
+        });
+        crud.putSqlBean(sqlBean);
+        try {
+            jsonArray = crud.queryForJSONArray();
+        } catch (CRUDException e) {
+            result.setRetCode(CONSTS.REVOKE_NOK);
+            result.setRetInfo(String.format("getVBrokerHisData fail : %s", e.getMessage()));
+            logger.error(e.getMessage(), e);
+        }
+
+        return jsonArray;
     }
 }

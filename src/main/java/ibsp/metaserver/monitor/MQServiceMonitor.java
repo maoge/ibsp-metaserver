@@ -380,7 +380,8 @@ public class MQServiceMonitor {
                     publishRate = messageState.getJsonObject("publish_details").getLong("rate");
                     publishRate = publishRate == null? 0L : publishRate;
 
-                }else{
+                }
+                if(ack != null){
                     consumerRate = messageState.getJsonObject("ack_details").getLong("rate");
                     consumerRate = consumerRate == null? 0L : consumerRate;
                 }

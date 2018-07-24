@@ -2,8 +2,10 @@ package ibsp.metaserver.global;
 
 import ibsp.metaserver.bean.*;
 import ibsp.metaserver.monitor.ConnType;
+import ibsp.metaserver.utils.FixHeader;
 import ibsp.metaserver.utils.HttpUtils;
 import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -133,6 +135,52 @@ public class MonitorData {
                 logger.error("sync queue data fail : {}", e.getMessage());
             }
         }
+    }
+
+    public JsonArray getVbrokerCollectData(String servId) {
+        JsonArray jsonArray = new JsonArray();
+        List<InstanceDtlBean> vbrokers = MetaData.get().getVbrokerByServId(servId);
+
+        for(InstanceDtlBean vbroker : vbrokers) {
+            MQVbrokerCollectInfo collectInfo = mqVbrokerCollectInfoMap.get(vbroker.getInstID());
+
+            if(collectInfo == null)
+                return null;
+
+            JsonObject subJson = new JsonObject()
+                    .put(FixHeader.HEADER_VBROKER_NAME, vbroker.getAttribute(FixHeader.HEADER_VBROKER_NAME).getAttrValue())
+                    .put(FixHeader.HEADER_PRODUCE_RATE, collectInfo.getProduceRate())
+                    .put(FixHeader.HEADER_PRODUCE_COUNTS, collectInfo.getProduceCounts())
+                    .put(FixHeader.HEADER_CONSUME_RATE, collectInfo.getConsumerRate())
+                    .put(FixHeader.HEADER_CONSUME_COUNTS, collectInfo.getConsumerCounts());
+
+            jsonArray.add(subJson);
+        }
+
+        return jsonArray;
+    }
+
+    public JsonArray getQueueCollectData(String servId) {
+        JsonArray jsonArray = new JsonArray();
+        List<QueueBean> queues= MetaData.get().getQueueListByServId(servId);
+
+        for(QueueBean queue : queues) {
+            MQQueueCollectInfo collectInfo = mqQueueCollectInfoMap.get(queue.getQueueId());
+
+            if(collectInfo == null)
+                return null;
+
+            JsonObject subJson = new JsonObject()
+                    .put(FixHeader.HEADER_QUEUE_NAME, queue.getQueueName())
+                    .put(FixHeader.HEADER_PRODUCE_RATE, collectInfo.getProduceRate())
+                    .put(FixHeader.HEADER_PRODUCE_COUNTS, collectInfo.getProduceCounts())
+                    .put(FixHeader.HEADER_CONSUME_RATE, collectInfo.getConsumerRate())
+                    .put(FixHeader.HEADER_CONSUME_COUNTS, collectInfo.getConsumerCounts());
+
+            jsonArray.add(subJson);
+        }
+
+        return jsonArray;
     }
 
     public Map<String, MQVbrokerCollectInfo> getMqVbrokerCollectInfoMap() {
