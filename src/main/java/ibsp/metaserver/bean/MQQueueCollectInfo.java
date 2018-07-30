@@ -89,25 +89,27 @@ public class MQQueueCollectInfo {
 
         String vbrokerId = mqQueueInfoBean.getVbrokerId();
         MQQueueInfoBean oldQueueCollectInfo = queueInfoBeanMap.get(vbrokerId);
-        if(oldQueueCollectInfo != null) {
-            this.produceRate    -= oldQueueCollectInfo.getProduceRate();
-            this.produceCounts  -= oldQueueCollectInfo.getProduceCounts();
-            this.consumerRate   -= oldQueueCollectInfo.getConsumerRate();
-            this.consumerCounts -= oldQueueCollectInfo.getConsumerCounts();
+        synchronized (MQQueueCollectInfo.class) {
+            if(oldQueueCollectInfo != null) {
+                this.produceRate    -= oldQueueCollectInfo.getProduceRate();
+                this.produceCounts  -= oldQueueCollectInfo.getProduceCounts();
+                this.consumerRate   -= oldQueueCollectInfo.getConsumerRate();
+                this.consumerCounts -= oldQueueCollectInfo.getConsumerCounts();
 
-            this.memory -= oldQueueCollectInfo.getMemory();
-            this.ready  -= oldQueueCollectInfo.getMsgReady();
-            this.unack  -= oldQueueCollectInfo.getMsgUnAck();
+                this.memory -= oldQueueCollectInfo.getMemory();
+                this.ready  -= oldQueueCollectInfo.getMsgReady();
+                this.unack  -= oldQueueCollectInfo.getMsgUnAck();
+            }
+
+            this.produceRate    += mqQueueInfoBean.getProduceRate();
+            this.produceCounts  += mqQueueInfoBean.getProduceCounts();
+            this.consumerRate   += mqQueueInfoBean.getConsumerRate();
+            this.consumerCounts += mqQueueInfoBean.getConsumerCounts();
+
+            this.memory += mqQueueInfoBean.getMemory();
+            this.ready  += mqQueueInfoBean.getMsgReady();
+            this.unack  += mqQueueInfoBean.getMsgUnAck();
         }
-
-        this.produceRate    += mqQueueInfoBean.getProduceRate();
-        this.produceCounts  += mqQueueInfoBean.getProduceCounts();
-        this.consumerRate   += mqQueueInfoBean.getConsumerRate();
-        this.consumerCounts += mqQueueInfoBean.getConsumerCounts();
-
-        this.memory += mqQueueInfoBean.getMemory();
-        this.ready  += mqQueueInfoBean.getMsgReady();
-        this.unack  += mqQueueInfoBean.getMsgUnAck();
     }
 
     private void statisticsTopicInfo(MQQueueInfoBean mqQueueInfoBean) {
@@ -117,31 +119,32 @@ public class MQQueueCollectInfo {
         if(topicInfoBeanMap != null && topicInfoBeanMap.size() > 0 ) {
             //累计topic的信息
             MQQueueCollectInfo mqQueueCollectInfo = topicInfoBeanMap.get(mqQueueInfoBean.getQueueName());
+            synchronized (MQQueueCollectInfo.class) {
+                if(mqQueueCollectInfo != null) {
+                    this.produceRate    -= mqQueueCollectInfo.getProduceRate();
+                    this.produceCounts  -= mqQueueCollectInfo.getProduceCounts();
+                    this.consumerRate   -= mqQueueCollectInfo.getConsumerRate();
+                    this.consumerCounts -= mqQueueCollectInfo.getConsumerCounts();
 
-            if(mqQueueCollectInfo != null) {
-                this.produceRate    -= mqQueueCollectInfo.getProduceRate();
-                this.produceCounts  -= mqQueueCollectInfo.getProduceCounts();
-                this.consumerRate   -= mqQueueCollectInfo.getConsumerRate();
-                this.consumerCounts -= mqQueueCollectInfo.getConsumerCounts();
+                    this.memory -= mqQueueCollectInfo.getMemory();
+                    this.ready  -= mqQueueCollectInfo.getReady();
+                    this.unack  -= mqQueueCollectInfo.getUnack();
+                }else {
+                    mqQueueCollectInfo = new MQQueueCollectInfo(mqQueueInfoBean.getQueueName());
+                    topicInfoBeanMap.put(mqQueueInfoBean.getQueueName(), mqQueueCollectInfo);
+                }
 
-                this.memory -= mqQueueCollectInfo.getMemory();
-                this.ready  -= mqQueueCollectInfo.getReady();
-                this.unack  -= mqQueueCollectInfo.getUnack();
-            }else {
-                mqQueueCollectInfo = new MQQueueCollectInfo(mqQueueInfoBean.getQueueName());
-                topicInfoBeanMap.put(mqQueueInfoBean.getQueueName(), mqQueueCollectInfo);
+                mqQueueCollectInfo.statisticsQueueInfo(mqQueueInfoBean);
+
+                this.produceRate    += mqQueueCollectInfo.getProduceRate();
+                this.produceCounts  += mqQueueCollectInfo.getProduceCounts();
+                this.consumerRate   += mqQueueCollectInfo.getConsumerRate();
+                this.consumerCounts += mqQueueCollectInfo.getConsumerCounts();
+
+                this.memory += mqQueueCollectInfo.getMemory();
+                this.ready  += mqQueueCollectInfo.getReady();
+                this.unack  += mqQueueCollectInfo.getUnack();
             }
-
-            mqQueueCollectInfo.statisticsQueueInfo(mqQueueInfoBean);
-
-            this.produceRate    += mqQueueCollectInfo.getProduceRate();
-            this.produceCounts  += mqQueueCollectInfo.getProduceCounts();
-            this.consumerRate   += mqQueueCollectInfo.getConsumerRate();
-            this.consumerCounts += mqQueueCollectInfo.getConsumerCounts();
-
-            this.memory += mqQueueCollectInfo.getMemory();
-            this.ready  += mqQueueCollectInfo.getReady();
-            this.unack  += mqQueueCollectInfo.getUnack();
         }
     }
 

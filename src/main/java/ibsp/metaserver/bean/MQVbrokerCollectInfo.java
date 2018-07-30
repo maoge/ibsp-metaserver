@@ -47,18 +47,20 @@ public class MQVbrokerCollectInfo {
 
         String sourceAddress = connectionInfoBean.getSourceAddress();
         MQConnectionInfoBean old = connInfoMap.get(sourceAddress);
-        if(old != null) {
-            connProduceRate -= old.getProduceRate();
-            connProduceCounts -= old.getProduceCounts();
-            connConsumerRate -= old.getConsumerRate();
-            connConsumerCounts -= old.getConsumerCounts();
-        }
-        connInfoMap.put(connectionInfoBean.getSourceAddress(), connectionInfoBean);
+        synchronized (MQVbrokerCollectInfo.class) {
+            if(old != null) {
+                connProduceRate -= old.getProduceRate();
+                connProduceCounts -= old.getProduceCounts();
+                connConsumerRate -= old.getConsumerRate();
+                connConsumerCounts -= old.getConsumerCounts();
+            }
+            connInfoMap.put(connectionInfoBean.getSourceAddress(), connectionInfoBean);
 
-        connProduceRate += connectionInfoBean.getProduceRate();
-        connProduceCounts += connectionInfoBean.getProduceCounts();
-        connConsumerRate += connectionInfoBean.getConsumerRate();
-        connConsumerCounts += connectionInfoBean.getConsumerCounts();
+            connProduceRate += connectionInfoBean.getProduceRate();
+            connProduceCounts += connectionInfoBean.getProduceCounts();
+            connConsumerRate += connectionInfoBean.getConsumerRate();
+            connConsumerCounts += connectionInfoBean.getConsumerCounts();
+        }
     }
 
     public Map<String, MQNodeInfoBean> getNodeInfoMap() {

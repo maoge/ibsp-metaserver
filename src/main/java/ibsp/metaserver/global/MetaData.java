@@ -1255,27 +1255,8 @@ public class MetaData {
 		if(servBean == null ||  !CONSTS.SERV_TYPE_MQ.equals(servBean.getServType())) {
 			return null;
 		}
-		
-		Set<String> childs = topo.get(servId, CONSTS.TOPO_TYPE_CONTAIN);
-		if(childs == null || childs.isEmpty()) {
-			return null;
-		}	
 
-		List<InstanceDtlBean> list = new ArrayList<>();
-		
-		for(String child : childs) {
-			InstanceDtlBean insDtlBean = instanceDtlMap.get(child);
-			int cmptId = insDtlBean.getInstance().getCmptID();
-			if(cmptId == vbrokerContainerCmptID) {
-				Set<String> vbrokers = topo.get(child, CONSTS.TOPO_TYPE_CONTAIN);
-				for(String vbroker : vbrokers) {
-					list.add(instanceDtlMap.get(vbroker));
-				}
-				break;
-			}
-		}
-		
-		return list;
+		return getContainerIncludeElesByServIdAndCmptId(servId, vbrokerContainerCmptID);
 	}
 	
 	public List<InstanceDtlBean> getMasterBrokersByServId(String servId){
@@ -1378,5 +1359,39 @@ public class MetaData {
 		seviceBean.setUser(user);
 		seviceBean.setPassword(pwd);
 	}
-	
+
+	public List<InstanceDtlBean> getCacheProxysByServId(String servId) {
+		ServiceBean servBean = serviceMap.get(servId);
+		int proxyContainerCmptID = MetaData.get().getComponentID("CACHE_PROXY_CONTAINER");
+
+		if(servBean == null ||  !CONSTS.SERV_TYPE_CACHE.equals(servBean.getServType())) {
+			return null;
+		}
+
+		return getContainerIncludeElesByServIdAndCmptId(servId, proxyContainerCmptID);
+	}
+
+	private List<InstanceDtlBean> getContainerIncludeElesByServIdAndCmptId(String servId, int containerCmptID) {
+
+		Set<String> childs = topo.get(servId, CONSTS.TOPO_TYPE_CONTAIN);
+		if(childs == null || childs.isEmpty()) {
+			return null;
+		}
+
+		List<InstanceDtlBean> list = new ArrayList<>();
+
+		for(String child : childs) {
+			InstanceDtlBean insDtlBean = instanceDtlMap.get(child);
+			int cmptId = insDtlBean.getInstance().getCmptID();
+			if(cmptId == containerCmptID) {
+				Set<String> eles = topo.get(child, CONSTS.TOPO_TYPE_CONTAIN);
+				for(String ele : eles) {
+					list.add(instanceDtlMap.get(ele));
+				}
+				break;
+			}
+		}
+
+		return list;
+	}
 }

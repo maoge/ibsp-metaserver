@@ -75,7 +75,7 @@ public class FixHeader {
 	public static final String HEADER_EVENT_CODE               = "EVENT_CODE";
 	
 	public static final String HEADER_PRODUCE_RATE             = "PRODUCE_RATE";
-	public static final String HEADER_CONSUME_RATE             = "CONSUME_RATE";
+	public static final String HEADER_CONSUMER_RATE            = "CONSUMER_RATE";
 	
 	public static final String HEADER_DURABLE                  = "DURABLE";
 	public static final String HEADER_AUTODELETE               = "AUTODELETE";
@@ -83,7 +83,7 @@ public class FixHeader {
 	public static final String HEADER_NODE_NAME                = "NODE_NAME";
 	public static final String HEADER_MEMARY                   = "MEMARY";
 	public static final String HEADER_PRODUCE_COUNTS           = "PRODUCE_COUNTS";
-	public static final String HEADER_CONSUME_COUNTS           = "CONSUME_COUNTS";
+	public static final String HEADER_CONSUMER_COUNTS          = "CONSUMER_COUNTS";
 	
 	public static final String HEADER_VIP_PORT                 = "VIP_PORT";
 	public static final String HEADER_CLUSTER_NAME             = "CLUSTER_NAME";

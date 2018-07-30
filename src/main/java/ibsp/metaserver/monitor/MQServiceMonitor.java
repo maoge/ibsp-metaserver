@@ -220,6 +220,11 @@ public class MQServiceMonitor {
                 String nodeName = json.getString("name");
                 String instId = nodeName.split(CONSTS.NAME_SPLIT)[0];
 
+                diskFree = diskFree == null ? 0L : diskFree;
+                diskFreeLimit = diskFreeLimit == null ? 0L : diskFreeLimit;
+                memUse = memUse == null ? 0L : memUse;
+                memLimit = memLimit == null ? 0L : memLimit;
+
                 //磁盘使用高水位
                 if (diskFree != null && diskFreeLimit != null && diskFree <= diskFreeLimit) {
                     EventBean ev = new EventBean();

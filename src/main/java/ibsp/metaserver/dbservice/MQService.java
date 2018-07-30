@@ -66,10 +66,11 @@ public class MQService {
 	private final static String INSERT_QUEUE_COLLECT_DETAIL_INFO   = "INSERT INTO t_mo_mq_queue_detail (VBROKER_ID, QUEUE_ID,CONSUMER_ID,PRODUCE_RATE," +
             "PRODUCE_COUNTS,CONSUMER_RATE,CONSUMER_COUNTS,REC_TIME) values (?,?,?,?,?,?,?,?)";
 
-	private final static String SEL_VBROKER_MONITOR_COLLECT = "SELECT VBROKER_ID,PRODUCE_RATE," +
-			"CONSUMER_RATE,REC_TIME from t_mo_mq_collect WHERE REC_TIME BETWEEN ? AND ? AND VBROKER_ID = ?";
-	private final static String SEL_QUEUE_MONITOR_COLLECT   = "SELECT QUEUE_ID,PRODUCE_RATE," +
-			"CONSUMER_RATE,REC_TIME from t_mo_mq_collect WHERE REC_TIME BETWEEN ? AND ? AND QUEUE_ID = ?";
+	private final static String SEL_VBROKER_MONITOR_COLLECT = "SELECT PRODUCE_RATE," +
+			"CONSUMER_RATE,REC_TIME from t_mo_mq_collect WHERE REC_TIME BETWEEN ? AND ? AND VBROKER_ID = ? ORDER BY REC_TIME ASC";
+
+	private final static String SEL_QUEUE_MONITOR_COLLECT   = "SELECT PRODUCE_RATE," +
+			"CONSUMER_RATE,REC_TIME from t_mo_mq_collect WHERE REC_TIME BETWEEN ? AND ? AND QUEUE_ID = ?  ORDER BY REC_TIME ASC";
 
 	public static boolean loadServiceInfo(String serviceID, List<InstanceDtlBean> vbrokerList,
 			InstanceDtlBean collectd, ResultBean result) {
@@ -1374,6 +1375,7 @@ public class MQService {
 		}
 		Map<String, MQVbrokerCollectInfo> vbrokerCollectInfoMap = MonitorData.get().getMqVbrokerCollectInfoMap();
 		CRUD crud = new CRUD();
+		long currentTime = System.currentTimeMillis();
 		for(InstanceDtlBean vbroker : vbrokers) {
 			SqlBean sqlBean = new SqlBean(INSERT_VBROKER_COLLECT_INFO);
 
@@ -1381,7 +1383,7 @@ public class MQService {
 			MQVbrokerCollectInfo collectInfo = vbrokerCollectInfoMap.get(vbrokerId);
 			sqlBean.addParams(new Object[]{
 					vbroker.getInstID(), collectInfo.getProduceRate(), collectInfo.getProduceCounts(),
-					collectInfo.getConsumerRate(), collectInfo.getConsumerCounts(), collectInfo.getTimestamp()
+					collectInfo.getConsumerRate(), collectInfo.getConsumerCounts(), currentTime
 			});
 			crud.putSqlBean(sqlBean);
 		}
@@ -1397,13 +1399,13 @@ public class MQService {
 		}
 		Map<String, MQQueueCollectInfo> mqQueueCollectInfoMap = MonitorData.get().getMqQueueCollectInfoMap();
 		CRUD crud = new CRUD();
-
+		long currentTime = System.currentTimeMillis();
 		for(QueueBean queueBean : queueBeans) {
 			SqlBean sqlBean = new SqlBean(INSERT_QUEUE_COLLECT_INFO);
 			MQQueueCollectInfo collectInfo = mqQueueCollectInfoMap.get(queueBean.getQueueId());
 			sqlBean.addParams(new Object[]{
 					queueBean.getQueueId(), collectInfo.getProduceRate(), collectInfo.getProduceCounts(),
-					collectInfo.getConsumerRate(), collectInfo.getConsumerCounts(),System.currentTimeMillis()
+					collectInfo.getConsumerRate(), collectInfo.getConsumerCounts(),currentTime
 			});
 			crud.putSqlBean(sqlBean);
 		}
@@ -1478,6 +1480,38 @@ public class MQService {
 
         return jsonArray;
     }
+
+	public static JsonObject getAllVbrokerHisData(String servId, long startTs, long endTs, ResultBean result) {
+		JsonObject json = new JsonObject();
+
+		JsonArray jsonArray = null;
+		List<InstanceDtlBean> vbrokers = MetaData.get().getVbrokerByServId(servId);
+		if(vbrokers == null) {
+			return null;
+		}
+
+		CRUD crud = null;
+
+		for(InstanceDtlBean vbroker : vbrokers) {
+			crud = new CRUD();
+			SqlBean sqlBean = new SqlBean(SEL_VBROKER_MONITOR_COLLECT);
+			sqlBean.addParams(new Object[]{
+					startTs, endTs, vbroker.getInstID()
+			});
+			crud.putSqlBean(sqlBean);
+			try {
+				jsonArray = crud.queryForJSONArray();
+				json.put(vbroker.getAttribute(FixHeader.HEADER_VBROKER_NAME).getAttrValue() + "," + vbroker.getInstID()
+						, jsonArray);
+			} catch (CRUDException e) {
+				result.setRetCode(CONSTS.REVOKE_NOK);
+				result.setRetInfo(String.format("getVBrokerHisData fail : %s", e.getMessage()));
+				logger.error(e.getMessage(), e);
+			}
+		}
+
+		return json;
+	}
 
     public static JsonArray getQueueHisData(String queueId, long startTs, long endTs, ResultBean result) {
         JsonArray jsonArray = null;

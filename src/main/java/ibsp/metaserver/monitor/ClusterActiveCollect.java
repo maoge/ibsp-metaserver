@@ -115,7 +115,7 @@ public class ClusterActiveCollect implements Runnable{
 
                                 }else if(CONSTS.SERV_TYPE_CACHE.equalsIgnoreCase(type)) {
                                     //CACHE 监控
-
+                                    CacheServiceMonitor1.execute(serviceBean);
                                 }
 
                             }catch (Exception e){

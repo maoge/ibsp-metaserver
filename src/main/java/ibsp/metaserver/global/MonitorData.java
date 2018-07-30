@@ -64,6 +64,7 @@ public class MonitorData {
             collectInfo = new MQVbrokerCollectInfo();
             mqVbrokerCollectInfoMap.put(vbrokerId, collectInfo);
         }
+
         collectInfo.setProduceRate(produceRate);
         collectInfo.setProduceCounts(produceCounts);
         collectInfo.setConsumerRate(consumerRate);
@@ -148,11 +149,12 @@ public class MonitorData {
                 return null;
 
             JsonObject subJson = new JsonObject()
+                    .put(FixHeader.HEADER_VBROKER_ID, vbroker.getInstID())
                     .put(FixHeader.HEADER_VBROKER_NAME, vbroker.getAttribute(FixHeader.HEADER_VBROKER_NAME).getAttrValue())
                     .put(FixHeader.HEADER_PRODUCE_RATE, collectInfo.getProduceRate())
                     .put(FixHeader.HEADER_PRODUCE_COUNTS, collectInfo.getProduceCounts())
-                    .put(FixHeader.HEADER_CONSUME_RATE, collectInfo.getConsumerRate())
-                    .put(FixHeader.HEADER_CONSUME_COUNTS, collectInfo.getConsumerCounts());
+                    .put(FixHeader.HEADER_CONSUMER_RATE, collectInfo.getConsumerRate())
+                    .put(FixHeader.HEADER_CONSUMER_COUNTS, collectInfo.getConsumerCounts());
 
             jsonArray.add(subJson);
         }
@@ -171,11 +173,12 @@ public class MonitorData {
                 return null;
 
             JsonObject subJson = new JsonObject()
+                    .put(FixHeader.HEADER_QUEUE_ID, queue.getQueueId())
                     .put(FixHeader.HEADER_QUEUE_NAME, queue.getQueueName())
                     .put(FixHeader.HEADER_PRODUCE_RATE, collectInfo.getProduceRate())
                     .put(FixHeader.HEADER_PRODUCE_COUNTS, collectInfo.getProduceCounts())
-                    .put(FixHeader.HEADER_CONSUME_RATE, collectInfo.getConsumerRate())
-                    .put(FixHeader.HEADER_CONSUME_COUNTS, collectInfo.getConsumerCounts());
+                    .put(FixHeader.HEADER_CONSUMER_RATE, collectInfo.getConsumerRate())
+                    .put(FixHeader.HEADER_CONSUMER_COUNTS, collectInfo.getConsumerCounts());
 
             jsonArray.add(subJson);
         }

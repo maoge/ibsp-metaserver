@@ -168,6 +168,38 @@ public class CollectDataHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 
+	@Service(id = "getAllVbrokerHisData", name = "getAllVbrokerHisData", auth = false, bwswitch = false)
+	public static void getAllVbrokerHisData(RoutingContext routeContext) {
+		JsonObject json = new JsonObject();
+
+		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
+		if(params == null) {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+			json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+		} else {
+			String servId  = params.get(FixHeader.HEADER_SERV_ID);
+			String sStartTS = params.get(FixHeader.HEADER_START_TS);
+			String sEndTS = params.get(FixHeader.HEADER_END_TS);
+			if (HttpUtils.isNull(servId)  || HttpUtils.isNull(sStartTS)
+					|| HttpUtils.isNull(sEndTS)) {
+				json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+				json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+			} else {
+				ResultBean result = new ResultBean();
+				JsonObject collectData = MQService.getAllVbrokerHisData(servId, Long.valueOf(sStartTS), Long.valueOf(sEndTS), result);
+				if (collectData != null) {
+					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+					json.put(FixHeader.HEADER_RET_INFO, collectData);
+				} else {
+					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+					json.put(FixHeader.HEADER_RET_INFO, result.getRetInfo());
+				}
+			}
+		}
+
+		HttpUtils.outJsonObject(routeContext, json);
+	}
+
 	@Service(id = "getQueueHisData", name = "getQueueHisData", auth = false, bwswitch = false)
 	public static void getQueueHisData(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();

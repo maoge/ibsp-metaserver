@@ -64,8 +64,8 @@ public class SysEventHandler implements Handler<Message<String>> {
 			EventType type      = EventType.get(eventCode);
 			JsonObject json     = new JsonObject(jsonStr);
 
-			if (eventCode != EventType.e98.getValue())
-				logger.info("Received event type " + eventCode);
+			/*if (eventCode != EventType.e98.getValue())
+				logger.info("Received event type " + eventCode);*/
 			
 			switch(type) {
 			case e1:
@@ -166,9 +166,7 @@ public class SysEventHandler implements Handler<Message<String>> {
 			case e98:
 				JsonObject obj = new JsonObject(jsonStr);
 				String clientType = obj.getString(FixHeader.HEADER_CLIENT_TYPE);
-//				String clientInfo = obj.getString(FixHeader.HEADER_CLIENT_INFO);
 				String lsnrAddr = obj.getString(FixHeader.HEADER_LSNR_ADDR);
-				
 				//TODO deal client info
 				ClientStatisticData.get().put(clientType, lsnrAddr);
 				
