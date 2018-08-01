@@ -49,6 +49,7 @@ public enum EventType {
 	e62(50062, false, "cache proxy undeployed"),         // 接入机缩容
 	e63(50063, true, "redis automatic ha switch"),       // redis故障主从切换
 	e64(50064, true, "redis instance down"),             // redis实例故障
+	e65(50065, true, "cache proxy down"),                // 接入机故障
 	
 	e71(50071, false, "tidb server deployed"),           // TIDB层扩容
 	e72(50072, false, "tidb server undeployed"),         // TIDB层缩容

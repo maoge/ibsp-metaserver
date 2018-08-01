@@ -22,9 +22,14 @@ public class MonitorData {
     private Map<String, MQVbrokerCollectInfo> mqVbrokerCollectInfoMap;//vbrokerID -> MQVbrokerCollectInfo
     private Map<String, MQQueueCollectInfo> mqQueueCollectInfoMap;//queueId -> MQQueueCollectInfo
 
+    private Map<String, CacheProxyCollectInfo> cacheProxyCollectInfoMap;//proxyId -> CacheProxyCollecInfo
+    private Map<String, CacheNodeCollectInfo> cacheNodeCollectInfoMap;//cacheId -> CacheNodeCollectInfo
+
     private MonitorData() {
-        mqVbrokerCollectInfoMap = new ConcurrentHashMap<>();
-        mqQueueCollectInfoMap   = new ConcurrentHashMap<>();
+        mqVbrokerCollectInfoMap  = new ConcurrentHashMap<>();
+        mqQueueCollectInfoMap    = new ConcurrentHashMap<>();
+        cacheProxyCollectInfoMap = new ConcurrentHashMap<>();
+        cacheNodeCollectInfoMap  = new ConcurrentHashMap<>();
     }
 
     public static MonitorData get() {
@@ -86,6 +91,20 @@ public class MonitorData {
             mqQueueCollectInfoMap.put(queueId, mqQueueCollectInfo);
         }
         mqQueueCollectInfo.saveQueueInfoBean(mqQueueInfoBean);
+    }
+
+    public void saveCacheProxyInfo(CacheProxyCollectInfo cacheProxyCollectInfo) {
+        if(cacheProxyCollectInfo == null)
+            return;
+
+        cacheProxyCollectInfoMap.put(cacheProxyCollectInfo.getId(), cacheProxyCollectInfo);
+    }
+
+    public void saveCacheNodeInfo(CacheNodeCollectInfo cacheNodeCollectInfo) {
+        if(cacheNodeCollectInfo == null)
+            return;
+
+        cacheNodeCollectInfoMap.put(cacheNodeCollectInfo.getId(), cacheNodeCollectInfo);
     }
 
     public JsonObject getMqSyncJson(String servId) {
@@ -196,15 +215,21 @@ public class MonitorData {
 
     public JsonObject toJson() {
         return new JsonObject().put("mqVbrokerCollectInfoMap" , HttpUtils.mapToJson(mqVbrokerCollectInfoMap))
-                .put("mqQueueCollectInfoMap", HttpUtils.mapToJson(mqQueueCollectInfoMap));
+                .put("mqQueueCollectInfoMap", HttpUtils.mapToJson(mqQueueCollectInfoMap))
+                .put("cacheProxyCollecInfoMap", HttpUtils.mapToJson(cacheProxyCollectInfoMap))
+                .put("cacheNodeCollectInfoMap", HttpUtils.mapToJson(cacheNodeCollectInfoMap));
     }
 
     public static MonitorData fromJson(JsonObject json) {
         MonitorData m = new MonitorData();
-        m.mqVbrokerCollectInfoMap = HttpUtils.jsonToMap(json.getJsonObject("mqVbrokerCollectInfoMap"),
+        m.mqVbrokerCollectInfoMap  = HttpUtils.jsonToMap(json.getJsonObject("mqVbrokerCollectInfoMap"),
                 MQVbrokerCollectInfo.class);
-        m.mqQueueCollectInfoMap   = HttpUtils.jsonToMap(json.getJsonObject("mqQueueCollectInfoMap"),
+        m.mqQueueCollectInfoMap    = HttpUtils.jsonToMap(json.getJsonObject("mqQueueCollectInfoMap"),
                 MQQueueCollectInfo.class);
+        m.cacheProxyCollectInfoMap = HttpUtils.jsonToMap(json.getJsonObject("cacheProxyCollecInfoMap"),
+                CacheProxyCollectInfo.class);
+        m.cacheNodeCollectInfoMap  = HttpUtils.jsonToMap(json.getJsonObject("cacheProxyCollecInfoMap"),
+                CacheNodeCollectInfo.class);
         return m;
     }
 

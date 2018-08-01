@@ -1371,6 +1371,17 @@ public class MetaData {
 		return getContainerIncludeElesByServIdAndCmptId(servId, proxyContainerCmptID);
 	}
 
+	public List<InstanceDtlBean> getCacheNodesByServId(String servId) {
+		ServiceBean servBean = serviceMap.get(servId);
+		int proxyContainerCmptID = MetaData.get().getComponentID("CACHE_NODE_CONTAINER");
+
+		if(servBean == null ||  !CONSTS.SERV_TYPE_CACHE.equals(servBean.getServType())) {
+			return null;
+		}
+
+		return getContainerIncludeElesByServIdAndCmptId(servId, proxyContainerCmptID);
+	}
+
 	private List<InstanceDtlBean> getContainerIncludeElesByServIdAndCmptId(String servId, int containerCmptID) {
 
 		Set<String> childs = topo.get(servId, CONSTS.TOPO_TYPE_CONTAIN);

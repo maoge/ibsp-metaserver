@@ -915,7 +915,11 @@ public class MetaDataService {
 						time, String.valueOf(code), servID, instID
 				});
 			}
-			res = crud.executeUpdate(result);
+			if(result == null) {
+				res = crud.executeUpdate();
+			}else {
+				res = crud.executeUpdate(result);
+			}
 		} catch (CRUDException e) {
 			logger.error(e.getMessage(), e);
 		}

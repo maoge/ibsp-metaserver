@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Vector;
 
+import ibsp.metaserver.bean.ResultBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -882,16 +883,24 @@ public class SSHExecutor {
 	}
 	
 	public boolean waitProcessStart(String port, String sessionKey) {
+		return waitProcessStart(port, sessionKey, null);
+	}
+
+	public boolean waitProcessStart(String port, String sessionKey, ResultBean result) {
 		boolean ret = true;
 		try {
 			long beginTs = System.currentTimeMillis();
 			long currTs = beginTs;
-			
+
 			do {
 				Thread.sleep(CONSTS.DEPLOY_CHECK_INTERVAL);
 				currTs = System.currentTimeMillis();
 				if ((currTs - beginTs) > WAIT_PORT_TIMEOUT) {
 					ret = false;
+					if (result != null) {
+						result.setRetCode(CONSTS.REVOKE_NOK);
+						result.setRetInfo("Start process timeout...");
+					}
 					break;
 				}
 				this.echo("......");
@@ -899,7 +908,7 @@ public class SSHExecutor {
 		} catch (Exception e) {
 			ret = false;
 		}
-		
+
 		return ret;
 	}
 	

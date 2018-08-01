@@ -39,7 +39,7 @@ public class CacheServiceMonitor implements Runnable {
 	
 	@Override
 	public void run() {
-		try {
+		/*try {
 			Set<ServiceBean> serviceSet = MetaDataService.getServicesByType(
 					CONSTS.SERV_TYPE_CACHE, new ResultBean());
 			
@@ -130,7 +130,7 @@ public class CacheServiceMonitor implements Runnable {
 			
 		} catch (Exception e) {
 			logger.error("CacheServiceCollect caught error: ", e);
-		}
+		}*/
 	}
 	
 	public static void addReplicationCheckSlave(String address) {
@@ -202,13 +202,13 @@ public class CacheServiceMonitor implements Runnable {
 			executor.echo("test"); // 有的机器中间加了跳转和管控防止ssh登录"Last login:xxxxx"串到输出一起显示
         	
         	if (master != null) {
-        		if (!RedisUtils.updateConfForAddSlave(executor.getHome(), ip, port, user, pwd, masterIp, masterPort))
+        		if (!RedisUtils.updateConfForAddSlave(ip, port, user, pwd, masterIp, masterPort))
         			return;
         	
         		if (!RedisUtils.setConfigForReplication(masterIp, masterPort))
         			return;
         	} else {
-        		if (!RedisUtils.updateConfForRemoveSlave(executor.getHome(), ip, port, user, pwd))
+        		if (!RedisUtils.updateConfForRemoveSlave(ip, port, user, pwd))
         			return;
         	}
         	
@@ -260,7 +260,7 @@ public class CacheServiceMonitor implements Runnable {
 			connected = true;
 			executor.echo("test"); // 有的机器中间加了跳转和管控防止ssh登录"Last login:xxxxx"串到输出一起显示
     	
-			if (!RedisUtils.updateConfForRemoveSlave(executor.getHome(), slaveIP, slavePort, slaveUser, slavePwd)) {
+			if (!RedisUtils.updateConfForRemoveSlave(slaveIP, slavePort, slaveUser, slavePwd)) {
 				//rollback
 				RedisUtils.addSlave(slaveIP, slavePort, masterIP, masterPort);
 				return false;
@@ -269,7 +269,7 @@ public class CacheServiceMonitor implements Runnable {
 			ResultBean result = new ResultBean();
 			if (!CacheService.updateMasterID(slave.getInstID(), clusterID, result)) {
 				//rollback
-				RedisUtils.updateConfForAddSlave(executor.getHome(), slaveIP, slavePort, 
+				RedisUtils.updateConfForAddSlave(slaveIP, slavePort,
 						slaveUser, slavePwd, masterIP, masterPort);
 				RedisUtils.addSlave(slaveIP, slavePort, masterIP, masterPort);
 				return false;
