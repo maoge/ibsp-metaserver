@@ -176,12 +176,16 @@ public class SysEventHandler implements Handler<Message<String>> {
 					JsonObject jsonObject = new JsonObject(jsonStr);
 					if(jsonObject != null){
 						String servType = jsonObject.getString(FixHeader.HEADER_SERV_TYPE);
+						JsonObject syncJson = jsonObject.getJsonObject(FixHeader.HEADER_JSONSTR);
+
 						if(CONSTS.SERV_TYPE_MQ.equalsIgnoreCase(servType)) {
-							MonitorData.get().syncMqJson(jsonObject.getJsonObject(FixHeader.HEADER_JSONSTR), servId);
+							MonitorData.get().syncMqJson(syncJson, servId);
+						}else if(CONSTS.SERV_TYPE_CACHE.equalsIgnoreCase(servType)) {
+							MonitorData.get().syncCacheJson(syncJson, servId);
+						}else if(CONSTS.SERV_TYPE_DB.equalsIgnoreCase(servType)) {
+
 						}
 					}
-
-
 				}
 				break;
 			default:

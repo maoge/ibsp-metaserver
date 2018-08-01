@@ -4,6 +4,7 @@ import ibsp.metaserver.autodeploy.utils.JschUserInfo;
 import ibsp.metaserver.autodeploy.utils.SSHExecutor;
 import ibsp.metaserver.bean.*;
 import ibsp.metaserver.dbservice.CacheService;
+import ibsp.metaserver.dbservice.MQService;
 import ibsp.metaserver.dbservice.MetaDataService;
 import ibsp.metaserver.eventbus.EventBean;
 import ibsp.metaserver.eventbus.EventBusMsg;
@@ -19,7 +20,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -28,9 +28,6 @@ public class CacheServiceMonitor1 {
     private static Logger logger = LoggerFactory.getLogger(CacheServiceMonitor1.class);
     private static String[] proxyJMXParams = new String[]{"AccessClientConns", "AccessRedisConns", "AccessRequestTps",
             "AccessRequestExcepts", "AccessProcessMaxTime","AccessProcessAvTime"};
-
-    private static Map<String, Integer> replicationCountMap = new HashMap<>(); //check for replication status
-
 
     public static void execute(ServiceBean service) {
 
@@ -65,7 +62,7 @@ public class CacheServiceMonitor1 {
             if (master.getInstance().getIsDeployed().equals(CONSTS.NOT_DEPLOYED))
                 continue;
 
-            if (isServerAlive(service.getInstID(), master, EventType.e64)) {
+            if (isServerAlive(service.getInstID(), master, EventType.e64, true)) {
                 CacheNodeCollectInfo info = collectRedisInfo(master, null, null);
                 if (info != null){
                     //保存到monitor
@@ -84,6 +81,10 @@ public class CacheServiceMonitor1 {
                         if (slaveID.equals(masterID))
                             continue;
                         slave = cluster.getSubInstances().get(slaveID);
+                    }
+
+                    if(slave == null) {
+                        continue;
                     }
 
                     if (!doSwitch(service.getInstID(), cluster, master, slave)) {
@@ -109,8 +110,7 @@ public class CacheServiceMonitor1 {
 
                         CacheNodeCollectInfo info = collectRedisInfo(master, null, null);
                         if (info != null){
-                            //TODO 新的主数据保存到monitor
-
+                            MonitorData.get().saveCacheNodeInfo(info);
                         }
                     }
                 }
@@ -125,19 +125,19 @@ public class CacheServiceMonitor1 {
                 if (slave.getInstance().getIsDeployed().equals(CONSTS.NOT_DEPLOYED))
                     continue;
 
-                if (isServerAlive(service.getInstID(), slave, EventType.e64)) {
+                if (isServerAlive(service.getInstID(), slave, EventType.e64, true)) {
                     CacheNodeCollectInfo info = collectRedisInfo(slave, master, cluster);
                     if (info != null){
-                        //TODO 保存slave信息
-
+                        MonitorData.get().saveCacheNodeInfo(info);
                     }
                 } else {
                     pullUpInstance(slave, master);
                 }
             }
         }
-        //TODO 保存数据库
-
+        //TODO 同步集群数据 保存数据库
+        CacheService.saveCollectInfo(servId, result);
+        syncCollectData(servId);
     }
 
     private static void checkProxy(InstanceDtlBean cacheProxy, String servId, ResultBean result) {
@@ -156,7 +156,6 @@ public class CacheServiceMonitor1 {
             logger.warn(String.format("cacheProxy id:%s is down", cacheProxy.getInstID()));
 
             pullUpProxy(cacheProxy);
-            return;
         }else {
             MonitorData.get().saveCacheProxyInfo(proxyCollecInfo);
         }
@@ -174,8 +173,10 @@ public class CacheServiceMonitor1 {
         long accessRequestTps = Long.valueOf(resArr[2].toString());
         long accessRequestExcepts = Long.valueOf(resArr[3].toString());
 
-        double accessProcessMaxTime = Double.valueOf(resArr[4].toString());
-        double accessProcessAvTime = Double.valueOf(resArr[5].toString());
+        Double accessProcessMaxTime = Double.valueOf(resArr[4].toString());
+        Double accessProcessAvTime = Double.valueOf(resArr[5].toString());
+        accessProcessMaxTime = accessProcessMaxTime.equals(Double.NaN) ? 0D: accessProcessMaxTime;
+        accessProcessAvTime  = accessProcessAvTime.equals(Double.NaN) ? 0D: accessProcessAvTime;
 
         CacheProxyCollectInfo proxyCollecInfo = new CacheProxyCollectInfo(proxyId, accessClientConns, accessRedisConns,
                 accessRequestTps, accessRequestExcepts, accessProcessMaxTime, accessProcessAvTime);
@@ -232,9 +233,8 @@ public class CacheServiceMonitor1 {
     /**
      * 判断实例是否存活
      */
-    private static boolean isServerAlive(String servID, InstanceDtlBean instance, EventType type) {
+    private static boolean isServerAlive(String servID, InstanceDtlBean instance, EventType type, boolean isRetry) {
 
-        //TODO 判断接入机的存活，用socket连上去断开时，接入机会有错误日志，是否有更好的方法
         Socket socket = null;
         boolean rstbool = true;
         String host = instance.getAttribute(FixHeader.HEADER_IP).getAttrValue();
@@ -242,20 +242,33 @@ public class CacheServiceMonitor1 {
 
         try {
             socket = new Socket();
-            socket.connect(new InetSocketAddress(host, Integer.parseInt(port)), 10000);
+            socket.connect(new InetSocketAddress(host, Integer.parseInt(port)));
         } catch (IOException e) {
+            //如果异常重试3次
             rstbool = false;
-            logger.warn("进程不存在：" + host+":"+port);
+            boolean isSuccess = false;
 
-            JsonObject paramsJson = new JsonObject();
-            paramsJson.put(FixHeader.HEADER_INSTANCE_ID, instance.getInstID());
-            EventBean evBean = new EventBean();
-            evBean.setEvType(type);
-            evBean.setServID(servID);
-            evBean.setJsonStr(paramsJson.toString());
-            EventBusMsg.publishEvent(evBean);
+            if(isRetry) {
+                for(int i=0;i <3 ;i++) {
+                    if(isServerAlive(servID, instance, type, false)) {
+                        isSuccess = true;
+                        rstbool = true;
+                        break;
+                    }
+                }
+            }
+            if(isRetry && !isSuccess) {
+                logger.warn("进程不存在：" + host+":"+port);
+                JsonObject paramsJson = new JsonObject();
+                paramsJson.put(FixHeader.HEADER_INSTANCE_ID, instance.getInstID());
+                EventBean evBean = new EventBean();
+                evBean.setEvType(type);
+                evBean.setServID(servID);
+                evBean.setJsonStr(paramsJson.toString());
+                EventBusMsg.publishEvent(evBean);
 
-            MetaDataService.saveAlarm(evBean, null);
+                MetaDataService.saveAlarm(evBean, null);
+            }
         } finally {
             try {
                 if (socket != null)
@@ -337,7 +350,7 @@ public class CacheServiceMonitor1 {
         String masterIP = master.getAttribute(FixHeader.HEADER_IP).getAttrValue();
         String masterPort = master.getAttribute(FixHeader.HEADER_PORT).getAttrValue();
 
-        if (!isServerAlive(servID, slave, EventType.e64))
+        if (!isServerAlive(servID, slave, EventType.e64, true))
             return false;
 
         if (!RedisUtils.removeSlave(slaveIP, slavePort))
@@ -419,17 +432,17 @@ public class CacheServiceMonitor1 {
                 long dbsize = Long.parseLong(db0.substring(dbsizeStart, dbsizeEnd));
                 info.setDbSize(dbsize);
             }
-
+            info.setConnectedClients(Integer.parseInt(redisInfo.get("connected_clients")));
             //get redis memory
             info.setMemoryUsed(Long.parseLong(redisInfo.get("used_memory")));
             info.setMemoryTotal(Long.parseLong(redisConfig.get("maxmemory")));
 
             //get persistence policy
-            if (redisConfig.get("appendonly").equals("yes")) {
+           /* if (redisConfig.get("appendonly").equals("yes")) {
                 info.setAofPolicy(redisConfig.get("appendfsync"));
                 info.setAofSize(Long.parseLong(redisInfo.get("aof_current_size")));
             }
-            info.setRdbPolicy(redisConfig.get("save"));
+            info.setRdbPolicy(redisConfig.get("save"));*/
 
             return info;
         } catch (Exception e) {
@@ -438,4 +451,15 @@ public class CacheServiceMonitor1 {
         }
     }
 
+    private static void syncCollectData(String servId) {
+        JsonObject paramsJson = new JsonObject();
+        paramsJson.put(FixHeader.HEADER_SERV_TYPE, CONSTS.SERV_TYPE_CACHE);
+        paramsJson.put(FixHeader.HEADER_JSONSTR, MonitorData.get().getCacheSyncJson(servId));
+        EventBean evBean = new EventBean();
+        evBean.setEvType(EventType.e99);
+        evBean.setServID(servId);
+        evBean.setJsonStr(paramsJson.toString());
+        evBean.setUuid(MetaData.get().getUUID());
+        EventBusMsg.publishEvent(evBean);
+    }
 }

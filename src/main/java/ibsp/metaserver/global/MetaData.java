@@ -1373,13 +1373,19 @@ public class MetaData {
 
 	public List<InstanceDtlBean> getCacheNodesByServId(String servId) {
 		ServiceBean servBean = serviceMap.get(servId);
-		int proxyContainerCmptID = MetaData.get().getComponentID("CACHE_NODE_CONTAINER");
+		int cmptID = MetaData.get().getComponentID("CACHE_NODE_CONTAINER");
 
 		if(servBean == null ||  !CONSTS.SERV_TYPE_CACHE.equals(servBean.getServType())) {
 			return null;
 		}
-
-		return getContainerIncludeElesByServIdAndCmptId(servId, proxyContainerCmptID);
+		List<InstanceDtlBean> nodes = new ArrayList<>();
+		List<InstanceDtlBean> clusterContainer = getContainerIncludeElesByServIdAndCmptId(servId, cmptID);
+		for(InstanceDtlBean bean : clusterContainer) {
+			for(InstanceDtlBean node : bean.getSubInstances().values()){
+				nodes.add(node);
+			}
+		}
+		return nodes;
 	}
 
 	private List<InstanceDtlBean> getContainerIncludeElesByServIdAndCmptId(String servId, int containerCmptID) {

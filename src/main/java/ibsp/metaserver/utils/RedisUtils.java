@@ -342,7 +342,7 @@ public class RedisUtils {
         }
     }*/
 
-    public static void bgRewriteAof(String ip, String port) {
+    /*public static void bgRewriteAof(String ip, String port) {
         Jedis jedis = null;
 
         try {
@@ -353,7 +353,7 @@ public class RedisUtils {
                 jedis.close();
             }
         }
-    }
+    }*/
 
     /*public static void setMaxMemory(String ip, String port, String user, String pwd, long maxMemory) throws Exception {
         long memoryInByte = maxMemory*1024*1024*1024;

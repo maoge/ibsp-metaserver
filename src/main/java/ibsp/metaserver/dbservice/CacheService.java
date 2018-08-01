@@ -5,14 +5,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import ibsp.metaserver.bean.*;
+import ibsp.metaserver.global.MonitorData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ibsp.metaserver.bean.InstAttributeBean;
-import ibsp.metaserver.bean.InstanceDtlBean;
-import ibsp.metaserver.bean.ResultBean;
-import ibsp.metaserver.bean.ServiceBean;
-import ibsp.metaserver.bean.SqlBean;
 import ibsp.metaserver.eventbus.EventBean;
 import ibsp.metaserver.eventbus.EventBusMsg;
 import ibsp.metaserver.eventbus.EventType;
@@ -52,6 +49,12 @@ public class CacheService {
 			"UPDATE t_instance_attr SET ATTR_VALUE=? "
 			+ "WHERE INST_ID=? AND attr_id=239";
 
+	private static final String INSERT_PROXY_COLLECT_INFO = "INSERT INTO t_mo_cache_proxy_collect (INTS_ID," +
+			"ACCESS_CLIENT_CONNS,ACCESS_PROCESS_AVTIME,ACCESS_PROCESS_MAXTIME,ACCESS_REDIS_CONNS," +
+			"ACCESS_REQUEST_EXCEPTS,ACCESS_REQUEST_TPS,REC_TIME) values (?,?,?,?,?,?,?,?)";
+
+	private static final String INSERT_CACHE_NODE_COLLECT_INFO = "INSERT INTO t_mo_cache_node_collect (INTS_ID," +
+			"CONNECTED_CLIENTS,DB_SIZE,LINK_STATUS,MEMORY_TOTAL,MEMORY_USED,REC_TIME) values (?,?,?,?,?,?,?)";
 	
 	public static boolean loadServiceInfo(String serviceID, List<InstanceDtlBean> nodeClusterList,
 			List<InstanceDtlBean> proxyList, InstanceDtlBean collectd, ResultBean result) {
@@ -347,4 +350,75 @@ public class CacheService {
 			return false;
 		}
 	}
+
+	public static boolean saveCollectInfo(String servId, ResultBean result) {
+		boolean res = true;
+		if(!saveProxyCollecInfo(servId, result)){
+			res = false;
+			logger.error("save proxy collect info fail : {}" , result.getRetInfo());
+		}
+		if(!saveNodeCollecInfo(servId, result)){
+			res = false;
+			logger.error("save cacheNode collect info fail : {}" , result.getRetInfo());
+		}
+		return res;
+	}
+
+	private static boolean saveProxyCollecInfo(String servId, ResultBean result) {
+		boolean res = false;
+
+		List<InstanceDtlBean> proxys = MetaData.get().getCacheProxysByServId(servId);
+		if(proxys == null || proxys.size() == 0) {
+			return true;
+		}
+
+		Map<String, CacheProxyCollectInfo> proxyCollectInfoMap = MonitorData.get().getCacheProxyCollectInfoMap();
+		CRUD crud = new CRUD();
+		long currentTime = System.currentTimeMillis();
+		for(InstanceDtlBean proxy : proxys) {
+
+			SqlBean sqlBean = new SqlBean(INSERT_PROXY_COLLECT_INFO);
+
+			String instID = proxy.getInstID();
+			CacheProxyCollectInfo collectInfo = proxyCollectInfoMap.get(instID);
+
+			sqlBean.addParams(new Object[]{
+					proxy.getInstID(), collectInfo.getAccessClientConns(), collectInfo.getAccessProcessAvTime(),
+					collectInfo.getAccessProcessMaxTime(), collectInfo.getAccessRedisConns(),
+					collectInfo.getAccessRequestExcepts(), collectInfo.getAccessRequestTps(), currentTime
+			});
+			crud.putSqlBean(sqlBean);
+		}
+		res = crud.executeUpdate(result);
+		return res;
+	}
+
+	private static boolean saveNodeCollecInfo(String servId, ResultBean result) {
+		boolean res = false;
+
+		List<InstanceDtlBean> cacheNodes = MetaData.get().getCacheNodesByServId(servId);
+		if(cacheNodes == null || cacheNodes.size() == 0) {
+			return true;
+		}
+
+		Map<String, CacheNodeCollectInfo> cacheNodeCollectInfoMap = MonitorData.get().getCacheNodeCollectInfoMap();
+		CRUD crud = new CRUD();
+		long currentTime = System.currentTimeMillis();
+		for(InstanceDtlBean cacheNode : cacheNodes) {
+
+			SqlBean sqlBean = new SqlBean(INSERT_CACHE_NODE_COLLECT_INFO);
+			String instID = cacheNode.getInstID();
+			CacheNodeCollectInfo collectInfo = cacheNodeCollectInfoMap.get(instID);
+
+			sqlBean.addParams(new Object[]{
+					cacheNode.getInstID(), collectInfo.getConnectedClients(), collectInfo.getDbSize(),
+					collectInfo.getLinkStatus(), collectInfo.getMemoryTotal(),
+					collectInfo.getMemoryUsed(),  currentTime
+			});
+			crud.putSqlBean(sqlBean);
+		}
+		res = crud.executeUpdate(result);
+		return res;
+	}
+
 }

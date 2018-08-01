@@ -125,6 +125,24 @@ public class MonitorData {
         return jsonObject;
     }
 
+    public JsonObject getCacheSyncJson(String servId) {
+        JsonObject jsonObject = new JsonObject();
+        List<InstanceDtlBean> proxys = MetaData.get().getCacheProxysByServId(servId);
+        JsonObject proxyJson = new JsonObject();
+        for(InstanceDtlBean proxy : proxys) {
+            proxyJson.put(proxy.getInstID(), Json.encode(cacheProxyCollectInfoMap.get(proxy.getInstID())));
+        }
+        jsonObject.put("proxys",proxyJson);
+
+        List<InstanceDtlBean> cacheNodes= MetaData.get().getCacheNodesByServId(servId);
+        JsonObject nodeJson = new JsonObject();
+        for(InstanceDtlBean cacheNode : cacheNodes) {
+            nodeJson.put(cacheNode.getInstID(), Json.encode(cacheNodeCollectInfoMap.get(cacheNode.getInstID())));
+        }
+        jsonObject.put("cachenodes", nodeJson);
+        return jsonObject;
+    }
+
     public void syncMqJson(JsonObject jsonObject, String servId) {
 
         if(jsonObject == null)
@@ -151,6 +169,39 @@ public class MonitorData {
             JsonObject json = new JsonObject(entry.getValue().toString());
             try {
                 mqQueueCollectInfoMap.put(key, Json.decodeValue(json.toString(), MQQueueCollectInfo.class));
+            }catch (Exception e) {
+                logger.error("sync queue data fail : {}", e.getMessage());
+            }
+        }
+    }
+
+    public void syncCacheJson(JsonObject jsonObject, String servId) {
+
+        if(jsonObject == null)
+            return;
+
+        JsonObject proxys = jsonObject.getJsonObject("proxys");
+        Iterator<Map.Entry<String, Object>> proxyIter = proxys.iterator();
+        while(proxyIter.hasNext()) {
+            Map.Entry<String, Object> entry = proxyIter.next();
+            String key = entry.getKey();
+            JsonObject json = new JsonObject(entry.getValue().toString());
+            try {
+                cacheProxyCollectInfoMap.put(key, Json.decodeValue(json.toString(), CacheProxyCollectInfo.class));
+            }catch (Exception e) {
+                logger.error("sync proxy data fail : {}", e.getMessage());
+            }
+        }
+
+        JsonObject queueJsonObject = jsonObject.getJsonObject("cachenodes");
+
+        Iterator<Map.Entry<String, Object>> cacheNodeIter = queueJsonObject.iterator();
+        while(cacheNodeIter.hasNext()) {
+            Map.Entry<String, Object> entry = cacheNodeIter.next();
+            String key = entry.getKey();
+            JsonObject json = new JsonObject(entry.getValue().toString());
+            try {
+                cacheNodeCollectInfoMap.put(key, Json.decodeValue(json.toString(), CacheNodeCollectInfo.class));
             }catch (Exception e) {
                 logger.error("sync queue data fail : {}", e.getMessage());
             }
@@ -211,6 +262,14 @@ public class MonitorData {
 
     public Map<String, MQQueueCollectInfo> getMqQueueCollectInfoMap() {
         return mqQueueCollectInfoMap;
+    }
+
+    public Map<String, CacheProxyCollectInfo> getCacheProxyCollectInfoMap() {
+        return cacheProxyCollectInfoMap;
+    }
+
+    public Map<String, CacheNodeCollectInfo> getCacheNodeCollectInfoMap() {
+        return cacheNodeCollectInfoMap;
     }
 
     public JsonObject toJson() {

@@ -1240,6 +1240,10 @@ public class MQService {
 	}
 
 	public static boolean checkBrokerRunning(InstanceDtlBean broker) {
+		return checkBrokerRunning(broker, false);
+	}
+
+	public static boolean checkBrokerRunning(InstanceDtlBean broker, boolean isRetry) {
 		if (broker == null)
 			return false;
 
@@ -1260,7 +1264,17 @@ public class MQService {
 			ret = executor.isRabbitRunning(broker.getAttribute(FixHeader.HEADER_PORT).getAttrValue(), "");
 
 		} catch (Exception e) {
-			logger.error(e.getMessage(), e);
+			if(isRetry) {
+				for(int i =0 ; i < 3 ;i++) {
+					if(checkBrokerRunning(broker, false)) {
+						ret = true;
+						break;
+					}
+				}
+				if(!ret) {
+					logger.error(e.getMessage(), e);
+				}
+			}
 		} finally {
 			if (connected) {
 				executor.close();
