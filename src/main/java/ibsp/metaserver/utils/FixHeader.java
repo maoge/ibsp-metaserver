@@ -237,5 +237,22 @@ public class FixHeader {
 	public static final String HEADER_START                    = "START";
 	public static final String HEADER_END                      = "END";
 	public static final String HEADER_CURR_VALUE               = "CURR_VALUE";
-	
+
+	public static final String HEADER_CACHE_PROXY_ID           = "CACHE_PROXY_ID";
+	public static final String HEADER_CACHE_PROXY_NAME         = "CACHE_PROXY_NAME";
+	public static final String HEADER_ACCESS_CLIENT_CONNS      = "ACCESS_CLIENT_CONNS";
+	public static final String HEADER_ACCESS_PROCESS_AVTIME    = "ACCESS_PROCESS_AVTIME";
+	public static final String HEADER_ACCESS_REDIS_CONNS       = "ACCESS_REDIS_CONNS";
+	public static final String HEADER_ACCESS_PROCESS_MAXTIME   = "ACCESS_PROCESS_MAXTIME";
+	public static final String HEADER_ACCESS_REQUEST_EXCEPTS   = "ACCESS_REQUEST_EXCEPTS";
+	public static final String HEADER_ACCESS_REQUEST_TPS       = "ACCESS_REQUEST_TPS";
+
+	public static final String HEADER_CACHE_NODE_ID           = "CACHE_NODE_ID";
+	public static final String HEADER_CACHE_NODE_NAME         = "CACHE_NODE_NAME";
+	public static final String HEADER_CONNECTED_CLIENTS       = "CONNECTED_CLIENTS";
+	public static final String HEADER_DB_SIZE                 = "DB_SIZE";
+	public static final String HEADER_MEMORY_TOTAL            = "MEMORY_TOTAL";
+	public static final String HEADER_PROCESS_TPS             = "PROCESS_TPS";
+	public static final String HEADER_MEMORY_USED             = "MEMORY_USED";
+	public static final String HEADER_LINK_STATUS             = "LINK_STATUS";
 }

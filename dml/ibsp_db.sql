@@ -467,7 +467,7 @@ CREATE TABLE `t_mo_mq_queue_detail` (
 
 DROP TABLE IF EXISTS `t_mo_cache_proxy_collect`;
 CREATE TABLE `t_mo_cache_proxy_collect` (
-  `INTS_ID`  varchar(36) COMMENT 'INST_ID',
+  `INST_ID`  varchar(36) COMMENT 'INST_ID',
   `ACCESS_CLIENT_CONNS`  INT NOT NULL COMMENT '客户端连接数量',
   `ACCESS_PROCESS_AVTIME` DOUBLE NOT NULL COMMENT '处理平均耗时',
   `ACCESS_PROCESS_MAXTIME` DOUBLE NOT NULL COMMENT '最大耗时',
@@ -479,12 +479,13 @@ CREATE TABLE `t_mo_cache_proxy_collect` (
 
 DROP TABLE IF EXISTS `t_mo_cache_node_collect`;
 CREATE TABLE `t_mo_cache_node_collect` (
-  `INTS_ID`  varchar(36) COMMENT 'INST_ID',
+  `INST_ID`  varchar(36) COMMENT 'INST_ID',
   `CONNECTED_CLIENTS`  INT NOT NULL COMMENT '连接数',
   `DB_SIZE` bigint(14) NOT NULL COMMENT 'key数量',
   `LINK_STATUS` varchar(36) COMMENT '从节点状态',
   `MEMORY_TOTAL` bigint(14) NOT NULL COMMENT '内存总量',
   `MEMORY_USED` bigint(14) NOT NULL COMMENT '内存使用量',
+  `PROCESS_TPS` bigint(14) NOT NULL COMMENT '请求tps',
   `REC_TIME`    bigint(14)  NOT NULL COMMENT '添加时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 

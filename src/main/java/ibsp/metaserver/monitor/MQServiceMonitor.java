@@ -310,15 +310,19 @@ public class MQServiceMonitor {
 
         for(int i=0,len=jsonArray.size();i<len;i++){
             JsonObject json = jsonArray.getJsonObject(i);
-            if(json == null)
+            if(json == null || json.size() == 0)
                 continue;
 
             int num = json.getInteger("number");
             if (num == CONSTS.CMD_CHANNEL_ID)
                 continue;
 
+            JsonObject connDetails = json.getJsonObject("connection_details");
+            if(connDetails == null) {
+                continue;
+            }
 
-            String sourceAddr = json.getJsonObject("connection_details").getString("name");
+            String sourceAddr = connDetails.getString("name");
 
             MQConnectionInfoBean connectionInfo = new MQConnectionInfoBean();
             connectionInfo.setSourceAddress(sourceAddr);

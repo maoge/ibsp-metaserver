@@ -432,11 +432,12 @@ public class CacheServiceMonitor1 {
                 long dbsize = Long.parseLong(db0.substring(dbsizeStart, dbsizeEnd));
                 info.setDbSize(dbsize);
             }
-            info.setConnectedClients(Integer.parseInt(redisInfo.get("connected_clients")));
+            info.setConnectedClients(Integer.parseInt(redisInfo.get("connected_clients")) - 1);
             //get redis memory
             info.setMemoryUsed(Long.parseLong(redisInfo.get("used_memory")));
             info.setMemoryTotal(Long.parseLong(redisConfig.get("maxmemory")));
-
+            info.setTotalCommandProcessed(Long.parseLong(redisInfo.get("total_commands_processed")));
+            info.setTime(System.currentTimeMillis());
             //get persistence policy
            /* if (redisConfig.get("appendonly").equals("yes")) {
                 info.setAofPolicy(redisConfig.get("appendfsync"));

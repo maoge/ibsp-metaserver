@@ -176,6 +176,7 @@ public class RedisUtils {
         try {
             Map<String, String> result = new HashMap<String, String>();
             jedis = new Jedis(ip, new Integer(port));
+
             String[] infoArray = null;
             if (HttpUtils.isNull(type)) {
                 infoArray = jedis.info().split("\r\n");

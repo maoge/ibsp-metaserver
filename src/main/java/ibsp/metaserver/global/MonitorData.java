@@ -103,8 +103,21 @@ public class MonitorData {
     public void saveCacheNodeInfo(CacheNodeCollectInfo cacheNodeCollectInfo) {
         if(cacheNodeCollectInfo == null)
             return;
+        String instId = cacheNodeCollectInfo.getId();
 
-        cacheNodeCollectInfoMap.put(cacheNodeCollectInfo.getId(), cacheNodeCollectInfo);
+        synchronized (MonitorData.class) {
+            CacheNodeCollectInfo prevCollectInfo = cacheNodeCollectInfoMap.get(instId);
+            if(prevCollectInfo == null) {
+                cacheNodeCollectInfo.setProcessTps(0);
+            }else {
+                long intervalProcessCount = cacheNodeCollectInfo.getTotalCommandProcessed() -
+                        prevCollectInfo.getTotalCommandProcessed();
+                long intervalTime = cacheNodeCollectInfo.getTime() - prevCollectInfo.getTime();
+                int tps = intervalProcessCount<=0L ? 0 : (int) (intervalProcessCount / (intervalTime / 1000L));
+                cacheNodeCollectInfo.setProcessTps(tps);
+            }
+            cacheNodeCollectInfoMap.put(cacheNodeCollectInfo.getId(), cacheNodeCollectInfo);
+        }
     }
 
     public JsonObject getMqSyncJson(String servId) {
@@ -206,54 +219,6 @@ public class MonitorData {
                 logger.error("sync queue data fail : {}", e.getMessage());
             }
         }
-    }
-
-    public JsonArray getVbrokerCollectData(String servId) {
-        JsonArray jsonArray = new JsonArray();
-        List<InstanceDtlBean> vbrokers = MetaData.get().getVbrokerByServId(servId);
-
-        for(InstanceDtlBean vbroker : vbrokers) {
-            MQVbrokerCollectInfo collectInfo = mqVbrokerCollectInfoMap.get(vbroker.getInstID());
-
-            if(collectInfo == null)
-                return null;
-
-            JsonObject subJson = new JsonObject()
-                    .put(FixHeader.HEADER_VBROKER_ID, vbroker.getInstID())
-                    .put(FixHeader.HEADER_VBROKER_NAME, vbroker.getAttribute(FixHeader.HEADER_VBROKER_NAME).getAttrValue())
-                    .put(FixHeader.HEADER_PRODUCE_RATE, collectInfo.getProduceRate())
-                    .put(FixHeader.HEADER_PRODUCE_COUNTS, collectInfo.getProduceCounts())
-                    .put(FixHeader.HEADER_CONSUMER_RATE, collectInfo.getConsumerRate())
-                    .put(FixHeader.HEADER_CONSUMER_COUNTS, collectInfo.getConsumerCounts());
-
-            jsonArray.add(subJson);
-        }
-
-        return jsonArray;
-    }
-
-    public JsonArray getQueueCollectData(String servId) {
-        JsonArray jsonArray = new JsonArray();
-        List<QueueBean> queues= MetaData.get().getQueueListByServId(servId);
-
-        for(QueueBean queue : queues) {
-            MQQueueCollectInfo collectInfo = mqQueueCollectInfoMap.get(queue.getQueueId());
-
-            if(collectInfo == null)
-                return null;
-
-            JsonObject subJson = new JsonObject()
-                    .put(FixHeader.HEADER_QUEUE_ID, queue.getQueueId())
-                    .put(FixHeader.HEADER_QUEUE_NAME, queue.getQueueName())
-                    .put(FixHeader.HEADER_PRODUCE_RATE, collectInfo.getProduceRate())
-                    .put(FixHeader.HEADER_PRODUCE_COUNTS, collectInfo.getProduceCounts())
-                    .put(FixHeader.HEADER_CONSUMER_RATE, collectInfo.getConsumerRate())
-                    .put(FixHeader.HEADER_CONSUMER_COUNTS, collectInfo.getConsumerCounts());
-
-            jsonArray.add(subJson);
-        }
-
-        return jsonArray;
     }
 
     public Map<String, MQVbrokerCollectInfo> getMqVbrokerCollectInfoMap() {

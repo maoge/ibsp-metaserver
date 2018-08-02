@@ -5,6 +5,7 @@ import java.util.Map;
 import ibsp.metaserver.annotation.App;
 import ibsp.metaserver.annotation.Service;
 import ibsp.metaserver.bean.ResultBean;
+import ibsp.metaserver.dbservice.CacheService;
 import ibsp.metaserver.dbservice.MQService;
 import ibsp.metaserver.dbservice.QuotaDataService;
 import ibsp.metaserver.global.MonitorData;
@@ -94,7 +95,7 @@ public class CollectDataHandler {
 				json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
 				json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
 			} else {
-				JsonArray collectData = MonitorData.get().getVbrokerCollectData(servId);
+				JsonArray collectData = MQService.getVbrokerCollectData(servId);
 				if (collectData != null) {
 					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
 					json.put(FixHeader.HEADER_RET_INFO, collectData);
@@ -122,7 +123,7 @@ public class CollectDataHandler {
 				json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
 				json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
 			} else {
-				JsonArray collectData = MonitorData.get().getQueueCollectData(servId);
+				JsonArray collectData = MQService.getQueueCollectData(servId);
 				if (collectData != null) {
 					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
 					json.put(FixHeader.HEADER_RET_INFO, collectData);
@@ -219,6 +220,126 @@ public class CollectDataHandler {
 			} else {
 				ResultBean result = new ResultBean();
 				JsonArray collectData = MQService.getQueueHisData(queueId, Long.valueOf(sStartTS), Long.valueOf(sEndTS), result);
+				if (collectData != null) {
+					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+					json.put(FixHeader.HEADER_RET_INFO, collectData);
+				} else {
+					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+					json.put(FixHeader.HEADER_RET_INFO, result.getRetInfo());
+				}
+			}
+		}
+
+		HttpUtils.outJsonObject(routeContext, json);
+	}
+
+	@Service(id = "getProxyCurrentData", name = "getProxyCurrentData", auth = false, bwswitch = false)
+	public static void getProxyCurrentData(RoutingContext routeContext) {
+		JsonObject json = new JsonObject();
+
+		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
+		if(params == null) {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+			json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+		} else {
+			String servId  = params.get(FixHeader.HEADER_SERV_ID);
+			if (HttpUtils.isNull(servId)) {
+				json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+				json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+			} else {
+				JsonArray collectData = CacheService.getCacheProxyCollectData(servId);
+				if (collectData != null) {
+					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+					json.put(FixHeader.HEADER_RET_INFO, collectData);
+				} else {
+					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+					json.put(FixHeader.HEADER_RET_INFO, "get vbroker collect data error!");
+				}
+			}
+		}
+
+		HttpUtils.outJsonObject(routeContext, json);
+	}
+
+	@Service(id = "getRedisCurrentData", name = "getRedisCurrentData", auth = false, bwswitch = false)
+	public static void getRedisCurrentData(RoutingContext routeContext) {
+		JsonObject json = new JsonObject();
+
+		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
+		if(params == null) {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+			json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+		} else {
+			String servId  = params.get(FixHeader.HEADER_SERV_ID);
+			if (HttpUtils.isNull(servId)) {
+				json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+				json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+			} else {
+				JsonArray collectData = CacheService.getCacheNodeCollectData(servId);
+				if (collectData != null) {
+					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+					json.put(FixHeader.HEADER_RET_INFO, collectData);
+				} else {
+					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+					json.put(FixHeader.HEADER_RET_INFO, "get vbroker collect data error!");
+				}
+			}
+		}
+
+		HttpUtils.outJsonObject(routeContext, json);
+	}
+
+	@Service(id = "getProxyHisData", name = "getProxyHisData", auth = false, bwswitch = false)
+	public static void getProxyHisData(RoutingContext routeContext) {
+		JsonObject json = new JsonObject();
+
+		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
+		if(params == null) {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+			json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+		} else {
+			String instId  = params.get(FixHeader.HEADER_INSTANCE_ID);
+			String sStartTS = params.get(FixHeader.HEADER_START_TS);
+			String sEndTS = params.get(FixHeader.HEADER_END_TS);
+			if (HttpUtils.isNull(instId)  || HttpUtils.isNull(sStartTS)
+					|| HttpUtils.isNull(sEndTS)) {
+				json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+				json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+			} else {
+				ResultBean result = new ResultBean();
+				JsonArray collectData = CacheService.getProxyHisData(instId, Long.valueOf(sStartTS), Long.valueOf(sEndTS), result);
+				if (collectData != null) {
+					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+					json.put(FixHeader.HEADER_RET_INFO, collectData);
+				} else {
+					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+					json.put(FixHeader.HEADER_RET_INFO, result.getRetInfo());
+				}
+			}
+		}
+
+		HttpUtils.outJsonObject(routeContext, json);
+	}
+
+	@Service(id = "getRedisHisData", name = "getRedisHisData", auth = false, bwswitch = false)
+	public static void getRedisHisData(RoutingContext routeContext) {
+		JsonObject json = new JsonObject();
+
+		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
+		if(params == null) {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+			json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+		} else {
+			String instId  = params.get(FixHeader.HEADER_INSTANCE_ID);
+			String sStartTS = params.get(FixHeader.HEADER_START_TS);
+			String sEndTS = params.get(FixHeader.HEADER_END_TS);
+			if (HttpUtils.isNull(instId)  || HttpUtils.isNull(sStartTS)
+					|| HttpUtils.isNull(sEndTS)) {
+				json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+				json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+			} else {
+				ResultBean result = new ResultBean();
+				JsonArray collectData = CacheService.getCacheNodeHisData(instId, Long.valueOf(sStartTS), Long.valueOf(sEndTS), result);
 				if (collectData != null) {
 					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
 					json.put(FixHeader.HEADER_RET_INFO, collectData);

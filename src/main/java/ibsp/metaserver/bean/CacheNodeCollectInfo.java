@@ -8,6 +8,9 @@ public class CacheNodeCollectInfo {
     private long memoryTotal;
     private long dbSize;
     private int connectedClients;
+    private long totalCommandProcessed;
+    private int processTps;
+    private long time;
 
 	public String getId() {
 		return id;
@@ -55,5 +58,29 @@ public class CacheNodeCollectInfo {
 
 	public void setConnectedClients(int connectedClients) {
 		this.connectedClients = connectedClients;
+	}
+
+	public long getTotalCommandProcessed() {
+		return totalCommandProcessed;
+	}
+
+	public void setTotalCommandProcessed(long totalCommandProcessed) {
+		this.totalCommandProcessed = totalCommandProcessed;
+	}
+
+	public int getProcessTps() {
+		return processTps;
+	}
+
+	public void setProcessTps(int processTps) {
+		this.processTps = processTps;
+	}
+
+	public long getTime() {
+		return time;
+	}
+
+	public void setTime(long time) {
+		this.time = time;
 	}
 }

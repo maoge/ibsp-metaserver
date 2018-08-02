@@ -216,8 +216,6 @@ public class CONSTS {
 	public static final String NAME_SPLIT = "@";
 	public static final String RABBIT_MRG_API = "api";
 
-
-
 	public static final String ERR_CREATE_QUEUE_ON_DB = "create queue/topic error on db .....";
 	public static final String ERR_QUEUE_EXISTS = "queue/topic allready exists .....";
 	public static final String ERR_QUEUE_TYPE_ERROR = "queue/topic type is [1,2]";
