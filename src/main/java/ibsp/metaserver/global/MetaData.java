@@ -1381,6 +1381,8 @@ public class MetaData {
 		List<InstanceDtlBean> nodes = new ArrayList<>();
 		List<InstanceDtlBean> clusterContainer = getContainerIncludeElesByServIdAndCmptId(servId, cmptID);
 		for(InstanceDtlBean bean : clusterContainer) {
+			if(bean.getSubInstances() == null)
+				continue;
 			for(InstanceDtlBean node : bean.getSubInstances().values()){
 				nodes.add(node);
 			}

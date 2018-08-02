@@ -50,8 +50,7 @@ public class RedisReplicationChecker {
 				Set<String> removeAddress = new HashSet<String>();
 				//check replication status for new slaves
 				for (String address : replicationCountMap.keySet()) {
-					log.info("Check redis replication "+address);
-					
+
 					try {
 						Map<String, String> replicationInfo = 
 								RedisUtils.getInstanceInfo(address.split(":")[0], address.split(":")[1], "replication");
@@ -82,6 +81,7 @@ public class RedisReplicationChecker {
 				}
 				
 				for (String address : removeAddress) {
+					log.info("Check redis replication "+address + " success!");
 					replicationCountMap.remove(address);
 				}
 				

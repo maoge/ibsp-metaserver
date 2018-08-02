@@ -140,7 +140,7 @@ public class SysEventHandler implements Handler<Message<String>> {
 			case e63:
 				if (uuid.equals(MetaData.get().getUUID())) {
 					generalNotify(type, servId, jsonStr,
-							ClientStatisticData.get().getCacheProxies());
+							ClientStatisticData.get().getCacheProxies(servId));
 				}
 				//update metadata
 				InstanceDtlBean cluster =

@@ -1,15 +1,13 @@
 package ibsp.metaserver.global;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import ibsp.metaserver.bean.InstanceDtlBean;
 import ibsp.metaserver.utils.CONSTS;
 
 
@@ -84,6 +82,17 @@ public class ClientStatisticData {
 	
 	public Set<String> getCacheProxies() {
 		return this.cacheProxyMap.keySet();
+	}
+
+	public Set<String> getCacheProxies(String servId) {
+		List<InstanceDtlBean> proxies = MetaData.get().getCacheProxysByServId(servId);
+		Set<String> res = new HashSet<>();
+		for(InstanceDtlBean proxy : proxies) {
+			if(cacheProxyMap.containsKey(proxy.getInstID())) {
+				res.add(proxy.getInstID());
+			}
+		}
+		return res;
 	}
 	
 	public Set<String> getDbClients() {
