@@ -16,8 +16,8 @@ public class JMXUtils {
     private static volatile JMXUtils instance;
     private static Logger logger = LoggerFactory.getLogger(JMXUtils.class);
     private static final int DEFAULT_PORT = Registry.REGISTRY_PORT;
-    //private static final String MBEAN_PROXY_NAME = "ibsp.metaserver.cache.access:name=Proxy";
-    private static final String MBEAN_PROXY_NAME = "com.ctg.itrdc.cache.access:type=Proxy";
+    private static final String MBEAN_PROXY_NAME = "ibsp.metaserver.cache.access:name=Proxy";
+    //private static final String MBEAN_PROXY_NAME = "com.ctg.itrdc.cache.access:type=Proxy";
 
 
     private ObjectName proxyObjectName = null;

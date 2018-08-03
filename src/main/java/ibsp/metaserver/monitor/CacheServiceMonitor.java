@@ -213,7 +213,7 @@ public class CacheServiceMonitor implements Runnable {
         	}
         	
         	executor.cd("$HOME/" + deployRootPath);
-        	executor.execSingleLine("bin/redis-server conf/redis.conf", null);
+        	executor.execSingleLine("./redis.sh start", null);
         	if (executor.waitProcessStart(port, null)) {
     			logger.info("拉起节点成功！Host:" + ip + ":" + port);
     			if (master != null) {

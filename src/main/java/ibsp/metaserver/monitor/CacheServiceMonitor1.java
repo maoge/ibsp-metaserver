@@ -4,7 +4,6 @@ import ibsp.metaserver.autodeploy.utils.JschUserInfo;
 import ibsp.metaserver.autodeploy.utils.SSHExecutor;
 import ibsp.metaserver.bean.*;
 import ibsp.metaserver.dbservice.CacheService;
-import ibsp.metaserver.dbservice.MQService;
 import ibsp.metaserver.dbservice.MetaDataService;
 import ibsp.metaserver.eventbus.EventBean;
 import ibsp.metaserver.eventbus.EventBusMsg;
@@ -318,7 +317,7 @@ public class CacheServiceMonitor1 {
             }
 
             executor.cd("$HOME/" + deployRootPath);
-            executor.execSingleLine("bin/redis-server conf/redis.conf", null);
+            executor.execSingleLine("./redis.sh start", null);
             if (executor.waitProcessStart(port, null)) {
                 logger.info("拉起节点成功！Host:" + ip + ":" + port);
                 if (master != null) {
@@ -419,8 +418,11 @@ public class CacheServiceMonitor1 {
                         RedisReplicationChecker.get().startChecker();
                     }
                 }
-
+                //从不统计tps
+                info.setTotalCommandProcessed(0L);
                 info.setLinkStatus(redisInfo.get("master_link_status"));
+            }else{
+                info.setTotalCommandProcessed(Long.parseLong(redisInfo.get("total_commands_processed")));
             }
 
             //get db size
@@ -436,7 +438,6 @@ public class CacheServiceMonitor1 {
             //get redis memory
             info.setMemoryUsed(Long.parseLong(redisInfo.get("used_memory")));
             info.setMemoryTotal(Long.parseLong(redisConfig.get("maxmemory")));
-            info.setTotalCommandProcessed(Long.parseLong(redisInfo.get("total_commands_processed")));
             info.setTime(System.currentTimeMillis());
             //get persistence policy
            /* if (redisConfig.get("appendonly").equals("yes")) {

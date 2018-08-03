@@ -389,7 +389,8 @@ public class CacheService {
 
 			String instID = proxy.getInstID();
 			CacheProxyCollectInfo collectInfo = proxyCollectInfoMap.get(instID);
-
+			if(collectInfo == null)
+				continue;
 			sqlBean.addParams(new Object[]{
 					proxy.getInstID(), collectInfo.getAccessClientConns(), collectInfo.getAccessProcessAvTime(),
 					collectInfo.getAccessProcessMaxTime(), collectInfo.getAccessRedisConns(),
@@ -417,7 +418,8 @@ public class CacheService {
 			SqlBean sqlBean = new SqlBean(INSERT_CACHE_NODE_COLLECT_INFO);
 			String instID = cacheNode.getInstID();
 			CacheNodeCollectInfo collectInfo = cacheNodeCollectInfoMap.get(instID);
-
+			if(collectInfo == null)
+				continue;
 			sqlBean.addParams(new Object[]{
 					cacheNode.getInstID(), collectInfo.getConnectedClients(), collectInfo.getDbSize(),
 					collectInfo.getLinkStatus(), collectInfo.getMemoryTotal(),
@@ -455,9 +457,10 @@ public class CacheService {
 		return jsonArray;
 	}
 
+	//把从的节点剔除不统计从的信息
 	public static JsonArray getCacheNodeCollectData(String servId) {
 		JsonArray jsonArray = new JsonArray();
-		List<InstanceDtlBean> cacheNodes = MetaData.get().getCacheNodesByServId(servId);
+		List<InstanceDtlBean> cacheNodes = MetaData.get().getCacheMasterNodesByServId(servId);
 
 		for(InstanceDtlBean cacheNode : cacheNodes) {
 			CacheNodeCollectInfo collectInfo = MonitorData.get().getCacheNodeCollectInfoMap().get(cacheNode.getInstID());

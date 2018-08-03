@@ -1390,6 +1390,29 @@ public class MetaData {
 		return nodes;
 	}
 
+	public List<InstanceDtlBean> getCacheMasterNodesByServId(String servId) {
+		ServiceBean servBean = serviceMap.get(servId);
+		int cmptID = MetaData.get().getComponentID("CACHE_NODE_CONTAINER");
+
+		if(servBean == null ||  !CONSTS.SERV_TYPE_CACHE.equals(servBean.getServType())) {
+			return null;
+		}
+		List<InstanceDtlBean> nodes = new ArrayList<>();
+		List<InstanceDtlBean> clusterContainer = getContainerIncludeElesByServIdAndCmptId(servId, cmptID);
+		for(InstanceDtlBean bean : clusterContainer) {
+			if(bean.getSubInstances() == null)
+				continue;
+
+			String masterId = bean.getAttribute(FixHeader.HEADER_MASTER_ID).getAttrValue();
+
+			for(InstanceDtlBean node : bean.getSubInstances().values()){
+				if(masterId.equals(node.getInstID()))
+					nodes.add(node);
+			}
+		}
+		return nodes;
+	}
+
 	private List<InstanceDtlBean> getContainerIncludeElesByServIdAndCmptId(String servId, int containerCmptID) {
 
 		Set<String> childs = topo.get(servId, CONSTS.TOPO_TYPE_CONTAIN);
