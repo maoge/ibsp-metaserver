@@ -215,4 +215,68 @@ public class MetaServerHandler {
 		
 		HttpUtils.outJsonObject(routeContext, json);
 	}
+
+	@Service(id = "getAlarms", name = "getAlarms")
+	public static void getAlarms(RoutingContext routeContext) {
+		JsonObject json = new JsonObject();
+
+		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
+		int pageNumber = Integer.valueOf(params.getOrDefault(CONSTS.PAGE_NUMBER,CONSTS.PAGE_NUMBER));
+		int pageSize   = Integer.valueOf(params.getOrDefault(CONSTS.PAGE_SIZE,CONSTS.PAGE_SIZE));
+		ResultBean result = new ResultBean();
+		JsonArray jsonArr = MetaDataService.getAlarms((pageNumber -1)*pageSize, pageSize, result);
+		if (jsonArr != null) {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+			json.put(FixHeader.HEADER_RET_INFO, jsonArr);
+		} else {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+			json.put(FixHeader.HEADER_RET_INFO, result.getRetInfo());
+		}
+		HttpUtils.outJsonObject(routeContext, json);
+	}
+
+	@Service(id = "getAlarmsCount", name = "getAlarmsCount")
+	public static void getAlarmsCount(RoutingContext routeContext) {
+		JsonObject json = new JsonObject();
+
+		ResultBean result = new ResultBean();
+		int count = MetaDataService.getAlarmsCount(result);
+		if (result.getRetCode() == CONSTS.REVOKE_OK) {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+			json.put(FixHeader.HEADER_RET_INFO, new JsonObject().put("COUNT", count));
+		} else {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+			json.put(FixHeader.HEADER_RET_INFO, result.getRetInfo());
+		}
+		HttpUtils.outJsonObject(routeContext, json);
+	}
+
+	@Service(id = "clearAlarm", name = "clearAlarm")
+	public static void clearAlarm(RoutingContext routeContext) {
+		JsonObject json = new JsonObject();
+
+		ResultBean result = new ResultBean();
+		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
+		if(params == null) {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+			json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+		} else {
+			String servId = params.get(FixHeader.HEADER_SERV_ID);
+			String instId = params.get(FixHeader.HEADER_INSTANCE_ID);
+			String code   = params.get(FixHeader.HEADER_ALARM_CODE);
+			if (HttpUtils.isNull(servId) || HttpUtils.isNull(instId) || HttpUtils.isNull(code)) {
+				json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+				json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+			}else {
+				boolean res = MetaDataService.clearAlarm(servId, instId, code, result);
+				if (res) {
+					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+				} else {
+					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+					json.put(FixHeader.HEADER_RET_INFO, result.getRetInfo());
+				}
+				HttpUtils.outJsonObject(routeContext, json);
+			}
+		}
+	}
 }

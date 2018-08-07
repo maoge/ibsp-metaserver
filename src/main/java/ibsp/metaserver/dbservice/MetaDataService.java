@@ -66,12 +66,21 @@ public class MetaDataService {
 	private static final String MOD_INSTANCE_ATTR = "UPDATE t_instance_attr set ATTR_VALUE = ? WHERE INST_ID = ? AND " +
 			"ATTR_ID = ?";
 
-	private static final String FIND_ALARM = "SELECT COUNT(1) FROM t_alarm_log WHERE ALARM_CODE = ? AND SERVICE_ID = ? " +
+	private static final String FIND_ALARM = "SELECT COUNT(1) FROM t_alarm WHERE ALARM_CODE = ? AND SERVICE_ID = ? " +
 			"AND INSTANCE_ID = ?";
-	private static final String SAVE_ALARM = "INSERT INTO t_alarm_log(ALARM_CODE, SERVICE_ID, INSTANCE_ID, ALARM_DESC," +
+	private static final String SAVE_ALARM = "INSERT INTO t_alarm(ALARM_CODE, SERVICE_ID, INSTANCE_ID, ALARM_DESC," +
 			"REC_TIME) VALUES(?,?,?,?,?)";
-	private static final String UPDATE_ALARM = "UPDATE t_alarm_log SET REC_TIME = ? WHERE ALARM_CODE=? AND SERVICE_ID" +
+	private static final String UPDATE_ALARM = "UPDATE t_alarm SET REC_TIME = ? WHERE ALARM_CODE=? AND SERVICE_ID" +
 			"=? AND INSTANCE_ID = ?";
+
+	private static final String GET_ALARMS        = "SELECT t.ALARM_CODE, t.SERVICE_ID, t.INSTANCE_ID, t.ALARM_DESC, " +
+				"t.REC_TIME, t1.SERV_NAME FROM t_alarm t left join t_service t1 on t.SERVICE_ID = t1.INST_ID LIMIT ?,?";
+	private static final String GET_ALARMS_COUNTS = "SELECT COUNT(1) FROM t_alarm";
+	private static final String SAVE_ALARM_LOG    = "INSERT INTO t_alarm_log SELECT * FROM t_alarm WHERE ALARM_CODE=? AND SERVICE_ID=? " +
+			"AND INSTANCE_ID = ?";
+	private static final String CLEAR_ALARM       = "DELETE FROM t_alarm WHERE ALARM_CODE=? AND SERVICE_ID=? " +
+			"AND INSTANCE_ID = ?";
+
 	private static ReentrantLock SEQ_LOCK = null;
 	
 	static {
@@ -944,6 +953,59 @@ public class MetaDataService {
 
 			EventBusMsg.publishEvent(eventBean);
 		}
+
+		return res;
+	}
+
+	public static JsonArray getAlarms(int start ,int rows, ResultBean result) {
+		CRUD crud = new CRUD();
+		SqlBean sqlBean = new SqlBean(GET_ALARMS);
+		sqlBean.addParams(new Object[]{start, rows});
+
+		crud.putSqlBean(sqlBean);
+		JsonArray res = null;
+		try {
+			res = crud.queryForJSONArray();
+		} catch (CRUDException e) {
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo("getAlarms fail : " + e.getMessage());
+			logger.error(e.getMessage(), e);
+		}
+
+		return res;
+	}
+
+
+	public static int getAlarmsCount(ResultBean result) {
+		CRUD crud = new CRUD();
+		SqlBean sqlBean = new SqlBean(GET_ALARMS_COUNTS);
+
+		crud.putSqlBean(sqlBean);
+		int res = 0;
+		try {
+			res = crud.queryForCount();
+		} catch (CRUDException e) {
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo("getAlarmsCount fail : " + e.getMessage());
+			logger.error(e.getMessage(), e);
+		}
+
+		return res;
+	}
+
+	public static boolean clearAlarm(String servId ,String instId, String code, ResultBean result) {
+		CRUD crud = new CRUD();
+
+		SqlBean sqlSaveLogBean = new SqlBean(SAVE_ALARM_LOG);
+		sqlSaveLogBean.addParams(new Object[]{code, servId, instId});
+		crud.putSqlBean(sqlSaveLogBean);
+
+		SqlBean sqlClearAlarmBean = new SqlBean(CLEAR_ALARM);
+		sqlClearAlarmBean.addParams(new Object[]{code, servId, instId});
+		crud.putSqlBean(sqlClearAlarmBean);
+
+		boolean res = false;
+		res = crud.executeUpdate(true, result);
 
 		return res;
 	}

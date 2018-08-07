@@ -1395,6 +1395,8 @@ public class MQService {
 
 			String vbrokerId = vbroker.getInstID();
 			MQVbrokerCollectInfo collectInfo = vbrokerCollectInfoMap.get(vbrokerId);
+			if(collectInfo == null)
+				continue;
 			sqlBean.addParams(new Object[]{
 					vbroker.getInstID(), collectInfo.getProduceRate(), collectInfo.getProduceCounts(),
 					collectInfo.getConsumerRate(), collectInfo.getConsumerCounts(), currentTime
@@ -1417,6 +1419,8 @@ public class MQService {
 		for(QueueBean queueBean : queueBeans) {
 			SqlBean sqlBean = new SqlBean(INSERT_QUEUE_COLLECT_INFO);
 			MQQueueCollectInfo collectInfo = mqQueueCollectInfoMap.get(queueBean.getQueueId());
+			if(collectInfo == null)
+				continue;
 			sqlBean.addParams(new Object[]{
 					queueBean.getQueueId(), collectInfo.getProduceRate(), collectInfo.getProduceCounts(),
 					collectInfo.getConsumerRate(), collectInfo.getConsumerCounts(),currentTime
@@ -1440,6 +1444,9 @@ public class MQService {
         for(QueueBean queueBean : queueBeans) {
 
             MQQueueCollectInfo collectInfo = mqQueueCollectInfoMap.get(queueBean.getQueueId());
+
+			if(collectInfo == null)
+				continue;
 
             if(CONSTS.TYPE_QUEUE.equalsIgnoreCase(queueBean.getQueueType())) {
                 for(MQQueueInfoBean queueInfoBean : collectInfo.getQueueInfoBeanMap().values()) {
