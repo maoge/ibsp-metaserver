@@ -1,19 +1,6 @@
 package ibsp.metaserver.global;
 
-import ibsp.metaserver.bean.CollectQuotaBean;
-import ibsp.metaserver.bean.DeployFileBean;
-import ibsp.metaserver.bean.IdSetBean;
-import ibsp.metaserver.bean.InstAttributeBean;
-import ibsp.metaserver.bean.InstanceBean;
-import ibsp.metaserver.bean.InstanceDtlBean;
-import ibsp.metaserver.bean.MetaAttributeBean;
-import ibsp.metaserver.bean.MetaComponentBean;
-import ibsp.metaserver.bean.MetaServUrl;
-import ibsp.metaserver.bean.PermnentTopicBean;
-import ibsp.metaserver.bean.QueueBean;
-import ibsp.metaserver.bean.RelationBean;
-import ibsp.metaserver.bean.ServiceBean;
-import ibsp.metaserver.bean.TopologyBean;
+import ibsp.metaserver.bean.*;
 import ibsp.metaserver.dbservice.MQService;
 import ibsp.metaserver.dbservice.MetaDataService;
 import ibsp.metaserver.eventbus.EventType;
@@ -36,7 +23,6 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
-import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,7 +57,9 @@ public class MetaData {
 	private Map<String, String> queueName2IdMap;
 	private Map<String, PermnentTopicBean> permTopicMap;
 	private Map<String, IdSetBean<String>> queueId2ConsumerIdMap;
-	
+
+	private Map<String, ServerBean> serverMap;
+
 	private JedisPool jedisPool;
 	
 	private static MetaData theInstance = null;
@@ -138,6 +126,7 @@ public class MetaData {
 		LoadMetaServUrl();
 		LoadQueue();
 		LoadPermnentTopic();
+		LoadServer();
 	}
 	
 	public void reloadMetaData() {
@@ -399,7 +388,32 @@ public class MetaData {
 			intanceLock.unlock();
 		}
 	}
-	
+
+	private void LoadServer() {
+		try {
+			intanceLock.lock();
+
+			List<ServerBean> serverList = MetaDataService.getAllServer();
+			if (serverList == null) {
+				return;
+			}
+
+			serverMap.clear();
+
+			for (ServerBean server : serverList) {
+				if (server == null)
+					continue;
+
+				serverMap.put(server.getServerIP(), server);
+			}
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+		} finally {
+			intanceLock.unlock();
+		}
+	}
+
+
 	private void LoadMetaAttr() {
 		try {
 			intanceLock.lock();
@@ -423,7 +437,7 @@ public class MetaData {
 			intanceLock.unlock();
 		}
 	}
-	
+
 	private void LoadMetaCmpt() {
 		try {
 			intanceLock.lock();

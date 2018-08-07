@@ -1,20 +1,6 @@
 package ibsp.metaserver.dbservice;
 
-import ibsp.metaserver.bean.CollectQuotaBean;
-import ibsp.metaserver.bean.DeployFileBean;
-import ibsp.metaserver.bean.InstAttributeBean;
-import ibsp.metaserver.bean.InstanceBean;
-import ibsp.metaserver.bean.InstanceDtlBean;
-import ibsp.metaserver.bean.InstanceRelationBean;
-import ibsp.metaserver.bean.LongMargin;
-import ibsp.metaserver.bean.MetaAttributeBean;
-import ibsp.metaserver.bean.MetaComponentBean;
-import ibsp.metaserver.bean.MetaServUrl;
-import ibsp.metaserver.bean.RelationBean;
-import ibsp.metaserver.bean.ResultBean;
-import ibsp.metaserver.bean.ServiceBean;
-import ibsp.metaserver.bean.SqlBean;
-import ibsp.metaserver.bean.TopologyBean;
+import ibsp.metaserver.bean.*;
 import ibsp.metaserver.eventbus.EventBean;
 import ibsp.metaserver.eventbus.EventBusMsg;
 import ibsp.metaserver.eventbus.EventType;
@@ -364,7 +350,32 @@ public class MetaDataService {
 		
 		return true;
 	}
-	
+
+	public static List<ServerBean> getAllServer() {
+		String sql = "SELECT SERVER_IP, SERVER_NAME FROM t_server";
+		List<ServerBean> serverList = null;
+
+		try {
+			SqlBean sqlBean = new SqlBean(sql);
+
+			CRUD c = new CRUD();
+			c.putSqlBean(sqlBean);
+
+			List<HashMap<String, Object>> resultList = c.queryForList();
+			if (resultList != null) {
+				serverList = new LinkedList<ServerBean>();
+
+				for (HashMap<String, Object> item : resultList) {
+					ServerBean server = ServerBean.convert(item);
+					serverList.add(server);
+				}
+			}
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+		}
+
+		return serverList;
+	}
 	
 	//Get data from DB
 	public static List<MetaAttributeBean> getAllMetaAttribute() {

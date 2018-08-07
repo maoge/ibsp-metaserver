@@ -255,4 +255,7 @@ public class FixHeader {
 	public static final String HEADER_PROCESS_TPS             = "PROCESS_TPS";
 	public static final String HEADER_MEMORY_USED             = "MEMORY_USED";
 	public static final String HEADER_LINK_STATUS             = "LINK_STATUS";
+
+	public static final String HEADER_SERVER_IP                = "SERVER_IP";
+	public static final String HEADER_SERVER_NAME              = "SERVER_NAME";
 }

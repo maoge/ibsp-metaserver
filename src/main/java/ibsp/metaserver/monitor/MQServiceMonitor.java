@@ -566,9 +566,11 @@ public class MQServiceMonitor {
         JsonArray json = null;
         try {
             res = HttpUtils.getUrlData(urlString, CONSTS.MQ_DEFAULT_USER, CONSTS.MQ_DEFAULT_PWD);
+            if(res == null || HttpUtils.isNull(res))
+                return null;
             json = new JsonArray(res);
         } catch (Exception e) {
-            logger.error(e.getMessage());
+            logger.error(e.getMessage(), e);
         }
         return  json;
     }
