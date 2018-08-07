@@ -91,6 +91,8 @@ public class MetaData {
 		queueName2IdMap        = new ConcurrentHashMap<String, String>();
 		permTopicMap           = new ConcurrentHashMap<String, PermnentTopicBean>();
 		queueId2ConsumerIdMap  = new ConcurrentHashMap<String, IdSetBean<String>>();
+
+		serverMap              = new ConcurrentHashMap<>();
 	}
 	
 	public static MetaData get() {
@@ -413,6 +415,38 @@ public class MetaData {
 		}
 	}
 
+	public boolean doServer(JsonObject json, EventType type) {
+		boolean res = true;
+
+		if (serviceMap == null)
+			return false;
+
+		String ip = json.getString(FixHeader.HEADER_SERVER_IP);
+		String hostname = json.getString(FixHeader.HEADER_SERVER_NAME);
+		if (HttpUtils.isNull(ip))
+			return false;
+
+		switch (type) {
+			case e14:
+				if(HttpUtils.isNull(hostname))
+					return false;
+
+				ServerBean server = new ServerBean(ip, hostname);
+				serverMap.put(ip, server);
+				res = true;
+				break;
+			case e15:
+				String ipsString = ip.replaceAll("'", "");
+				String[] ips = ipsString.split(",");
+				for(String s : ips) {
+					serverMap.remove(s);
+				}
+				res = true;
+				break;
+		}
+
+		return res;
+	}
 
 	private void LoadMetaAttr() {
 		try {
@@ -1449,5 +1483,9 @@ public class MetaData {
 		}
 
 		return list;
+	}
+
+	public Map<String, ServerBean> getServerMap() {
+		return serverMap;
 	}
 }

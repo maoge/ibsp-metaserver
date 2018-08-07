@@ -24,7 +24,10 @@ public enum EventType {
 	
 	e12(500012, false, "MetaData.queueMap add"),         // MetaData.permnentTopic add
 	e13(500013, false, "MetaData.queueMap del"),         // MetaData.permnentTopic del
-	
+
+	e14(500014, false, "MetaData.serverMap add"),         // MetaData.serverMap add
+	e15(500015, false, "MetaData.serverMap del"),         // MetaData.serverMap del
+
 	e21(50021, false, "Service deployed"),
 	e22(50022, false, "Service undeployed"),
 	e23(50023, false, "Instance deployed"),

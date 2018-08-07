@@ -4,7 +4,11 @@ import ibsp.metaserver.autodeploy.utils.JschUserInfo;
 import ibsp.metaserver.autodeploy.utils.SSHExecutor;
 import ibsp.metaserver.bean.ResultBean;
 import ibsp.metaserver.bean.SqlBean;
+import ibsp.metaserver.eventbus.EventBean;
+import ibsp.metaserver.eventbus.EventBusMsg;
+import ibsp.metaserver.eventbus.EventType;
 import ibsp.metaserver.exception.CRUDException;
+import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.CRUD;
 import ibsp.metaserver.utils.FixHeader;
@@ -158,6 +162,14 @@ public class ResourceDataService {
 			
 			try {
 				boolean res = curd.executeUpdate(true, result);
+				if(res) {
+					JsonObject evJson = new JsonObject();
+					evJson.put(FixHeader.HEADER_SERVER_IP, IP);
+					EventBean ev = new EventBean(EventType.e15);
+					ev.setUuid(MetaData.get().getUUID());
+					ev.setJsonStr(evJson.toString());
+					EventBusMsg.publishEvent(ev);
+				}
 				return res;
 			} catch (Exception e) {
 				logger.error(e.getMessage(), e);
@@ -271,6 +283,15 @@ public class ResourceDataService {
 						Object[] sParams = new Object[] {hostname, IP};
 						bean.addParams(sParams);
 						curd.putSqlBean(bean);
+
+						JsonObject evJson = new JsonObject();
+						evJson.put(FixHeader.HEADER_SERVER_IP, IP);
+						evJson.put(FixHeader.HEADER_SERVER_NAME, hostname);
+						EventBean ev = new EventBean(EventType.e14);
+						ev.setUuid(MetaData.get().getUUID());
+						ev.setJsonStr(evJson.toString());
+						EventBusMsg.publishEvent(ev);
+
 					}
 					//password of a existing user is changed, we should change the component info under this user too
 					if (!isAdd) {

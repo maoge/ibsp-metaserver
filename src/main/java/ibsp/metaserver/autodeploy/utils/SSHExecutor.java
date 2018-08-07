@@ -875,7 +875,7 @@ public class SSHExecutor {
 			int end = context.indexOf(CONSTS.LINE_SEP, begin);
 			if (end != -1) {
 				fund = true;
-				hostname = context.substring(begin, end);
+				hostname = context.substring(begin, end - CONSTS.LINE_SEP.length());
 			}
 		}
 

@@ -4,6 +4,7 @@ import ibsp.metaserver.annotation.App;
 import ibsp.metaserver.annotation.Service;
 import ibsp.metaserver.bean.MQVbrokerCollectInfo;
 import ibsp.metaserver.global.ClientStatisticData;
+import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.global.MonitorData;
 import ibsp.metaserver.utils.HttpUtils;
 import io.vertx.core.json.JsonArray;
@@ -49,6 +50,13 @@ public class MetaHandle {
     public static void getMonitorData(RoutingContext routeContext) {
         MonitorData monitorData = MonitorData.get();
         JsonObject json = JsonObject.mapFrom(monitorData.toJson());
+        HttpUtils.outJsonObject(routeContext, json);
+    }
+
+    @Service(id = "getMetaServerMap", name = "getMetaServerMap", auth = false, bwswitch = false)
+    public static void getMetaServerMap(RoutingContext routeContext) {
+        MetaData metaData = MetaData.get();
+        JsonObject json = JsonObject.mapFrom(HttpUtils.mapToJson(metaData.getServerMap()));
         HttpUtils.outJsonObject(routeContext, json);
     }
 }

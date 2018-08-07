@@ -91,8 +91,13 @@ public class SysEventHandler implements Handler<Message<String>> {
 			case e13:
 				MetaData.get().doPermnentTopic(json, type);
 				break;
-				
-			case e21:
+
+			case e14:
+			case e15:
+				MetaData.get().doServer(json, type);
+				break;
+
+				case e21:
 			case e22:
 				MetaData.get().doServiceDeploy(json, type);
 				break;
