@@ -113,7 +113,7 @@ public class MonitorData {
                 long intervalProcessCount = cacheNodeCollectInfo.getTotalCommandProcessed() -
                         prevCollectInfo.getTotalCommandProcessed();
                 long intervalTime = cacheNodeCollectInfo.getTime() - prevCollectInfo.getTime();
-                if(intervalProcessCount<=0L || intervalTime <= 0L) {
+                if(intervalProcessCount<=0L || (int) intervalTime / 1000L <= 0) {
                     cacheNodeCollectInfo.setProcessTps(0);
                 }else {
                     cacheNodeCollectInfo.setProcessTps( (int) (intervalProcessCount / (intervalTime / 1000L)));

@@ -46,8 +46,10 @@ public class MetaDataService {
 	private static final String DEL_TOPOLOGY = "delete from t_topology where INST_ID2 = ?";
 	private static final String DEL_SERVICE = "delete from t_service where INST_ID = ?";
 	
-	private static final String SQL_NEXT_SEQ_LOCk = "set AUTOCOMMIT=0; begin; select current_value as CURR_VALUE from t_sequence where seq_name = ? for update;";
-	private static final String SQL_NEXT_SEQ_UPDATE = "update t_sequence set current_value = current_value + %d where seq_name = ?; commit;";
+	//private static final String SQL_NEXT_SEQ_LOCK = "set AUTOCOMMIT=0; begin; select current_value as CURR_VALUE from t_sequence where seq_name = ? for update;";
+	//private static final String SQL_NEXT_SEQ_UPDATE = "update t_sequence set current_value = current_value + %d where seq_name = ?; commit;";
+	private static final String SQL_NEXT_SEQ_LOCK = "select current_value as CURR_VALUE from t_sequence where seq_name = ?";
+	private static final String SQL_NEXT_SEQ_UPDATE = "update t_sequence set current_value = current_value + %d where seq_name = ?";
 
 	private static final String MOD_INSTANCE_ATTR = "UPDATE t_instance_attr set ATTR_VALUE = ? WHERE INST_ID = ? AND " +
 			"ATTR_ID = ?";
@@ -107,7 +109,7 @@ public class MetaDataService {
 			
 			CRUD c = new CRUD();
 			
-			SqlBean sqlBean1 = new SqlBean(SQL_NEXT_SEQ_LOCk);
+			SqlBean sqlBean1 = new SqlBean(SQL_NEXT_SEQ_LOCK);
 			sqlBean1.addParams(new Object[] { seqName });
 			c.putSqlBean(sqlBean1);
 			
