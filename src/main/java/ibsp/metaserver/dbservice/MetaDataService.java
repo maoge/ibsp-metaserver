@@ -6,6 +6,7 @@ import ibsp.metaserver.eventbus.EventBusMsg;
 import ibsp.metaserver.eventbus.EventType;
 import ibsp.metaserver.exception.CRUDException;
 import ibsp.metaserver.global.MetaData;
+import ibsp.metaserver.global.ServiceData;
 import ibsp.metaserver.schema.Validator;
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.CRUD;
@@ -24,14 +25,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.core.ILock;
+
 public class MetaDataService {
 	
 	private static Logger logger = LoggerFactory.getLogger(MetaDataService.class);
+	private static final String SEQ_LOCK_NAME = "SEQ_MARGIN_LOCK";
 	private static Map<String, String> SERVICE_TYPE_MAPPER = null;
 	
 	private static final String SEL_DEPLOY_FILE   = "SELECT FILE_TYPE,FILE_NAME,FILE_DIR,IP_ADDRESS,USER_NAME,USER_PWD,FTP_PORT "
@@ -103,9 +109,15 @@ public class MetaDataService {
 	
 	public static LongMargin getNextSeqMargin(String seqName, int step, ResultBean result) {
 		LongMargin ret = null;
+		HazelcastInstance hzInstance = ServiceData.get().getHzInstance();
+		ILock hzLock = hzInstance.getLock(SEQ_LOCK_NAME);
 		
 		try {
-			SEQ_LOCK.lock();
+			while (hzLock.isLocked()) {
+				Thread.sleep(1);
+			}
+			hzLock.tryLock(3000, TimeUnit.MILLISECONDS);
+			//SEQ_LOCK.lock();
 			
 			CRUD c = new CRUD();
 			
@@ -122,8 +134,11 @@ public class MetaDataService {
 			if (result.getRetCode() == CONSTS.REVOKE_NOK)
 				return null;
 			
+		} catch (InterruptedException e) {
+			logger.error(e.getMessage(), e);
 		} finally {
-			SEQ_LOCK.unlock();
+			//SEQ_LOCK.unlock();
+			hzLock.unlock();
 		}
 		
 		return ret;
