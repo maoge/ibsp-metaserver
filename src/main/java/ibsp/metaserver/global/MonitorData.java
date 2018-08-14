@@ -25,6 +25,7 @@ public class MonitorData {
 
     private Map<String, PDClusterStatus> pdClusterStatusMap;//pdID -> PDClusterStatus
     private Map<String, TiDBMetricsStatus> tiDBMetricsStatusMap;//pdID -> PDClusterStatus
+    private Map<String, TiKVMetricsStatus> tiKVMetricsStatusMap;//pdID -> PDClusterStatus
 
     private MonitorData() {
         mqVbrokerCollectInfoMap  = new ConcurrentHashMap<>();
@@ -33,6 +34,7 @@ public class MonitorData {
         cacheNodeCollectInfoMap  = new ConcurrentHashMap<>();
         pdClusterStatusMap       = new ConcurrentHashMap<>();
         tiDBMetricsStatusMap     = new ConcurrentHashMap<>();
+        tiKVMetricsStatusMap     = new ConcurrentHashMap<>();
     }
 
     public static MonitorData get() {
@@ -251,13 +253,18 @@ public class MonitorData {
         return tiDBMetricsStatusMap;
     }
 
+    public Map<String, TiKVMetricsStatus> getTiKVMetricsStatusMap() {
+        return tiKVMetricsStatusMap;
+    }
+
     public JsonObject toJson() {
         return new JsonObject().put("mqVbrokerCollectInfoMap" , HttpUtils.mapToJson(mqVbrokerCollectInfoMap))
                 .put("mqQueueCollectInfoMap", HttpUtils.mapToJson(mqQueueCollectInfoMap))
                 .put("cacheProxyCollecInfoMap", HttpUtils.mapToJson(cacheProxyCollectInfoMap))
                 .put("cacheNodeCollectInfoMap", HttpUtils.mapToJson(cacheNodeCollectInfoMap))
                 .put("pdClusterStatusMap", HttpUtils.mapToJson(pdClusterStatusMap))
-                .put("tiDBMetricsStatusMap", HttpUtils.mapToJson(tiDBMetricsStatusMap));
+                .put("tiDBMetricsStatusMap", HttpUtils.mapToJson(tiDBMetricsStatusMap))
+                .put("tiKVMetricsStatusMap", HttpUtils.mapToJson(tiKVMetricsStatusMap));
     }
 
     public static MonitorData fromJson(JsonObject json) {
@@ -274,6 +281,8 @@ public class MonitorData {
                 PDClusterStatus.class);
         m.tiDBMetricsStatusMap       = HttpUtils.jsonToMap(json.getJsonObject("tiDBMetricsStatusMap"),
                 TiDBMetricsStatus.class);
+        m.tiKVMetricsStatusMap       = HttpUtils.jsonToMap(json.getJsonObject("tiDBMetricsStatusMap"),
+                TiKVMetricsStatus.class);
         return m;
     }
 

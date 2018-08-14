@@ -3,7 +3,8 @@ package ibsp.metaserver.microservice.handler;
 import ibsp.metaserver.annotation.App;
 import ibsp.metaserver.annotation.Service;
 
-import ibsp.metaserver.global.MetaData;
+import ibsp.metaserver.bean.Histogram;
+import ibsp.metaserver.bean.TiKVMetricsStatus;
 import ibsp.metaserver.global.MonitorData;
 import ibsp.metaserver.threadpool.WorkerPool;
 import io.prometheus.client.Metrics;
@@ -18,7 +19,7 @@ import java.util.List;
 
 @App(path = "/metrics/job")
 public class TiDBMericsHandle {
-    /*private static Logger logger = LoggerFactory.getLogger(TiDBMericsHandle.class);
+    private static Logger logger = LoggerFactory.getLogger(TiDBMericsHandle.class);
 
     @Service(id = ":system/instance/:server", name = "tidb/instance/:server", auth = false, bwswitch = false)
     public static void getMetrics(RoutingContext routeContext) {
@@ -47,8 +48,13 @@ public class TiDBMericsHandle {
 
         @Override
         public void run() {
-            ByteArrayInputStream bin = new ByteArrayInputStream(bytes);
+            String[] jobName = system.split("_");
+            String instId = jobName[0];
 
+            if(instId == null || jobName.length != 2)
+                return;
+
+            ByteArrayInputStream bin = new ByteArrayInputStream(bytes);
 
             Metrics.MetricFamily metricFamily = null;
             StringBuffer sb = new StringBuffer();
@@ -68,173 +74,137 @@ public class TiDBMericsHandle {
 
             if(metricFamilyList.size() == 0)
                 return;
-            System.out.println(system + "  " + server);
-            if("tidb".equals(system)) {
-                String[] hostAndPort = server.split("_");
-                String ip = MetaData.get().getIpByHostName(hostAndPort[0]);
-                String port = hostAndPort[1];
-                tidbAnalysis(metricFamilyList);
-            }else {
-                String[] instanceId = server.split("_");
-                //pd
-                if(instanceId.length == 1) {
-                    pdAnalysis(metricFamilyList);
-                }
-                //tikv
-                if(instanceId.length == 2) {
-                    tikvAnalysis(metricFamilyList);
-                }
-            }
 
+            TiKVMetricsStatus tiKVMetricsStatus = tikvAnalysis(instId, metricFamilyList);
+            calc(instId, tiKVMetricsStatus);
         }
 
-        private void tidbAnalysis(List<Metrics.MetricFamily> metricFamilyList) {
+        private TiKVMetricsStatus tikvAnalysis(String instId, List<Metrics.MetricFamily> metricFamilyList) {
+            TiKVMetricsStatus status = new TiKVMetricsStatus();
 
-            TiDBMetricsBean currenttiDBMetricsBean = new TiDBMetricsBean();
+            double otherPengdingWorkCount = 0D;
+            Histogram snapshotHis = new Histogram();
+            Histogram writeHis = new Histogram();
+            Histogram schedulerHis = new Histogram();
 
-            for(Metrics.MetricFamily metricFamily : metricFamilyList) {
-                String metricName = metricFamily.getName();
-                List<Metrics.Metric> metrics = metricFamily.getMetricList();
-
-                switch (metricName) {
-                    //QPS 统计 (是总数)
-                    case "tidb_server_query_total" :
-                        currenttiDBMetricsBean.setQps(foreachCounter(metrics));
+            for (Metrics.MetricFamily metricFamily : metricFamilyList) {
+                String name = metricFamily.getName();
+                switch (name) {
+                    case "tikv_pd_heartbeat_tick_total" :
+                        for(Metrics.Metric metric : metricFamily.getMetricList()) {
+                            String typeValue = metric.getLabel(0).getValue();
+                            if("leader".equals(typeValue)) {
+                                status.setLeaderCount(metric.getGauge().getValue());
+                            }
+                            if("region".equals(typeValue)) {
+                                status.setRegionCount(metric.getGauge().getValue());
+                            }
+                        }
+                        break;
+                    case "tikv_channel_full_total" :
+                        //没出错误的时候没有样例数据
                         break;
 
-                    //连接数 （当前值）
-                    case "tidb_server_connections" :
-                        currenttiDBMetricsBean.setConnectionCount(foreachGauge(metrics));
+                    case "tikv_engine_write_stall" :
+                        for(Metrics.Metric metric : metricFamily.getMetricList()) {
+                            for(Metrics.LabelPair labelPair : metric.getLabelList()) {
+                                if("write_stall_average".equals(labelPair.getValue())) {
+                                    status.setStall(metric.getGauge().getValue());
+                                    break;
+                                }
+                            }
+                        }
                         break;
 
-                    //statement（当前值）
-                    case "tidb_executor_statement_total" :
-                        currenttiDBMetricsBean.setStatementCount(foreachCounter(metrics));
+                    case "tikv_worker_pending_task_total" :
+                        for(Metrics.Metric metric : metricFamily.getMetricList()) {
+                            if(!"pd-worker".equals(metric.getLabel(0).getValue())) {
+                                otherPengdingWorkCount += metric.getGauge().getValue();
+                            }else {
+                                status.setLeaderCount(metric.getGauge().getValue());
+                            }
+                        }
                         break;
 
-                    //PD获取TSO响应时间 (直方桶图)
-                    case "pd_client_request_handle_requests_duration_seconds" :
-                        currenttiDBMetricsBean.setTso(foreachHistogramByTypeValue(metrics, "tso"));
+                    case "tikv_coprocessor_request_duration_seconds" :
+                        //无样例数据 95% & 99% coprocessor request duration : 95% & 99%  coprocessor 执行时间
+
+                    case "tikv_raftstore_raft_sent_message_total" :
+                        //无样例数据  Vote
+                        for(Metrics.Metric metric : metricFamily.getMetricList()) {
+                            if("vote".equals(metric.getLabel(0).getValue())) {
+                                status.setVote(metric.getCounter().getValue());
+                                break;
+                            }
+                        }
+
+                    case "tikv_server_report_failure_msg_total" :
+                        //无样例数据  发送失败或者收到了错误的 message
+
+                    case "tikv_storage_engine_async_request_duration_seconds" :
+                        for(Metrics.Metric metric : metricFamily.getMetricList()) {
+                            Metrics.Histogram histogram = metric.getHistogram();
+
+                            if("snapshot".equals(metric.getLabel(0).getValue())) {
+                                snapshotHis.setCount(histogram.getSampleCount());
+                                snapshotHis.setSum(histogram.getSampleSum());
+                                for(Metrics.Bucket bucket : histogram.getBucketList()){
+                                    snapshotHis.setValue(bucket.getUpperBound(), (double) bucket.getCumulativeCount());
+                                }
+                            }else if("write".equals(metric.getLabel(0).getValue())) {
+                                writeHis.setCount(histogram.getSampleCount());
+                                writeHis.setSum(histogram.getSampleSum());
+                                for(Metrics.Bucket bucket : histogram.getBucketList()){
+                                    writeHis.setValue(bucket.getUpperBound(), (double) bucket.getCumulativeCount());
+                                }
+                            }
+                        }
                         break;
 
-                    //99% 的query时间
-                    case "tidb_server_handle_query_duration_seconds" :
-                        currenttiDBMetricsBean.setQueryDuration99thPercentile(foreachHistogramByBucketLimit(metrics, 0.99D));
-                        break;
-                }
-            }
-            currenttiDBMetricsBean.setTime(System.currentTimeMillis());
-            {
-                //TODO 保存数据库
-                TiDBMetricsBean prevMetrics = MonitorData.get().getTiDBMetricsBean();
-                if(prevMetrics != null) {
-                    long inteval = (currenttiDBMetricsBean.getTime() - prevMetrics.getTime() ) / 1000;
-
-                    System.out.println("qps:" + (currenttiDBMetricsBean.getQps() - prevMetrics.getQps())/inteval);
-                    System.out.println("conns:" + (currenttiDBMetricsBean.getConnectionCount()));
-                    System.out.println("statement:" + (currenttiDBMetricsBean.getStatementCount() -
-                            prevMetrics.getStatementCount())/inteval);
-                    //ops是每分钟最大的开关(或动作)次数 、60代表一分钟，这边统计的是间隔时间总和/60
-                    System.out.println("tso:" + (currenttiDBMetricsBean.getTso() - prevMetrics.getTso())/inteval/60);
-                    //同上
-                    System.out.println("99%的query时间:" + (currenttiDBMetricsBean.getQueryDuration99thPercentile() -
-                            prevMetrics.getQueryDuration99thPercentile())/inteval/60);
-                }
-            }
-            MonitorData.get().setTiDBMetricsBean(currenttiDBMetricsBean);
-        }
-
-        private void pdAnalysis(List<Metrics.MetricFamily> metricFamilyList) {
-
-            for(Metrics.MetricFamily metricFamily : metricFamilyList) {
-                String metricName = metricFamily.getName();
-                List<Metrics.Metric> metrics = metricFamily.getMetricList();
-
-                switch (metricName) {
-                    //QPS 统计 (是总数)
-                    case "tidb_server_query_total" :
-                        foreachCounter(metrics);
-                        break;
-
-                    //连接数 （当前值）
-                    case "tidb_server_connections" :
-                        foreachGauge(metrics);
-                        break;
-
-                    //statement（当前值）
-                    case "tidb_executor_statement_total" :
-                        foreachCounter(metrics);
-                        break;
-
-                    //PD获取TSO响应时间 (直方桶图)
-                    case "pd_client_request_handle_requests_duration_seconds" :
-                        foreachHistogramByTypeValue(metrics, "tso");
-                        break;
-
-                    //99% 的query时间
-                    case "tidb_server_handle_query_duration_seconds" :
-                        foreachHistogramByBucketLimit(metrics, 0.99D);
+                    case "tikv_scheduler_command_duration_seconds" :
+                        Metrics.Metric metric = metricFamily.getMetric(0);
+                        Metrics.Histogram histogram = metric.getHistogram();
+                        schedulerHis.setCount(histogram.getSampleCount());
+                        schedulerHis.setSum(histogram.getSampleSum());
+                        for(Metrics.Bucket bucket : histogram.getBucketList()){
+                            schedulerHis.setValue(bucket.getUpperBound(), (double) bucket.getCumulativeCount());
+                        }
                         break;
                 }
             }
+
+            status.setOtherPendingTask(otherPengdingWorkCount);
+            status.setStorageAsyncRequestDurationSnapshotHis(snapshotHis);
+            status.setStorageAsyncRequestDurationWriteHis(writeHis);
+            status.setTikvSchedulerContextTotalHis(schedulerHis);
+
+            return status;
         }
 
-        private void tikvAnalysis(List<Metrics.MetricFamily> metricFamilyList) {
-
-        }
-
-        private double foreachCounter(List<Metrics.Metric> metrics) {
-            double res = 0D;
-            for(Metrics.Metric metric : metrics) {
-                res += metric.getCounter().getValue();
+        private void calc(String instId, TiKVMetricsStatus tiKVMetricsStatus) {
+            TiKVMetricsStatus prevTikvMetricsStatus = MonitorData.get().getTiKVMetricsStatusMap().get(instId);
+            if(prevTikvMetricsStatus == null) {
+                MonitorData.get().getTiKVMetricsStatusMap().put(instId, tiKVMetricsStatus);
+                return;
             }
-            return res;
-        }
 
-        private double foreachGauge(List<Metrics.Metric> metrics) {
-            double res = 0D;
-            for(Metrics.Metric metric : metrics) {
-                res += metric.getGauge().getValue();
-            }
-            return res;
-        }
+            Histogram h1ScheduleHis = prevTikvMetricsStatus.getTikvSchedulerContextTotalHis();
+            Histogram h2ScheduleHis = tiKVMetricsStatus.getTikvSchedulerContextTotalHis();
+            tiKVMetricsStatus.setTikvSchedulerContextTotal(
+                    Histogram.calc(h1ScheduleHis, h2ScheduleHis, 0.99));
 
-        *//*private double foreachHistogram(List<Metrics.Metric> metrics) {
-            double res = 0D;
-            for(Metrics.Metric metric : metrics) {
-                res += metric.getGauge().getValue();
-            }
-            return res;
-        }*//*
+            Histogram h1SnapshotHis = prevTikvMetricsStatus.getStorageAsyncRequestDurationSnapshotHis();
+            Histogram h2SnapshotHis = tiKVMetricsStatus.getStorageAsyncRequestDurationSnapshotHis();
+            tiKVMetricsStatus.setStorageAsyncRequestSnapshotDuration(
+                    Histogram.calc(h1SnapshotHis, h2SnapshotHis, 1));
 
-        private double foreachHistogramByTypeValue(List<Metrics.Metric> metrics, String typeValue) {
-            double res = 0D;
-            for(Metrics.Metric metric : metrics) {
-                Metrics.LabelPair label = metric.getLabel(0);
-                if(typeValue.equals(label.getValue())) {
-                    Metrics.Histogram histogram = metric.getHistogram();
-                    List<Metrics.Bucket> bucketList = histogram.getBucketList();
-                    for(Metrics.Bucket bucket : bucketList) {
-                        res += bucket.getCumulativeCount();
-                    }
-                    break;
-                }
-                continue;
-            }
-            return res;
-        }
+            Histogram h1WriteHis = prevTikvMetricsStatus.getStorageAsyncRequestDurationWriteHis();
+            Histogram h2WriteHis = tiKVMetricsStatus.getStorageAsyncRequestDurationWriteHis();
+            tiKVMetricsStatus.setStorageAsyncRequestWriteDuration(
+                    Histogram.calc(h1WriteHis, h2WriteHis, 1));
 
-        private double foreachHistogramByBucketLimit(List<Metrics.Metric> metrics, double limit) {
-            double res = 0D;
-            for(Metrics.Metric metric : metrics) {
-                Metrics.Histogram histogram = metric.getHistogram();
-                List<Metrics.Bucket> bucketList = histogram.getBucketList();
-                for(Metrics.Bucket bucket : bucketList) {
-                    if(bucket.getUpperBound() > (1-limit))
-                        res += bucket.getCumulativeCount();
-                }
-            }
-            return res;
+            tiKVMetricsStatus.setVoteRate(tiKVMetricsStatus.getVote() - prevTikvMetricsStatus.getVote());
+            MonitorData.get().getTiKVMetricsStatusMap().put(instId, tiKVMetricsStatus);
         }
-    }*/
+    }
 }
