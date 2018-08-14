@@ -146,6 +146,35 @@ public class MonitorData {
         return jsonObject;
     }
 
+    public JsonObject getTiDBSyncJson(String servId) {
+        JsonObject jsonObject = new JsonObject();
+        List<InstanceDtlBean> tidbs = MetaData.get().getTiDBsByServId(servId);
+        JsonObject tidbJson = new JsonObject();
+        for(InstanceDtlBean tidb : tidbs) {
+            tidbJson.put(tidb.getInstID(), Json.encode(tiDBMetricsStatusMap.get(tidb.getInstID())));
+        }
+        jsonObject.put("tidb",tidbJson);
+
+        List<InstanceDtlBean> pds = MetaData.get().getPDsByServId(servId);
+        JsonObject pdJson = new JsonObject();
+        for(InstanceDtlBean pd : pds) {
+            pdJson.put(pd.getInstID(), Json.encode(pdClusterStatusMap.get(pd.getInstID())));
+        }
+        jsonObject.put("pd",pdJson);
+        return jsonObject;
+    }
+
+    public JsonObject getTiKVSyncJson(String instId) {
+        JsonObject jsonObject = new JsonObject();
+
+        JsonObject tikvJson = new JsonObject();
+        tikvJson.put(instId, Json.encode(tiKVMetricsStatusMap.get(instId)));
+
+        jsonObject.put("tikv",tikvJson);
+
+        return jsonObject;
+    }
+
     public JsonObject getCacheSyncJson(String servId) {
         JsonObject jsonObject = new JsonObject();
         List<InstanceDtlBean> proxys = MetaData.get().getCacheProxysByServId(servId);
@@ -175,6 +204,8 @@ public class MonitorData {
             Map.Entry<String, Object> entry = vbIter.next();
             String key = entry.getKey();
             JsonObject json = new JsonObject(entry.getValue().toString());
+            if(json == null)
+                continue;
             try {
                 mqVbrokerCollectInfoMap.put(key, Json.decodeValue(json.toString(), MQVbrokerCollectInfo.class));
             }catch (Exception e) {
@@ -188,6 +219,8 @@ public class MonitorData {
             Map.Entry<String, Object> entry = queueIter.next();
             String key = entry.getKey();
             JsonObject json = new JsonObject(entry.getValue().toString());
+            if(json == null)
+                continue;
             try {
                 mqQueueCollectInfoMap.put(key, Json.decodeValue(json.toString(), MQQueueCollectInfo.class));
             }catch (Exception e) {
@@ -207,6 +240,8 @@ public class MonitorData {
             Map.Entry<String, Object> entry = proxyIter.next();
             String key = entry.getKey();
             JsonObject json = new JsonObject(entry.getValue().toString());
+            if(json == null)
+                continue;
             try {
                 cacheProxyCollectInfoMap.put(key, Json.decodeValue(json.toString(), CacheProxyCollectInfo.class));
             }catch (Exception e) {
@@ -221,6 +256,8 @@ public class MonitorData {
             Map.Entry<String, Object> entry = cacheNodeIter.next();
             String key = entry.getKey();
             JsonObject json = new JsonObject(entry.getValue().toString());
+            if(json == null)
+                continue;
             try {
                 cacheNodeCollectInfoMap.put(key, Json.decodeValue(json.toString(), CacheNodeCollectInfo.class));
             }catch (Exception e) {
@@ -228,6 +265,64 @@ public class MonitorData {
             }
         }
     }
+
+    public void syncTiDBJson(JsonObject jsonObject, String servId) {
+
+        if(jsonObject == null)
+            return;
+
+        JsonObject tidbJson = jsonObject.getJsonObject("tidb");
+        if(tidbJson != null) {
+            Iterator<Map.Entry<String, Object>> tidbIter = tidbJson.iterator();
+            while(tidbIter.hasNext()) {
+                Map.Entry<String, Object> entry = tidbIter.next();
+                String key = entry.getKey();
+                JsonObject json = new JsonObject(entry.getValue().toString());
+                if(json == null)
+                    continue;
+                try {
+                    tiDBMetricsStatusMap.put(key, Json.decodeValue(json.toString(), TiDBMetricsStatus.class));
+                }catch (Exception e) {
+                    logger.error("sync tidb data fail : {}", e.getMessage());
+                }
+            }
+        }
+
+        JsonObject pdJson = jsonObject.getJsonObject("pd");
+        if(pdJson != null) {
+            Iterator<Map.Entry<String, Object>> pdIter = pdJson.iterator();
+            while(pdIter.hasNext()) {
+                Map.Entry<String, Object> entry = pdIter.next();
+                String key = entry.getKey();
+                JsonObject json = new JsonObject(entry.getValue().toString());
+                if(json == null)
+                    continue;
+                try {
+                    pdClusterStatusMap.put(key, Json.decodeValue(json.toString(), PDClusterStatus.class));
+                }catch (Exception e) {
+                    logger.error("sync pd data fail : {}", e.getMessage());
+                }
+            }
+        }
+
+        JsonObject tikvJson = jsonObject.getJsonObject("tikv");
+        if(tikvJson != null) {
+            Iterator<Map.Entry<String, Object>> tikvIter = tikvJson.iterator();
+            while(tikvIter.hasNext()) {
+                Map.Entry<String, Object> entry = tikvIter.next();
+                String key = entry.getKey();
+                JsonObject json = new JsonObject(entry.getValue().toString());
+                if(json == null)
+                    continue;
+                try {
+                    tiKVMetricsStatusMap.put(key, Json.decodeValue(json.toString(), TiKVMetricsStatus.class));
+                }catch (Exception e) {
+                    logger.error("sync tikv data fail : {}", e.getMessage());
+                }
+            }
+        }
+    }
+
 
     public Map<String, MQVbrokerCollectInfo> getMqVbrokerCollectInfoMap() {
         return mqVbrokerCollectInfoMap;

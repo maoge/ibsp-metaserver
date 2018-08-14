@@ -942,6 +942,24 @@ public class SSHExecutor {
 
 		return  context.indexOf("rabbitmq") != -1;
 	}
+
+	public boolean isPdRunning(String instId,String sessionKey) throws InterruptedException {
+		String cmd = String.format("ps -ef | grep pd | grep %s %s", instId, CONSTS.LINE_SEP);
+		String context = generalCommand(cmd);
+
+		DeployLog.pubLog(sessionKey, context);
+
+		return  context.indexOf("pd-server") != -1;
+	}
+
+	public boolean isTiDBRunning(String port,String sessionKey) throws InterruptedException {
+		String cmd = String.format("ps -ef | grep tidb-server | grep %s %s", port, CONSTS.LINE_SEP);
+		String context = generalCommand(cmd);
+
+		DeployLog.pubLog(sessionKey, context);
+
+		return  context.indexOf("tidb-server") != -1;
+	}
 	
 	public JschUserInfo getUserInfo() {
 		return ui;

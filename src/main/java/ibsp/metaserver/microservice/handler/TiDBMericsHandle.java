@@ -4,11 +4,20 @@ import ibsp.metaserver.annotation.App;
 import ibsp.metaserver.annotation.Service;
 
 import ibsp.metaserver.bean.Histogram;
+import ibsp.metaserver.bean.ResultBean;
 import ibsp.metaserver.bean.TiKVMetricsStatus;
+import ibsp.metaserver.dbservice.TiDBService;
+import ibsp.metaserver.eventbus.EventBean;
+import ibsp.metaserver.eventbus.EventBusMsg;
+import ibsp.metaserver.eventbus.EventType;
+import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.global.MonitorData;
 import ibsp.metaserver.threadpool.WorkerPool;
+import ibsp.metaserver.utils.CONSTS;
+import ibsp.metaserver.utils.FixHeader;
 import io.prometheus.client.Metrics;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -205,6 +214,19 @@ public class TiDBMericsHandle {
 
             tiKVMetricsStatus.setVoteRate(tiKVMetricsStatus.getVote() - prevTikvMetricsStatus.getVote());
             MonitorData.get().getTiKVMetricsStatusMap().put(instId, tiKVMetricsStatus);
+
+            ResultBean result = new ResultBean();
+            TiDBService.saveTiKVCollectInfo(instId, result);
+
+            JsonObject paramsJson = new JsonObject();
+            paramsJson.put(FixHeader.HEADER_SERV_TYPE, CONSTS.SERV_TYPE_DB);
+            paramsJson.put(FixHeader.HEADER_JSONSTR, MonitorData.get().getTiKVSyncJson(instId));
+            EventBean evBean = new EventBean();
+            evBean.setEvType(EventType.e99);
+            evBean.setServID(instId);
+            evBean.setJsonStr(paramsJson.toString());
+            evBean.setUuid(MetaData.get().getUUID());
+            EventBusMsg.publishEvent(evBean);
         }
     }
 }

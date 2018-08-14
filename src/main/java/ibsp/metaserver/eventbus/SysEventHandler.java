@@ -188,7 +188,7 @@ public class SysEventHandler implements Handler<Message<String>> {
 						}else if(CONSTS.SERV_TYPE_CACHE.equalsIgnoreCase(servType)) {
 							MonitorData.get().syncCacheJson(syncJson, servId);
 						}else if(CONSTS.SERV_TYPE_DB.equalsIgnoreCase(servType)) {
-
+							MonitorData.get().syncTiDBJson(syncJson, servId);
 						}
 					}
 				}

@@ -56,7 +56,11 @@ public enum EventType {
 	
 	e71(50071, false, "tidb server deployed"),           // TIDB层扩容
 	e72(50072, false, "tidb server undeployed"),         // TIDB层缩容
-	
+
+	e81(50081, true, "tidb-server down"),
+	e82(50082, true, "pd-server down"),
+	e83(50083, true, "tikv-server down"),
+
 	e98(50098, false, "client put collect event"),       // Client端定时上传统计信息
 	e99(50099, false, "sync memroy data");               // 内存数据同步
 

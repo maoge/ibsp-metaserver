@@ -317,7 +317,10 @@ public class MQServiceMonitor {
             if (num == CONSTS.CMD_CHANNEL_ID)
                 continue;
 
-            JsonObject connDetails = json.getJsonObject("connection_details");
+            JsonObject connDetails = null;
+            try {
+                connDetails = json.getJsonObject("connection_details");
+            }catch (Exception e) {}
             if(connDetails == null) {
                 continue;
             }

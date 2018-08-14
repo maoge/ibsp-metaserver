@@ -1,7 +1,8 @@
 package ibsp.metaserver.bean;
 
 public class TiDBMetricsStatus {
-    private double tidbServerQueryTotal; //QPS;
+    private double tidbServerQueryTotal; //;
+    private double qps;
     private double connectionCount;
     private double statementCount;
 
@@ -113,10 +114,19 @@ public class TiDBMetricsStatus {
         this.statements = statements;
     }
 
+    public double getQps() {
+        return qps;
+    }
+
+    public void setQps(double qps) {
+        this.qps = qps;
+    }
+
     @Override
     public String toString() {
         return "TiDBMetricsStatus{" +
                 "tidbServerQueryTotal=" + tidbServerQueryTotal +
+                ", qps=" + qps +
                 ", connectionCount=" + connectionCount +
                 ", statementCount=" + statementCount +
                 ", handleRegionRequestDuraction=" + handleRegionRequestDuraction +

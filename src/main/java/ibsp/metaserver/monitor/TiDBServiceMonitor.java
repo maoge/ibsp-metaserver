@@ -1,11 +1,19 @@
 package ibsp.metaserver.monitor;
 
+import ibsp.metaserver.autodeploy.utils.JschUserInfo;
+import ibsp.metaserver.autodeploy.utils.SSHExecutor;
 import ibsp.metaserver.bean.*;
+import ibsp.metaserver.dbservice.MetaDataService;
+import ibsp.metaserver.dbservice.TiDBService;
+import ibsp.metaserver.eventbus.EventBean;
+import ibsp.metaserver.eventbus.EventBusMsg;
+import ibsp.metaserver.eventbus.EventType;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.global.MonitorData;
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.FixHeader;
 import ibsp.metaserver.utils.HttpUtils;
+import ibsp.metaserver.utils.SysConfig;
 import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +37,8 @@ public class TiDBServiceMonitor {
             return;
         }
 
+        ResultBean result = new ResultBean();
+
         String servId = serviceBean.getInstID();
 
         List<InstanceDtlBean> pds = MetaData.get().getPDsByServId(servId);
@@ -36,7 +46,7 @@ public class TiDBServiceMonitor {
             return;
 
         for(InstanceDtlBean pd : pds) {
-            checkPDStatus(pd);
+            checkPDStatus(servId, pd);
         }
 
         List<InstanceDtlBean> tidbs = MetaData.get().getTiDBsByServId(servId);
@@ -45,18 +55,21 @@ public class TiDBServiceMonitor {
             return;
 
         for(InstanceDtlBean tidb : tidbs) {
-            checkTiDBStatus(tidb);
+            checkTiDBStatus(servId, tidb);
         }
+
+        TiDBService.saveCollectInfo(servId, result);
+        syncCollectData(servId);
     }
 
-    private static boolean checkPDStatus(InstanceDtlBean pd) {
+    private static boolean checkPDStatus(String servId, InstanceDtlBean pd) {
         if(pd == null)
             return false;
-        return checkPDStatus(pd, true);
+        return checkPDStatus(servId, pd, true);
     }
 
     //检测PD状态。
-    private static boolean checkPDStatus(InstanceDtlBean pd, boolean recycle) {
+    private static boolean checkPDStatus(String servId, InstanceDtlBean pd, boolean recycle) {
         boolean res = false;
         JsonObject json = getPDJsonByInst(pd, "leader");
 
@@ -68,15 +81,34 @@ public class TiDBServiceMonitor {
         //可能是网络问题，再重试3次
         if(json == null) {
             for(int i=0; i < 3; i++) {
-                if(res = checkPDStatus(pd, false)) {
+                if(res = checkPDStatus(servId, pd, false)) {
                     break;
+                }
+                try {
+                    Thread.sleep(1000L);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
             }
         }
 
-        //TODO 重试3次后还是失败的，通过ssh连接查看进程是不是存在，不存在的就重启这个节点。
         if(!res) {
+            ResultBean result = new ResultBean();
 
+            JsonObject alarmMess = new JsonObject();
+            EventBean ev = new EventBean();
+            ev.setEvType(EventType.e82);
+            ev.setServID(servId);
+            alarmMess.put(FixHeader.HEADER_INSTANCE_ID, pd.getInstID());
+            ev.setJsonStr(alarmMess.toString());
+
+            boolean success = MetaDataService.saveAlarm(ev, result);
+            if(!success) {
+                logger.error("pd id:{} save alarm message : {} fail" ,pd.getInstID(), result.getRetInfo());
+            }
+
+            String port = pd.getAttribute(FixHeader.HEADER_PORT).getAttrValue();
+            sshCheck(pd, "~/pd_deploy/"+port, CONSTS.SERV_DB_PD, result);
         }else {
             //如果正好检测的节点是主节点，就检测其他信息。不是主节点的 不采集
             String pdLeader = json.getString("name");
@@ -85,19 +117,84 @@ public class TiDBServiceMonitor {
                 PDClusterStatus pdClusterStatus = getPDMetricsByInst(pd);
                 //计算histogram信息
                 pdCalc(pd.getInstID(), pdClusterStatus);
-
             }
         }
         return res;
     }
 
-    private static boolean checkTiDBStatus(InstanceDtlBean tidb) {
+    private static boolean checkTiDBStatus(String servId, InstanceDtlBean tidb) {
         if(tidb == null)
             return false;
-        return checkTiDBStatus(tidb, true);
+        return checkTiDBStatus(servId, tidb, true);
     }
 
-    private static boolean checkTiDBStatus(InstanceDtlBean tidb, boolean recycle) {
+    private static void sshCheck(InstanceDtlBean instance, String path, String type, ResultBean result) {
+
+        SSHExecutor executor = null;
+        boolean connected = false;
+
+        try{
+            JschUserInfo ui = new JschUserInfo(instance.getAttribute(FixHeader.HEADER_OS_USER).getAttrValue(),
+                    instance.getAttribute(FixHeader.HEADER_OS_PWD).getAttrValue(),
+                    instance.getAttribute(FixHeader.HEADER_IP).getAttrValue(),
+                    CONSTS.SSH_PORT_DEFAULT);
+            executor = new SSHExecutor(ui);
+            executor.connect();
+            connected = true;
+            executor.echo("test"); //有的机器中间加了跳转和管控防止ssh登录“last login:xxxxxx”串到输出一起显示
+
+            String port = instance.getAttribute(FixHeader.HEADER_PORT).getAttrValue();
+            executor.cd(path, "");
+
+            if(!executor.isPortUsed(port, "")) {
+                boolean isRunning = false;
+                if(CONSTS.SERV_DB_PD.equals(type)) {
+                    isRunning = executor.isPdRunning(instance.getInstID(), "");
+                }else if(CONSTS.SERV_DB_TIDB.equals(type)) {
+                    isRunning = executor.isTiDBRunning(instance.getAttribute(FixHeader.HEADER_PORT).getAttrValue()
+                            , "");
+                }
+                if(isRunning) {
+                    result.setRetCode(CONSTS.REVOKE_OK);
+                    String info = String.format("instance id:%s is already running, does not need start !", instance.getInstID());
+                    result.setRetInfo(info);
+                }else {
+                    executor.execStartShell("");
+
+                    long beginTS = System.currentTimeMillis();
+                    long currTS = beginTS;
+                    long maxTS = 60000L;
+                    do{
+                        Thread.sleep(1000L);
+                        currTS = System.currentTimeMillis();
+                        if(currTS - beginTS > maxTS) {
+                            result.setRetCode(CONSTS.REVOKE_NOK);
+                            result.setRetInfo(String.format("instance id:%s execute start.sh time out", instance.getInstID()));
+                            break;
+                        }
+                    }while(!executor.isPortUsed(port, ""));
+
+                    if(executor.isPortUsed(port, "")) {
+                        result.setRetCode(CONSTS.REVOKE_OK);
+                    }
+
+                }
+            }
+
+        } catch (Exception e) {
+            String errorMess = String.format("handle instance id : %s faild ",instance.getInstID() );
+            logger.error(errorMess, e);
+            result.setRetCode(CONSTS.REVOKE_NOK);
+            result.setRetInfo(errorMess);
+        } finally {
+            if(connected) {
+                executor.close();
+            }
+        }
+
+    }
+
+    private static boolean checkTiDBStatus(String servId, InstanceDtlBean tidb, boolean recycle) {
         boolean res = false;
         JsonObject json = getTiDBJsonByInst(tidb, "status");
 
@@ -110,15 +207,34 @@ public class TiDBServiceMonitor {
         //可能是网络问题，再重试3次
         if(json == null) {
             for(int i=0; i < 3; i++) {
-                if(res = checkTiDBStatus(tidb, false)) {
+                if(res = checkTiDBStatus(servId, tidb, false)) {
                     break;
+                }
+                try {
+                    Thread.sleep(1000L);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
             }
         }
 
-        //TODO 重试3次后还是失败的，通过ssh连接查看进程是不是存在，不存在的就重启这个节点。
         if(!res) {
+            ResultBean result = new ResultBean();
 
+            JsonObject alarmMess = new JsonObject();
+            EventBean ev = new EventBean();
+            ev.setEvType(EventType.e81);
+            ev.setServID(servId);
+            alarmMess.put(FixHeader.HEADER_INSTANCE_ID, tidb.getInstID());
+            ev.setJsonStr(alarmMess.toString());
+
+            boolean success = MetaDataService.saveAlarm(ev, result);
+            if(!success) {
+                logger.error("tidb id:{} save alarm message : {} fail" ,tidb.getInstID(), result.getRetInfo());
+            }
+
+            String port = tidb.getAttribute(FixHeader.HEADER_PORT).getAttrValue();
+            sshCheck(tidb, "~/tidb_deploy/"+port, CONSTS.SERV_DB_TIDB, result);
         }else {
             //节点正常 就采集其他信息
             TiDBMetricsStatus tiDBMetricsStatus = getTIDBMetricsByInst(tidb);
@@ -477,6 +593,7 @@ public class TiDBServiceMonitor {
             status.setHandleRegionRequestDuraction(regionHis);
             status.setHandleStoreRequestDuraction(storeHis);
             status.setHandleTsoRequestDuraction(tsoHis);
+
         } catch(Exception e){
             logger.error(e.getMessage(), e);
         }finally{
@@ -533,8 +650,21 @@ public class TiDBServiceMonitor {
         status.setHandleTsoRequestDuractionSeconeds(Histogram.calc(h1Tso, h2Tso, 1));
 
         status.setStatements(status.getStatementCount() - prevTiDBStatus.getStatementCount());
-
+        status.setQps((status.getTidbServerQueryTotal() - prevTiDBStatus.getTidbServerQueryTotal()) /
+                10);
         MonitorData.get().getTiDBMetricsStatusMap().put(instId, status);
+    }
+
+    private static void syncCollectData (String servId) {
+        JsonObject paramsJson = new JsonObject();
+        paramsJson.put(FixHeader.HEADER_SERV_TYPE, CONSTS.SERV_TYPE_DB);
+        paramsJson.put(FixHeader.HEADER_JSONSTR, MonitorData.get().getTiDBSyncJson(servId));
+        EventBean evBean = new EventBean();
+        evBean.setEvType(EventType.e99);
+        evBean.setServID(servId);
+        evBean.setJsonStr(paramsJson.toString());
+        evBean.setUuid(MetaData.get().getUUID());
+        EventBusMsg.publishEvent(evBean);
     }
 
     private static String makeUrl(String host, String mgrPort, String api) {

@@ -15,13 +15,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import ibsp.metaserver.bean.*;
+import ibsp.metaserver.global.MonitorData;
+import ibsp.metaserver.utils.CRUD;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ibsp.metaserver.bean.InstAttributeBean;
-import ibsp.metaserver.bean.InstanceBean;
-import ibsp.metaserver.bean.InstanceDtlBean;
-import ibsp.metaserver.bean.ResultBean;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.HttpUtils;
@@ -32,8 +31,17 @@ import io.vertx.core.json.JsonObject;
 public class TiDBService {
 	
 	private static Logger logger = LoggerFactory.getLogger(TiDBService.class);
-			
-	
+
+	private static final String INSERT_TIDB_COLLECT= "INSERT INTO t_mo_tidb_collect (INST_ID,QPS, "+
+			"CONNECTION_COUNT,STATEMENT_COOUNT,QUERY_DURATION_99PERC,TIME) values (?,?,?,?,?,?)" ;
+
+	private static final String INSERT_PD_COLLECT= "INSERT INTO t_mo_pd_collect (INST_ID,STORAGE_CAPACITY, "+
+			"CURRENT_STORAGE_SIZE,COMPLETE_DURATION_SECONDS_99PENC,LEADER_BALANCE_RATIO,REGION_BALANCE_RATIO," +
+			"TIME) values (?,?,?,?,?,?,?)" ;
+
+	private static final String INSERT_TIKV_COLLECT= "INSERT INTO t_mo_tikv_collect (INST_ID,LEADER_COUNT, "+
+			"REGION_COUNT,SCHEEDULER_COMMAND_DURATION,TIME) values (?,?,?,?,?)" ;
+
 	public static boolean loadServiceInfo(String serviceID, List<InstanceDtlBean> pdServerList,
 			List<InstanceDtlBean> tidbServerList, List<InstanceDtlBean> tikvServerList,
 			InstanceDtlBean collectd, ResultBean result) {
@@ -453,5 +461,106 @@ public class TiDBService {
 			return null;
 		}
 		return array;
+	}
+
+	public static boolean saveCollectInfo(String servId, ResultBean result) {
+		boolean res = true;
+		if(!saveTiDBCollectInfo(servId, result)){
+			res = false;
+			logger.error("save tidb collect info fail : {}" , result.getRetInfo());
+		}
+		if(!savePDCollectInfo(servId, result)){
+			res = false;
+			logger.error("save pd collect info fail : {}" , result.getRetInfo());
+		}
+		return res;
+	}
+
+	public static boolean saveTiDBCollectInfo(String servId, ResultBean result) {
+		boolean res = false;
+
+		List<InstanceDtlBean> tidbs = MetaData.get().getTiDBsByServId(servId);
+		if(tidbs == null || tidbs.size() == 0) {
+			return true;
+		}
+		Map<String, TiDBMetricsStatus> tidbCollectInfo = MonitorData.get().getTiDBMetricsStatusMap();
+
+		CRUD crud = new CRUD();
+		long currentTime = System.currentTimeMillis();
+
+		for(InstanceDtlBean tidb : tidbs) {
+			SqlBean sqlBean = new SqlBean(INSERT_TIDB_COLLECT);
+			String instID = tidb.getInstID();
+
+			TiDBMetricsStatus collectInfo = tidbCollectInfo.get(instID);
+			if(collectInfo == null)
+				continue;
+			sqlBean.addParams(new Object[]{
+					tidb.getInstID(), collectInfo.getQps(), collectInfo.getConnectionCount(),
+					collectInfo.getStatements(), collectInfo.getQueryDurationSeconeds(), currentTime
+			});
+			crud.putSqlBean(sqlBean);
+		}
+		res = crud.executeUpdate(result);
+		return res;
+	}
+
+	public static boolean savePDCollectInfo(String servId, ResultBean result) {
+		boolean res = false;
+
+		List<InstanceDtlBean> pds = MetaData.get().getPDsByServId(servId);
+		if(pds == null || pds.size() == 0) {
+			return true;
+		}
+		Map<String, PDClusterStatus> pdCollectInfo = MonitorData.get().getPdClusterStatusMap();
+
+		CRUD crud = new CRUD();
+		long currentTime = System.currentTimeMillis();
+
+		for(InstanceDtlBean pd : pds) {
+			SqlBean sqlBean = new SqlBean(INSERT_PD_COLLECT);
+			String instID = pd.getInstID();
+
+			PDClusterStatus collectInfo = pdCollectInfo.get(instID);
+			if(collectInfo == null)
+				continue;
+			sqlBean.addParams(new Object[]{
+					pd.getInstID(), collectInfo.getCapacity(), collectInfo.getCurrentSize(),
+					collectInfo.getCompletedCmdsDurationSecondsAvg99(), collectInfo.getLeaderBalanceRatio(),
+					collectInfo.getRegionBalanceRatio(), currentTime
+			});
+			crud.putSqlBean(sqlBean);
+		}
+		res = crud.executeUpdate(result);
+		return res;
+	}
+
+	public static boolean saveTiKVCollectInfo(String instId, ResultBean result) {
+		boolean res = false;
+
+		InstanceDtlBean tikv = MetaData.get().getInstanceDtlBean(instId);
+		if(tikv == null) {
+			return true;
+		}
+
+		Map<String, TiKVMetricsStatus> tikvCollectInfo = MonitorData.get().getTiKVMetricsStatusMap();
+
+		TiKVMetricsStatus collectInfo = tikvCollectInfo.get(instId);
+		if(collectInfo == null)
+			return true;
+
+		CRUD crud = new CRUD();
+		long currentTime = System.currentTimeMillis();
+
+		SqlBean sqlBean = new SqlBean(INSERT_TIKV_COLLECT);
+
+		sqlBean.addParams(new Object[]{
+				tikv.getInstID(), collectInfo.getLeaderCount(), collectInfo.getRegionCount(),
+				collectInfo.getTikvSchedulerContextTotal(), currentTime
+		});
+		crud.putSqlBean(sqlBean);
+
+		res = crud.executeUpdate(result);
+		return res;
 	}
 }
