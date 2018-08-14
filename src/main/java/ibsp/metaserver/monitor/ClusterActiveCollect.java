@@ -108,7 +108,7 @@ public class ClusterActiveCollect implements Runnable{
                                 String type = serviceBean.getServType();
                                 if(CONSTS.SERV_TYPE_DB.equalsIgnoreCase(type)) {
                                     //DB 监控
-
+                                    TiDBServiceMonitor.excute(serviceBean);
                                 }else if(CONSTS.SERV_TYPE_MQ.equalsIgnoreCase(type)) {
                                     //MQ 监控
                                     MQServiceMonitor.excute(serviceBean);

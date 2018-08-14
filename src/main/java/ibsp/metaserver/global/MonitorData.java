@@ -2,10 +2,8 @@ package ibsp.metaserver.global;
 
 import ibsp.metaserver.bean.*;
 import ibsp.metaserver.monitor.ConnType;
-import ibsp.metaserver.utils.FixHeader;
 import ibsp.metaserver.utils.HttpUtils;
 import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,11 +23,16 @@ public class MonitorData {
     private Map<String, CacheProxyCollectInfo> cacheProxyCollectInfoMap;//proxyId -> CacheProxyCollecInfo
     private Map<String, CacheNodeCollectInfo> cacheNodeCollectInfoMap;//cacheId -> CacheNodeCollectInfo
 
+    private Map<String, PDClusterStatus> pdClusterStatusMap;//pdID -> PDClusterStatus
+    private Map<String, TiDBMetricsStatus> tiDBMetricsStatusMap;//pdID -> PDClusterStatus
+
     private MonitorData() {
         mqVbrokerCollectInfoMap  = new ConcurrentHashMap<>();
         mqQueueCollectInfoMap    = new ConcurrentHashMap<>();
         cacheProxyCollectInfoMap = new ConcurrentHashMap<>();
         cacheNodeCollectInfoMap  = new ConcurrentHashMap<>();
+        pdClusterStatusMap       = new ConcurrentHashMap<>();
+        tiDBMetricsStatusMap     = new ConcurrentHashMap<>();
     }
 
     public static MonitorData get() {
@@ -240,11 +243,21 @@ public class MonitorData {
         return cacheNodeCollectInfoMap;
     }
 
+    public Map<String, PDClusterStatus> getPdClusterStatusMap() {
+        return pdClusterStatusMap;
+    }
+
+    public Map<String, TiDBMetricsStatus> getTiDBMetricsStatusMap() {
+        return tiDBMetricsStatusMap;
+    }
+
     public JsonObject toJson() {
         return new JsonObject().put("mqVbrokerCollectInfoMap" , HttpUtils.mapToJson(mqVbrokerCollectInfoMap))
                 .put("mqQueueCollectInfoMap", HttpUtils.mapToJson(mqQueueCollectInfoMap))
                 .put("cacheProxyCollecInfoMap", HttpUtils.mapToJson(cacheProxyCollectInfoMap))
-                .put("cacheNodeCollectInfoMap", HttpUtils.mapToJson(cacheNodeCollectInfoMap));
+                .put("cacheNodeCollectInfoMap", HttpUtils.mapToJson(cacheNodeCollectInfoMap))
+                .put("pdClusterStatusMap", HttpUtils.mapToJson(pdClusterStatusMap))
+                .put("tiDBMetricsStatusMap", HttpUtils.mapToJson(tiDBMetricsStatusMap));
     }
 
     public static MonitorData fromJson(JsonObject json) {
@@ -257,6 +270,10 @@ public class MonitorData {
                 CacheProxyCollectInfo.class);
         m.cacheNodeCollectInfoMap  = HttpUtils.jsonToMap(json.getJsonObject("cacheProxyCollecInfoMap"),
                 CacheNodeCollectInfo.class);
+        m.pdClusterStatusMap       = HttpUtils.jsonToMap(json.getJsonObject("pdClusterStatusMap"),
+                PDClusterStatus.class);
+        m.tiDBMetricsStatusMap       = HttpUtils.jsonToMap(json.getJsonObject("tiDBMetricsStatusMap"),
+                TiDBMetricsStatus.class);
         return m;
     }
 

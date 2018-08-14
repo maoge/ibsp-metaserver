@@ -448,6 +448,18 @@ public class MetaData {
 		return res;
 	}
 
+	public String getIpByHostName(String hostname) {
+		if (serviceMap == null)
+			return null;
+
+		for(ServerBean serverBean : serverMap.values()) {
+			if(serverBean.getServerName().equals(hostname)) {
+				return serverBean.getServerIP();
+			}
+		}
+		return null;
+	}
+
 	private void LoadMetaAttr() {
 		try {
 			intanceLock.lock();
@@ -1437,6 +1449,41 @@ public class MetaData {
 		}
 		return nodes;
 	}
+
+	public List<InstanceDtlBean> getPDsByServId(String servId) {
+		ServiceBean servBean = serviceMap.get(servId);
+		int cmptId = MetaData.get().getComponentID("DB_PD_CONTAINER");
+
+		if(servBean == null ||  !CONSTS.SERV_TYPE_DB.equals(servBean.getServType())) {
+			return null;
+		}
+
+		return getContainerIncludeElesByServIdAndCmptId(servId, cmptId);
+	}
+
+	public List<InstanceDtlBean> getTiDBsByServId(String servId) {
+		ServiceBean servBean = serviceMap.get(servId);
+		int cmptId = MetaData.get().getComponentID("DB_TIDB_CONTAINER");
+
+		if(servBean == null ||  !CONSTS.SERV_TYPE_DB.equals(servBean.getServType())) {
+			return null;
+		}
+
+		return getContainerIncludeElesByServIdAndCmptId(servId, cmptId);
+	}
+
+	public List<InstanceDtlBean> getTiKVsByServId(String servId) {
+		ServiceBean servBean = serviceMap.get(servId);
+		int cmptId = MetaData.get().getComponentID("DB_TIKV_CONTAINER");
+
+		if(servBean == null ||  !CONSTS.SERV_TYPE_DB.equals(servBean.getServType())) {
+			return null;
+		}
+
+		return getContainerIncludeElesByServIdAndCmptId(servId, cmptId);
+	}
+
+
 
 	public List<InstanceDtlBean> getCacheMasterNodesByServId(String servId) {
 		ServiceBean servBean = serviceMap.get(servId);

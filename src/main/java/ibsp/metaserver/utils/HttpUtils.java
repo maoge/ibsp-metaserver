@@ -18,9 +18,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.ConnectException;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.*;
 import java.text.DecimalFormat;
 import java.util.*;
 import java.util.Map.Entry;
@@ -241,6 +239,44 @@ public class HttpUtils {
 		return res;
 	}
 
+	public static BufferedReader getPrometheusMetrics(String urlString) {
+		URL url;
+		HttpURLConnection urlcon = null;
+		BufferedReader buffer = null;
+		boolean isConn = false;
+
+		try {
+			url = new URL(urlString);
+
+			urlcon = (HttpURLConnection) url.openConnection();
+			urlcon.setRequestMethod("POST");
+			urlcon.setDoOutput(false);
+			urlcon.setReadTimeout(50000);
+			urlcon.setConnectTimeout(50000);
+			urlcon.setRequestProperty("Accept", "text/plain;version=0.0.4;q=1,*/*;q=0.1");
+			urlcon.setRequestProperty("User-Agent", "Prometheus/2.2.1");
+			urlcon.setRequestProperty("content-type", "application/vnd.google.protobuf; proto=io.prometheus.client.MetricFamily; encoding=delimited");
+
+			buffer = new BufferedReader(new InputStreamReader(urlcon.getInputStream()));
+			isConn = true;
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			if(buffer != null) {
+				try {
+					buffer.close();
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+			}
+			if (urlcon != null && isConn) {
+				urlcon.disconnect();
+			}
+		}
+
+		return buffer;
+	}
 	public static Map<String, Object> jsonStrToMap(String str) {
 		return jsonObjectToMap(strToJSON(str));
 	}

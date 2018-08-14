@@ -70,6 +70,7 @@ public class Server extends AbstractVerticle {
 		clazzToReg.add(CollectDataHandler.class);
 		clazzToReg.add(ResourceServerHandler.class);
 		clazzToReg.add(MetaHandle.class);
+		clazzToReg.add(TiDBMericsHandle.class);
 		
 		registerRoute(router, clazzToReg);
 		
