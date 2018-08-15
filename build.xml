@@ -42,6 +42,7 @@
 			<fileset dir="${build.dir}">
 				<include name="*"/>
 				<include name="ibsp/metaserver/**"/>
+				<include name="io/prometheus/**"/>
 			</fileset>
 			
 			<manifest>
