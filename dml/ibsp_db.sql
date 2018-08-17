@@ -494,7 +494,7 @@ CREATE TABLE `t_mo_tidb_collect` (
   `INST_ID`  varchar(36) COMMENT 'INST_ID',
   `QPS`  INT NOT NULL COMMENT '请求量',
   `CONNECTION_COUNT` INT NOT NULL COMMENT '连接数',
-  `STATEMENT_COOUNT` INT COMMENT '单位时间内不同类型语句执行的数目',
+  `STATEMENT_COUNT` INT COMMENT '单位时间内不同类型语句执行的数目',
   `QUERY_DURATION_99PERC` DOUBLE NOT NULL COMMENT '99%的查询时间',
   `TIME` bigint(14) NOT NULL COMMENT ''
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
@@ -507,6 +507,7 @@ CREATE TABLE `t_mo_pd_collect` (
   `COMPLETE_DURATION_SECONDS_99PENC` DOUBLE NOT NULL COMMENT '99%pd-server 请求完成时间',
   `LEADER_BALANCE_RATIO` DOUBLE NOT NULL COMMENT 'leader ratio 最大的节点与最小的节点的差',
   `REGION_BALANCE_RATIO` DOUBLE NOT NULL COMMENT 'region ratio 最大的节点与最小的节点的差',
+  `REGIONs` DOUBLE NOT NULL COMMENT 'region数量，只统计leader的数量，所有的数量*副本数量就是总数',
   `TIME` bigint(14) NOT NULL COMMENT ''
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 

@@ -117,7 +117,11 @@ public class TiDBServiceMonitor {
                 PDClusterStatus pdClusterStatus = getPDMetricsByInst(pd);
                 //计算histogram信息
                 pdCalc(pd.getInstID(), pdClusterStatus);
+            }else {
+                //内存只保留一份PD主节点信息
+                MonitorData.get().getPdClusterStatusMap().remove(pd.getInstID());
             }
+
         }
         return res;
     }
@@ -353,7 +357,7 @@ public class TiDBServiceMonitor {
                             if(prop.contains("type=\"store_tombstone_count\""))
                                 status.setStoreTombstoneCount(Integer.valueOf(value));
 
-                            if(prop.contains("type=\"region_count\""))
+                            if(prop.contains("type=\"leader_count\""))
                                 status.setRegions(Integer.valueOf(value));
 
                             break;
@@ -412,8 +416,8 @@ public class TiDBServiceMonitor {
                 }
             }
 
-            status.setLeaderBalanceRatio(1 - minLeaderScore / maxLeaderScore);
-            status.setRegionBalanceRatio(1 - minRegionScore / maxRegionScore);
+            status.setLeaderBalanceRatio(maxLeaderScore == 0D ? 0D : 1 - minLeaderScore / maxLeaderScore);
+            status.setRegionBalanceRatio(maxRegionScore == 0D? 0D : 1 - minRegionScore / maxRegionScore);
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }finally {
@@ -466,6 +470,8 @@ public class TiDBServiceMonitor {
             Histogram storeHis = new Histogram();
             Histogram tsoHis = new Histogram();
 
+
+            double queryTotal     = 0D;
             double statementCount = 0D;
 
             while ((line = reader.readLine()) != null) {
@@ -501,7 +507,7 @@ public class TiDBServiceMonitor {
                     switch (name) {
                         //qps
                         case "tidb_server_query_total":
-                            status.setTidbServerQueryTotal(Double.parseDouble(value));
+                            queryTotal += Double.parseDouble(value);
                             break;
                         case "tidb_server_connections":
                             status.setConnectionCount(Double.parseDouble(value));
@@ -588,6 +594,7 @@ public class TiDBServiceMonitor {
 
             }
 
+            status.setTidbServerQueryTotal(queryTotal);
             status.setStatementCount(statementCount);
             status.setQueryDuration(queryDurationHis);
             status.setHandleRegionRequestDuraction(regionHis);
@@ -649,9 +656,10 @@ public class TiDBServiceMonitor {
         Histogram h2Tso = status.getHandleTsoRequestDuraction();
         status.setHandleTsoRequestDuractionSeconeds(Histogram.calc(h1Tso, h2Tso, 1));
 
-        status.setStatements(status.getStatementCount() - prevTiDBStatus.getStatementCount());
-        status.setQps((status.getTidbServerQueryTotal() - prevTiDBStatus.getTidbServerQueryTotal()) /
-                10);
+        status.setStatements(((status.getStatementCount() - prevTiDBStatus.getStatementCount())
+                / SysConfig.get().getActiveCollectInterval() * 1000));
+        status.setQps(((status.getTidbServerQueryTotal() - prevTiDBStatus.getTidbServerQueryTotal())
+                / SysConfig.get().getActiveCollectInterval() * 1000));
         MonitorData.get().getTiDBMetricsStatusMap().put(instId, status);
     }
 

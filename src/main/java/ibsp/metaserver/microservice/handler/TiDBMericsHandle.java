@@ -30,7 +30,7 @@ import java.util.List;
 public class TiDBMericsHandle {
     private static Logger logger = LoggerFactory.getLogger(TiDBMericsHandle.class);
 
-    @Service(id = ":system/instance/:server", name = "tidb/instance/:server", auth = false, bwswitch = false)
+    @Service(id = ":system/instance/:server", name = ":system/instance/:server", auth = false, bwswitch = false)
     public static void getMetrics(RoutingContext routeContext) {
         Buffer buffer = routeContext.getBody();
 

@@ -16,15 +16,13 @@ import java.util.Map;
 import java.util.Set;
 
 import ibsp.metaserver.bean.*;
+import ibsp.metaserver.exception.CRUDException;
 import ibsp.metaserver.global.MonitorData;
-import ibsp.metaserver.utils.CRUD;
+import ibsp.metaserver.utils.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ibsp.metaserver.global.MetaData;
-import ibsp.metaserver.utils.CONSTS;
-import ibsp.metaserver.utils.HttpUtils;
-import ibsp.metaserver.utils.Topology;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
@@ -33,14 +31,25 @@ public class TiDBService {
 	private static Logger logger = LoggerFactory.getLogger(TiDBService.class);
 
 	private static final String INSERT_TIDB_COLLECT= "INSERT INTO t_mo_tidb_collect (INST_ID,QPS, "+
-			"CONNECTION_COUNT,STATEMENT_COOUNT,QUERY_DURATION_99PERC,TIME) values (?,?,?,?,?,?)" ;
+			"CONNECTION_COUNT,STATEMENT_COUNT,QUERY_DURATION_99PERC,TIME) values (?,?,?,?,?,?)" ;
 
 	private static final String INSERT_PD_COLLECT= "INSERT INTO t_mo_pd_collect (INST_ID,STORAGE_CAPACITY, "+
 			"CURRENT_STORAGE_SIZE,COMPLETE_DURATION_SECONDS_99PENC,LEADER_BALANCE_RATIO,REGION_BALANCE_RATIO," +
-			"TIME) values (?,?,?,?,?,?,?)" ;
+			"REGIONS, TIME) values (?,?,?,?,?,?,?,?)" ;
 
 	private static final String INSERT_TIKV_COLLECT= "INSERT INTO t_mo_tikv_collect (INST_ID,LEADER_COUNT, "+
 			"REGION_COUNT,SCHEEDULER_COMMAND_DURATION,TIME) values (?,?,?,?,?)" ;
+
+	private final static String SEL_TIDB_MONITOR_COLLECT   = "SELECT QPS,TIME from t_mo_tidb_collect " +
+			"WHERE TIME BETWEEN ? AND ? AND INST_ID = ?  ORDER BY TIME ASC";
+
+	private final static String SEL_PD_MONITOR_COLLECT   = "SELECT STORAGE_CAPACITY,CURRENT_STORAGE_SIZE," +
+			"LEADER_BALANCE_RATIO,REGION_BALANCE_RATIO, REGIONS, TIME from t_mo_pd_collect " +
+			"WHERE TIME BETWEEN ? AND ? AND INST_ID = ?  ORDER BY TIME ASC";
+
+	private final static String SEL_TIKV_MONITOR_COLLECT   = "SELECT SCHEEDULER_COMMAND_DURATION,TIME from t_mo_tikv_collect " +
+			"WHERE TIME BETWEEN ? AND ? AND INST_ID = ?  ORDER BY TIME ASC";
+
 
 	public static boolean loadServiceInfo(String serviceID, List<InstanceDtlBean> pdServerList,
 			List<InstanceDtlBean> tidbServerList, List<InstanceDtlBean> tikvServerList,
@@ -527,7 +536,7 @@ public class TiDBService {
 			sqlBean.addParams(new Object[]{
 					pd.getInstID(), collectInfo.getCapacity(), collectInfo.getCurrentSize(),
 					collectInfo.getCompletedCmdsDurationSecondsAvg99(), collectInfo.getLeaderBalanceRatio(),
-					collectInfo.getRegionBalanceRatio(), currentTime
+					collectInfo.getRegionBalanceRatio(), collectInfo.getRegions(), currentTime
 			});
 			crud.putSqlBean(sqlBean);
 		}
@@ -562,5 +571,155 @@ public class TiDBService {
 
 		res = crud.executeUpdate(result);
 		return res;
+	}
+
+	public static JsonArray getTiDBCollectData(String servId) {
+		JsonArray jsonArray = new JsonArray();
+		List<InstanceDtlBean> tidbs = MetaData.get().getTiDBsByServId(servId);
+
+		if(tidbs == null)
+			return null;
+
+		for(InstanceDtlBean tidb : tidbs) {
+			TiDBMetricsStatus collectInfo = MonitorData.get().getTiDBMetricsStatusMap().get(tidb.getInstID());
+
+			if(collectInfo == null)
+				return null;
+
+			JsonObject subJson = new JsonObject()
+					.put(FixHeader.HEADER_TIDB_ID, tidb.getInstID())
+					.put(FixHeader.HEADER_TIDB_NAME, tidb.getAttribute(FixHeader.HEADER_TIDB_NAME).getAttrValue())
+					.put(FixHeader.HEADER_TIDB_QPS, collectInfo.getQps())
+					.put(FixHeader.HEADER_TIDB_CONNECTION_COUNT, collectInfo.getConnectionCount())
+					.put(FixHeader.HEADER_TIDB_STATEMENT_COUNT, collectInfo.getStatements())
+					.put(FixHeader.HEADER_TIDB_QUERY_DURATION_99P, collectInfo.getQueryDurationSeconeds());
+
+			jsonArray.add(subJson);
+		}
+
+		return jsonArray;
+	}
+
+	public static JsonArray getPDCollectData(String servId) {
+		JsonArray jsonArray = new JsonArray();
+		List<InstanceDtlBean> pds = MetaData.get().getPDsByServId(servId);
+
+		if(pds == null)
+			return null;
+
+		for(InstanceDtlBean pd : pds) {
+
+			PDClusterStatus collectInfo = MonitorData.get().getPdClusterStatusMap().get(pd.getInstID());
+			if(collectInfo == null)
+				continue;
+
+			JsonObject subJson = new JsonObject()
+					.put(FixHeader.HEADER_PD_ID, pd.getInstID())
+					.put(FixHeader.HEADER_PD_NAME, pd.getAttribute(FixHeader.HEADER_PD_NAME).getAttrValue())
+					.put(FixHeader.HEADER_PD_STORAGE_CAPACITY, collectInfo.getCapacity())
+					.put(FixHeader.HEADER_PD_CURRENT_STORAGE_SIZE, collectInfo.getCurrentSize())
+					.put(FixHeader.HEADER_PD_LEADER_BALANCE_RATIO, collectInfo.getLeaderBalanceRatio())
+					.put(FixHeader.HEADER_PD_REGION_BALANCE_RATIO, collectInfo.getRegionBalanceRatio())
+					.put(FixHeader.HEADER_PD_REGIONS, collectInfo.getRegions())
+					.put("STORE_UP_COUNT", collectInfo.getStoreUpCount())
+					.put("STORE_DOWN_COUNT", collectInfo.getStoreDownCount())
+					.put("STORE_OFFLINE_COUNT", collectInfo.getStoreOfflineCount())
+					.put("STORE_TOMBSTONE_COUNT", collectInfo.getStoreTombstoneCount())
+					.put(FixHeader.HEADER_PD_COMPLETE_DURATION_SECONDS_99PENC, collectInfo.getCompletedCmdsDurationSecondsAvg99());
+
+			jsonArray.add(subJson);
+
+			break;
+		}
+
+		return jsonArray;
+	}
+
+	public static JsonArray getTiKVCollectData(String servId) {
+		JsonArray jsonArray = new JsonArray();
+		List<InstanceDtlBean> tikvs = MetaData.get().getTiKVsByServId(servId);
+
+		if(tikvs == null)
+			return null;
+
+		for(InstanceDtlBean tikv : tikvs) {
+			TiKVMetricsStatus collectInfo = MonitorData.get().getTiKVMetricsStatusMap().get(tikv.getInstID());
+
+			if(collectInfo == null)
+				return null;
+
+			JsonObject subJson = new JsonObject()
+					.put(FixHeader.HEADER_TIKV_ID, tikv.getInstID())
+					.put(FixHeader.HEADER_TIKV_NAME, tikv.getAttribute(FixHeader.HEADER_TIKV_NAME).getAttrValue())
+					.put(FixHeader.HEADER_TIKV_LEADER_COUNT, collectInfo.getLeaderCount())
+					.put(FixHeader.HEADER_TIKV_REGION_COUNT, collectInfo.getRegionCount())
+					.put(FixHeader.HEADER_TIKV_SCHEEDULER_COMMAND_DURATION, collectInfo.getTikvSchedulerContextTotal());
+			jsonArray.add(subJson);
+		}
+
+		return jsonArray;
+	}
+
+	public static JsonArray getTiDBHisCollectData(String tidbId, long startTs, long endTs, ResultBean result) {
+		JsonArray jsonArray = null;
+
+		CRUD crud = new CRUD();
+		SqlBean sqlBean = new SqlBean(SEL_TIDB_MONITOR_COLLECT);
+		sqlBean.addParams(new Object[]{
+				startTs, endTs, tidbId
+		});
+		crud.putSqlBean(sqlBean);
+
+		try {
+			jsonArray = crud.queryForJSONArray();
+		} catch (CRUDException e) {
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(String.format("get TiDB his data fail : %s", e.getMessage()));
+			logger.error(e.getMessage(), e);
+		}
+
+		return jsonArray;
+	}
+
+	public static JsonArray getPDHisCollectData(String pdId, long startTs, long endTs, ResultBean result) {
+		JsonArray jsonArray = null;
+
+		CRUD crud = new CRUD();
+		SqlBean sqlBean = new SqlBean(SEL_PD_MONITOR_COLLECT);
+		sqlBean.addParams(new Object[]{
+				startTs, endTs, pdId
+		});
+		crud.putSqlBean(sqlBean);
+
+		try {
+			jsonArray = crud.queryForJSONArray();
+		} catch (CRUDException e) {
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(String.format("get PD his data fail : %s", e.getMessage()));
+			logger.error(e.getMessage(), e);
+		}
+
+		return jsonArray;
+	}
+
+	public static JsonArray getTiKVHisCollectData(String tikvId, long startTs, long endTs, ResultBean result) {
+		JsonArray jsonArray = null;
+
+		CRUD crud = new CRUD();
+		SqlBean sqlBean = new SqlBean(SEL_TIKV_MONITOR_COLLECT);
+		sqlBean.addParams(new Object[]{
+				startTs, endTs, tikvId
+		});
+		crud.putSqlBean(sqlBean);
+
+		try {
+			jsonArray = crud.queryForJSONArray();
+		} catch (CRUDException e) {
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(String.format("get TIKV his data fail : %s", e.getMessage()));
+			logger.error(e.getMessage(), e);
+		}
+
+		return jsonArray;
 	}
 }

@@ -278,7 +278,7 @@ public class MonitorData {
                 Map.Entry<String, Object> entry = tidbIter.next();
                 String key = entry.getKey();
                 JsonObject json = new JsonObject(entry.getValue().toString());
-                if(json == null)
+                if(json == null || json.size() == 0)
                     continue;
                 try {
                     tiDBMetricsStatusMap.put(key, Json.decodeValue(json.toString(), TiDBMetricsStatus.class));
@@ -295,7 +295,7 @@ public class MonitorData {
                 Map.Entry<String, Object> entry = pdIter.next();
                 String key = entry.getKey();
                 JsonObject json = new JsonObject(entry.getValue().toString());
-                if(json == null)
+                if(json == null || json.size() == 0)
                     continue;
                 try {
                     pdClusterStatusMap.put(key, Json.decodeValue(json.toString(), PDClusterStatus.class));
@@ -312,7 +312,7 @@ public class MonitorData {
                 Map.Entry<String, Object> entry = tikvIter.next();
                 String key = entry.getKey();
                 JsonObject json = new JsonObject(entry.getValue().toString());
-                if(json == null)
+                if(json == null || json.size() == 0)
                     continue;
                 try {
                     tiKVMetricsStatusMap.put(key, Json.decodeValue(json.toString(), TiKVMetricsStatus.class));

@@ -118,6 +118,8 @@ public class ClusterActiveCollect implements Runnable{
                                     CacheServiceMonitor1.execute(serviceBean);
                                 }
 
+                                excuteTimeMap.put(instID,currentClusterTime);
+
                             }catch (Exception e){
                                 logger.error(e.getMessage(), e);
                             }

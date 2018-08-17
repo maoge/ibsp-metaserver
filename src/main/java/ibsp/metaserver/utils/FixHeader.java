@@ -258,4 +258,21 @@ public class FixHeader {
 
 	public static final String HEADER_SERVER_IP                = "SERVER_IP";
 	public static final String HEADER_SERVER_NAME              = "SERVER_NAME";
+
+	public static final String HEADER_TIDB_QPS                 = "QPS";
+	public static final String HEADER_TIDB_CONNECTION_COUNT    = "CONNECTION_COUNT";
+	public static final String HEADER_TIDB_STATEMENT_COUNT     = "STATEMENT_COUNT";
+	public static final String HEADER_TIDB_QUERY_DURATION_99P  = "QUERY_DURATION_99PERC";
+
+	public static final String HEADER_PD_STORAGE_CAPACITY      = "STORAGE_CAPACITY";
+	public static final String HEADER_PD_CURRENT_STORAGE_SIZE  = "CURRENT_STORAGE_SIZE";
+	public static final String HEADER_PD_LEADER_BALANCE_RATIO  = "LEADER_BALANCE_RATIO";
+	public static final String HEADER_PD_REGION_BALANCE_RATIO  = "REGION_BALANCE_RATIO";
+	public static final String HEADER_PD_REGIONS               = "REGIONS";
+	public static final String HEADER_PD_COMPLETE_DURATION_SECONDS_99PENC = "COMPLETE_DURATION_SECONDS_99PENC";
+
+	public static final String HEADER_TIKV_LEADER_COUNT        = "LEADER_COUNT";
+	public static final String HEADER_TIKV_REGION_COUNT        = "REGION_COUNT";
+	public static final String HEADER_TIKV_SCHEEDULER_COMMAND_DURATION  = "SCHEEDULER_COMMAND_DURATION";
+
 }

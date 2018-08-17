@@ -56,7 +56,7 @@ public class ResourceDataService {
 	
 	private static final String GET_BY_SERVICE_TYPE = 
 			"SELECT t_server.SERVER_IP, SSH_NAME, SSH_PWD FROM t_server JOIN t_ssh ON "
-			+ "t_server.SERVER_IP=t_ssh.SERVER_IP WHERE SERV_TYPE LIKE ?";
+			+ "t_server.SERVER_IP=t_ssh.SERVER_IP WHERE SERV_TYPE LIKE ? ORDER BY SERVER_IP";
 
 	
 	public static JsonArray getServerList(Map<String, String> params, ResultBean result) {
@@ -369,19 +369,21 @@ public class ResourceDataService {
 				JsonArray array = curd.queryForJSONArray();
 				for (Object o:array) {
 					JsonObject object = (JsonObject) o;
+					String serverIP = object.getString("SERVER_IP");
 					if (!object.getString("SERVER_IP").equals(lastIP)) {
 						if (user!=null) {
 							user.put("SSH_LIST", sshs);
 							res.add(user);
 						}
 						user = new JsonObject();
-						user.put("SERVER_IP", object.getString("SERVER_IP"));
+						user.put("SERVER_IP", serverIP);
 						sshs = new JsonArray();
 					}
 					JsonObject ssh = new JsonObject();
 					ssh.put("SSH_NAME", object.getString("SSH_NAME"));
 					ssh.put("SSH_PWD", object.getString("SSH_PWD"));
 					sshs.add(ssh);
+					lastIP = serverIP;
 				}
 				
 				user.put("SSH_LIST", sshs);

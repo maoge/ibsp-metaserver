@@ -844,13 +844,15 @@ public class MetaDataService {
 	
 	public static InstanceBean getInstance(String instID, ResultBean result) {
 		try {
-			return MetaData.get().getInstanceDtlBean(instID).getInstance();
+			InstanceDtlBean instanceDtlBean = MetaData.get().getInstanceDtlBean(instID);
+			if(instanceDtlBean != null)
+				return instanceDtlBean.getInstance();
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 			result.setRetCode(CONSTS.REVOKE_NOK);
 			result.setRetInfo(e.getMessage());
-			return null;
 		}
+		return null;
 	}
 	
 	public static Map<String, InstAttributeBean> getAttribute(String instID, ResultBean result) {
