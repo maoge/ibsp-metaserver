@@ -278,12 +278,12 @@ public class MonitorData {
                 Map.Entry<String, Object> entry = tidbIter.next();
                 String key = entry.getKey();
                 JsonObject json = new JsonObject(entry.getValue().toString());
-                if(json == null || json.size() == 0)
-                    continue;
-                try {
-                    tiDBMetricsStatusMap.put(key, Json.decodeValue(json.toString(), TiDBMetricsStatus.class));
-                }catch (Exception e) {
-                    logger.error("sync tidb data fail : {}", e.getMessage());
+                if(json != null && json.size() > 0){
+                    try {
+                        tiDBMetricsStatusMap.put(key, Json.decodeValue(json.toString(), TiDBMetricsStatus.class));
+                    }catch (Exception e) {
+                        logger.error("sync tidb data fail : {}", e.getMessage());
+                    }
                 }
             }
         }
@@ -294,14 +294,17 @@ public class MonitorData {
             while(pdIter.hasNext()) {
                 Map.Entry<String, Object> entry = pdIter.next();
                 String key = entry.getKey();
-                JsonObject json = new JsonObject(entry.getValue().toString());
-                if(json == null || json.size() == 0)
+                if(entry.getValue() == null || "".equals(entry.getValue().toString()) || "null".equals(entry.getValue().toString()))
                     continue;
+
                 try {
-                    pdClusterStatusMap.put(key, Json.decodeValue(json.toString(), PDClusterStatus.class));
+                    PDClusterStatus status = Json.decodeValue(entry.getValue().toString(), PDClusterStatus.class);
+                    if(status != null)
+                        pdClusterStatusMap.put(key, status);
                 }catch (Exception e) {
                     logger.error("sync pd data fail : {}", e.getMessage());
                 }
+
             }
         }
 
@@ -312,12 +315,12 @@ public class MonitorData {
                 Map.Entry<String, Object> entry = tikvIter.next();
                 String key = entry.getKey();
                 JsonObject json = new JsonObject(entry.getValue().toString());
-                if(json == null || json.size() == 0)
-                    continue;
-                try {
-                    tiKVMetricsStatusMap.put(key, Json.decodeValue(json.toString(), TiKVMetricsStatus.class));
-                }catch (Exception e) {
-                    logger.error("sync tikv data fail : {}", e.getMessage());
+                if(json != null && json.size() > 0) {
+                    try {
+                        tiKVMetricsStatusMap.put(key, Json.decodeValue(json.toString(), TiKVMetricsStatus.class));
+                    }catch (Exception e) {
+                        logger.error("sync tikv data fail : {}", e.getMessage());
+                    }
                 }
             }
         }

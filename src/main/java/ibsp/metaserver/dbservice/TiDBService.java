@@ -592,7 +592,9 @@ public class TiDBService {
 					.put(FixHeader.HEADER_TIDB_QPS, collectInfo.getQps())
 					.put(FixHeader.HEADER_TIDB_CONNECTION_COUNT, collectInfo.getConnectionCount())
 					.put(FixHeader.HEADER_TIDB_STATEMENT_COUNT, collectInfo.getStatements())
-					.put(FixHeader.HEADER_TIDB_QUERY_DURATION_99P, collectInfo.getQueryDurationSeconeds());
+					.put(FixHeader.HEADER_TIDB_QUERY_DURATION_99P, collectInfo.getQueryDurationSeconeds())
+					.put(FixHeader.HEADER_IP, tidb.getAttribute(FixHeader.HEADER_IP).getAttrValue())
+					.put(FixHeader.HEADER_PORT, tidb.getAttribute(FixHeader.HEADER_PORT).getAttrValue());
 
 			jsonArray.add(subJson);
 		}
