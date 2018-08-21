@@ -656,10 +656,16 @@ public class TiDBServiceMonitor {
         Histogram h2Tso = status.getHandleTsoRequestDuraction();
         status.setHandleTsoRequestDuractionSeconeds(Histogram.calc(h1Tso, h2Tso, 1));
 
-        status.setStatements(((status.getStatementCount() - prevTiDBStatus.getStatementCount())
-                / SysConfig.get().getActiveCollectInterval() * 1000));
-        status.setQps(((status.getTidbServerQueryTotal() - prevTiDBStatus.getTidbServerQueryTotal())
-                / SysConfig.get().getActiveCollectInterval() * 1000));
+        double states = (status.getStatementCount() - prevTiDBStatus.getStatementCount())
+                / SysConfig.get().getActiveCollectInterval() * 1000;
+        states = states <=0 ? 0 : states;
+        double qps = (status.getTidbServerQueryTotal() - prevTiDBStatus.getTidbServerQueryTotal())
+                / SysConfig.get().getActiveCollectInterval() * 1000;
+        qps = qps <= 0 ? 0 : qps;
+
+        status.setStatements(states);
+        status.setQps(qps);
+
         MonitorData.get().getTiDBMetricsStatusMap().put(instId, status);
     }
 

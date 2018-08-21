@@ -448,6 +448,8 @@ public class CacheService {
 					.put(FixHeader.HEADER_ACCESS_REDIS_CONNS,       collectInfo.getAccessRedisConns())
 					.put(FixHeader.HEADER_ACCESS_PROCESS_AVTIME,    collectInfo.getAccessProcessAvTime())
 					.put(FixHeader.HEADER_ACCESS_PROCESS_MAXTIME,   collectInfo.getAccessProcessMaxTime())
+					.put(FixHeader.HEADER_IP,                       proxy.getAttribute(FixHeader.HEADER_IP).getAttrValue())
+					.put(FixHeader.HEADER_PORT,                     proxy.getAttribute(FixHeader.HEADER_PORT).getAttrValue())
 					.put(FixHeader.HEADER_ACCESS_REQUEST_EXCEPTS,   collectInfo.getAccessRequestExcepts())
 					.put(FixHeader.HEADER_ACCESS_REQUEST_TPS,       collectInfo.getAccessRequestTps());
 
@@ -474,6 +476,8 @@ public class CacheService {
 					.put(FixHeader.HEADER_CONNECTED_CLIENTS,   collectInfo.getConnectedClients())
 					.put(FixHeader.HEADER_DB_SIZE,             collectInfo.getDbSize())
 					.put(FixHeader.HEADER_MEMORY_TOTAL,        collectInfo.getMemoryTotal())
+					.put(FixHeader.HEADER_IP,                  cacheNode.getAttribute(FixHeader.HEADER_IP).getAttrValue())
+					.put(FixHeader.HEADER_PORT,                cacheNode.getAttribute(FixHeader.HEADER_PORT).getAttrValue())
 					.put(FixHeader.HEADER_PROCESS_TPS,         collectInfo.getProcessTps())
 					.put(FixHeader.HEADER_MEMORY_USED,         collectInfo.getMemoryUsed());
 

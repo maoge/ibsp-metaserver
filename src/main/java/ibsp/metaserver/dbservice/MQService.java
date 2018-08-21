@@ -1586,6 +1586,9 @@ public class MQService {
 		JsonArray jsonArray = new JsonArray();
 		List<QueueBean> queues= MetaData.get().getQueueListByServId(servId);
 
+		if(queues == null)
+			return jsonArray;
+
 		for(QueueBean queue : queues) {
 			MQQueueCollectInfo collectInfo = MonitorData.get().getMqQueueCollectInfoMap().get(queue.getQueueId());
 
