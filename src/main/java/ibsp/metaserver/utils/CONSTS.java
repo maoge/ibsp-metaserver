@@ -187,6 +187,9 @@ public class CONSTS {
 	public static final String PD_DELETE_STORE_SUCC          = "Success!";
 	public static final String TIKV_OFFLINE_STATUS           = "Offline";
 	public static final String TIKV_TOMBSTONE_STATUS         = "Tombstone";
+	public static final String TIKV_METRIC_ADDRESS           = "%TIKV_METRIC_ADDRESS%";
+	public static final String TIKV_METRIC_JOB               = "%TIKV_METRIC_JOB%";
+	public static final String TIKV_TOML                     = "tikv.toml";
 	
 	public static final int MIN_PD_NUMBER                    = 3;
 	public static final int MIN_TIKV_NUMBER                  = 3;

@@ -139,6 +139,10 @@ public class MonitorData {
 
         List<QueueBean> queues= MetaData.get().getQueueListByServId(servId);
         JsonObject queueJsonObject = new JsonObject();
+
+        if(queues == null)
+            return queueJsonObject;
+
         for(QueueBean queue : queues) {
             queueJsonObject.put(queue.getQueueId(), Json.encode(mqQueueCollectInfoMap.get(queue.getQueueId())));
         }

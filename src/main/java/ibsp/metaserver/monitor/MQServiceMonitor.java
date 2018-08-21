@@ -168,8 +168,10 @@ public class MQServiceMonitor {
         }
 
         logger.debug("overview : " + json.toString());
-        if(HttpUtils.isNotNull(json)) {
+        if(HttpUtils.isNotNull(json) && json.size() > 0) {
             Long accumulate      = json.getJsonObject("queue_totals").getLong("messages");
+            if(accumulate == null)
+                return;
             //TODO 后期改为从数据库获取这个service的message accumulate limit数量
             long accumulateLimit = SysConfig.get().getMsgAccumulateHighWaterMark();
 

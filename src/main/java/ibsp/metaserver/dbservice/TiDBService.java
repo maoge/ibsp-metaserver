@@ -648,7 +648,7 @@ public class TiDBService {
 			TiKVMetricsStatus collectInfo = MonitorData.get().getTiKVMetricsStatusMap().get(tikv.getInstID());
 
 			if(collectInfo == null)
-				return null;
+				continue;
 
 			JsonObject subJson = new JsonObject()
 					.put(FixHeader.HEADER_TIKV_ID, tikv.getInstID())

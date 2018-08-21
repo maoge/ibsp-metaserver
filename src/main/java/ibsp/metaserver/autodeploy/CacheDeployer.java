@@ -263,6 +263,11 @@ public class CacheDeployer implements Deployer {
 	}
 
 	@Override
+	public boolean forceUndeployInstance(String serviceID, String instID, ResultBean result) {
+		return false;
+	}
+
+	@Override
 	public boolean deleteService(String serviceID, String sessionKey,
 			ResultBean result) {
 		Topology topo = MetaData.get().getTopo();

@@ -264,7 +264,12 @@ public class TiDBDeployer implements Deployer {
 		
 		return undeployRet;
 	}
-	
+
+	@Override
+	public boolean forceUndeployInstance(String serviceID, String instID, ResultBean result) {
+		return false;
+	}
+
 	@Override
 	public boolean deleteService(String serviceID, String sessionKey, ResultBean result) {
 		Topology topo = MetaData.get().getTopo();
@@ -611,7 +616,14 @@ public class TiDBDeployer implements Deployer {
 			// unpack deploy file
 			executor.tgzUnpack(tikvFile.getFileName(), sessionKey);
 			executor.rm(tikvFile.getFileName(), false, sessionKey);
-			
+
+			String[] metaUrls = MetaData.get().getMetaServUrls().split(",");
+
+			executor.cd("./conf", sessionKey);
+			executor.sed(CONSTS.TIKV_METRIC_ADDRESS, metaUrls[0], CONSTS.TIKV_TOML, sessionKey);
+			executor.sed(CONSTS.TIKV_METRIC_JOB, id, CONSTS.TIKV_TOML, sessionKey);
+
+			executor.cd("..", sessionKey);
 			// create start shell
 			if (!executor.createStartShell(startContext)) {
 				DeployLog.pubLog(sessionKey, "create tikv start shell fail ......");
@@ -623,7 +635,7 @@ public class TiDBDeployer implements Deployer {
 				DeployLog.pubLog(sessionKey, "create tikv stop shell fail ......");
 				return false;
 			}
-			
+
 			// start tikv-server
 			if (!DeployUtils.execStartShell(executor, port, sessionKey)) {
 				DeployLog.pubLog(sessionKey, "exec tikv start shell fail ......");

@@ -200,7 +200,46 @@ public class DeployServiceFactory {
 		
 		return res;
 	}
-	
+
+	public static boolean forceUndeployInstance(String serviceID, String instanceID, ResultBean result) {
+
+		ServiceBean service = MetaDataService.getService(serviceID, result);
+		if (service == null) {
+			String err = String.format("service not found, id:%s", serviceID);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(err);
+			return false;
+		}
+
+		if (service.getDeployed().equals(CONSTS.NOT_DEPLOYED)) {
+			String err = String.format("service is not deployed, id:%s", serviceID);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(err);
+			return false;
+		}
+
+		String servType = service.getServType();
+		Class<?> clazz = DEPLOY_FACTORY.get(servType);
+		if (clazz == null) {
+			String err = String.format("service type not found, id:%s", serviceID);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(err);
+			return false;
+		}
+
+		boolean res = false;
+		try {
+			Deployer o = (Deployer) clazz.newInstance();
+			res = o.forceUndeployInstance(serviceID, instanceID,  result);
+		} catch (InstantiationException | IllegalAccessException e) {
+			logger.error(e.getMessage(), e);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(e.getMessage());
+			return false;
+		}
+
+		return res;
+	}
 
 	public static boolean addOrModifyService(Map<String, String> params, ResultBean result) {
 		

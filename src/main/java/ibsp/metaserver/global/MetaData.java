@@ -1535,4 +1535,8 @@ public class MetaData {
 	public Map<String, ServerBean> getServerMap() {
 		return serverMap;
 	}
+
+	public Map<String, InstanceDtlBean> getInstanceDtlMap() {
+		return instanceDtlMap;
+	}
 }

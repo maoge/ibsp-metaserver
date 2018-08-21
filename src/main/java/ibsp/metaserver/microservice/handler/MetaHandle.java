@@ -59,4 +59,11 @@ public class MetaHandle {
         JsonObject json = JsonObject.mapFrom(HttpUtils.mapToJson(metaData.getServerMap()));
         HttpUtils.outJsonObject(routeContext, json);
     }
+
+    @Service(id = "getInstanceDtlMap", name = "getInstanceDtlMap", auth = false, bwswitch = false)
+    public static void getInstanceDtlMap(RoutingContext routeContext) {
+        MetaData metaData = MetaData.get();
+        JsonObject json = JsonObject.mapFrom(HttpUtils.mapToJson(metaData.getInstanceDtlMap()));
+        HttpUtils.outJsonObject(routeContext, json);
+    }
 }

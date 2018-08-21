@@ -167,6 +167,54 @@ public class MQDeployer implements Deployer {
 	}
 
 	@Override
+	public boolean forceUndeployInstance(String serviceID, String instID, ResultBean result) {
+		InstanceDtlBean instDtl = MetaDataService.getInstanceDtlWithSubInfo(instID, result);
+		if (instDtl == null) {
+			String err = String.format("instance id:%s not found!", instID);
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(err);
+			return false;
+		}
+
+		List<InstanceDtlBean> vbrokers = MetaData.get().getVbrokerByServId(serviceID);
+		int len = 0;
+		for(InstanceDtlBean vb : vbrokers) {
+			if(vb.getInstance().getIsDeployed() == CONSTS.DEPLOYED)
+				len++;
+		}
+
+		if(len <=1) {
+			String err = String.format("this service has only one deploy vbroker!");
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(err);
+			return false;
+		}
+
+		int cmptID = instDtl.getInstance().getCmptID();
+		boolean undeployRet = false;
+		switch (cmptID) {
+			case 103:  // MQ_VBROKER
+				undeployRet = forceUndeployVBroker(serviceID, instDtl, result);
+				break;
+			case 104:  // MQ_BROKER
+				// can't undeploy broker alone
+				undeployRet = true;
+				break;
+			case 105:  // MQ_SWITCH
+				// TODO
+				undeployRet = true;
+				break;
+			case 106:  // MQ_COLLECTD
+				/*undeployRet = DeployUtils.undeployCollectd(instDtl, "", false, result);*/
+				break;
+			default:
+				break;
+		}
+
+		return undeployRet;
+	}
+
+	@Override
 	public boolean deleteService(String serviceID, String sessionKey,
 			ResultBean result) {
 		Topology topo = MetaData.get().getTopo();
@@ -239,34 +287,61 @@ public class MQDeployer implements Deployer {
 	}
 	
 	private boolean undeployVBroker(String serviceID, InstanceDtlBean vbrokerInstanceDtl,
-			String sessionKey, ResultBean result) {
+									 String sessionKey, ResultBean result) {
 		String vbrokerId = vbrokerInstanceDtl.getAttribute("VBROKER_ID").getAttrValue();
-		
+
 		if (vbrokerInstanceDtl.getInstance().getIsDeployed().equals(CONSTS.NOT_DEPLOYED)) {
 			String info = String.format("mq vbroker id:%s %s:%s is deployed ......", vbrokerId);
 			DeployLog.pubSuccessLog(sessionKey, info);
 
 			return true;
 		}
-		
+
 		boolean allOk = true;
-		
+
 		Map<String, InstanceDtlBean> brokers = vbrokerInstanceDtl.getSubInstances();
 		Set<Entry<String, InstanceDtlBean>> entrySet = brokers.entrySet();
 		for (Entry<String, InstanceDtlBean> entry : entrySet) {
 			InstanceDtlBean brokerInstanceDtl = entry.getValue();
-			
+
 			allOk &= undeployRabbit(brokerInstanceDtl, sessionKey, result);
 			if (!allOk)
 				break;
-			
+
 			// write back deploy flag
 			if (!ConfigDataService.modInstanceDeployFlag(vbrokerId, CONSTS.NOT_DEPLOYED, result)) {
 				return false;
 			}
 			DeployUtils.publishDeployEvent(EventType.e24, vbrokerId);
 		}
-		
+
+		return allOk;
+	}
+
+	private boolean forceUndeployVBroker(String serviceID, InstanceDtlBean vbrokerInstanceDtl, ResultBean result) {
+		String vbrokerId = vbrokerInstanceDtl.getAttribute("VBROKER_ID").getAttrValue();
+
+		if (vbrokerInstanceDtl.getInstance().getIsDeployed().equals(CONSTS.NOT_DEPLOYED)) {
+			String info = String.format("mq vbroker id:%s %s:%s is deployed ......", vbrokerId);
+
+			return true;
+		}
+
+		boolean allOk = true;
+
+		Map<String, InstanceDtlBean> brokers = vbrokerInstanceDtl.getSubInstances();
+		Set<Entry<String, InstanceDtlBean>> entrySet = brokers.entrySet();
+		for (Entry<String, InstanceDtlBean> entry : entrySet) {
+			InstanceDtlBean brokerInstanceDtl = entry.getValue();
+			ConfigDataService.modInstanceDeployFlag(brokerInstanceDtl.getInstID(), CONSTS.NOT_DEPLOYED, result);
+			DeployUtils.publishDeployEvent(EventType.e24, brokerInstanceDtl.getInstID());
+		}
+
+		if (!ConfigDataService.modInstanceDeployFlag(vbrokerId, CONSTS.NOT_DEPLOYED, result)) {
+			return false;
+		}
+		DeployUtils.publishDeployEvent(EventType.e24, vbrokerId);
+
 		return allOk;
 	}
 	

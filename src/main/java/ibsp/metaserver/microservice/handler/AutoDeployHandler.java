@@ -133,6 +133,35 @@ public class AutoDeployHandler {
 		
 		HttpUtils.outJsonObject(routeContext, json);
 	}
+
+	@Service(id = "forceUndeployInstance", name = "forceUndeployInstance", auth = true, bwswitch = true)
+	public static void forceUndeployInstance(RoutingContext routeContext) {
+		JsonObject json = new JsonObject();
+
+		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
+		if(params == null) {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+			json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+		} else {
+			String sServID = params.get(FixHeader.HEADER_SERV_ID);
+			String sInstID = params.get(FixHeader.HEADER_INSTANCE_ID);
+			if (!HttpUtils.isNotNull(sServID)) {
+				json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+				json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+			} else {
+				ResultBean result = new ResultBean();
+				if (DeployServiceFactory.forceUndeployInstance(sServID, sInstID, result)) {
+					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
+					json.put(FixHeader.HEADER_RET_INFO, "");
+				} else {
+					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+					json.put(FixHeader.HEADER_RET_INFO, result.getRetInfo());
+				}
+			}
+		}
+
+		HttpUtils.outJsonObject(routeContext, json);
+	}
 	
 	@Service(id = "addOrModifyService", name = "addOrModifyService", auth = true, bwswitch = true)
 	public static void addOrModifyService(RoutingContext routeContext) {
