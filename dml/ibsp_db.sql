@@ -520,6 +520,24 @@ CREATE TABLE `t_mo_tikv_collect` (
   `TIME` bigint(14) NOT NULL COMMENT ''
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
+DROP TABLE IF EXISTS `t_sys_user`;
+CREATE TABLE `t_sys_user` (
+  `REC_ID` varchar(8) NOT NULL COMMENT '唯一ID',
+  `USER_ID` varchar(48) NOT NULL COMMENT '账户ID',
+  `USER_NAME` varchar(48) DEFAULT NULL COMMENT '用户名',
+  `LOGIN_PWD` varchar(128) NOT NULL COMMENT '登录密码',
+  `USER_STATUS` varchar(1) DEFAULT '1' COMMENT '用户状态，1：正常；2：注销',
+  `LINE_STATUS` varchar(1) DEFAULT '2' COMMENT '用户在线状态，1：在线；2：离线',
+  `REC_STATUS` varchar(1) DEFAULT '0' COMMENT '数据状态，0：新增；1：修改；2：删除',
+  `REC_PERSON` varchar(48) DEFAULT NULL COMMENT '记录人',
+  `REC_TIME` bigint(14) NOT NULL COMMENT '添加时间',
+  PRIMARY KEY (`REC_ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+insert  into `t_sys_user`(`REC_ID`,`USER_ID`,`USER_NAME`,`LOGIN_PWD`,`USER_STATUS`,`LINE_STATUS`,`REC_STATUS`,`REC_PERSON`,`REC_TIME`) values
+('100','admin','admin','4cc4c4f5e59aaa9cd792e4b9b3043248f7d135cb6a2db63ec0c193562e1981a6','1','2','0','admin',UNIX_TIMESTAMP(NOW())*1000);
+
+
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
 /*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;

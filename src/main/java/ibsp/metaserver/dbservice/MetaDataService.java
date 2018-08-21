@@ -16,14 +16,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
@@ -85,7 +78,28 @@ public class MetaDataService {
 		
 		SEQ_LOCK = new ReentrantLock();
 	}
-	
+
+	public static boolean login(Map<String, String> params, ResultBean result) {
+		boolean res = false;
+
+		if (null == params || params.size() == 0) {
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(CONSTS.ERR_PARAM_INCOMPLETE);
+			return false;
+		}
+
+		String userID = params.get(FixHeader.HEADER_USER_ID);
+		String userPwd = params.get(FixHeader.HEADER_USER_PWD);
+		if (!HttpUtils.isNotNull(userID) || !HttpUtils.isNotNull(userPwd)) {
+			result.setRetCode(CONSTS.REVOKE_NOK);
+			result.setRetInfo(CONSTS.ERR_PARAM_INCOMPLETE);
+			return false;
+		}
+
+		res = MetaData.get().doAuth(userID, userPwd, result);
+		return res;
+	}
+
 	public static boolean testDB() {
 		String sql = "select 1 from dual";
 		boolean ret = false;
@@ -1038,6 +1052,34 @@ public class MetaDataService {
 		res = crud.executeUpdate(true, result);
 
 		return res;
+	}
+
+	public static List<UserBean> getAllUser() {
+		String sql = "SELECT USER_ID, USER_NAME, LOGIN_PWD, USER_STATUS, LINE_STATUS, REC_STATUS, REC_PERSON, REC_TIME " +
+				"FROM t_sys_user";
+
+		List<UserBean> list = null;
+		try {
+			CRUD c = new CRUD();
+			c.putSql(sql, null);
+			List<HashMap<String, Object>> queryResult = c.queryForList();
+
+			if (queryResult != null) {
+				list = new ArrayList<UserBean>(queryResult.size());
+
+				Iterator<HashMap<String, Object>> iter = queryResult.iterator();
+				while (iter.hasNext()) {
+					HashMap<String, Object> mateMap = iter.next();
+					UserBean userBean = UserBean.convert(mateMap);
+					list.add(userBean);
+				}
+			}
+
+		} catch (CRUDException e) {
+			logger.error(e.getMessage(), e);
+		}
+
+		return list;
 	}
 
 }

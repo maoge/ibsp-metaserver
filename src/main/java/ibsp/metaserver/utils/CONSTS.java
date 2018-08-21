@@ -109,7 +109,9 @@ public class CONSTS {
 	
 	public static final int TOPO_TYPE_LINK           = 1;
 	public static final int TOPO_TYPE_CONTAIN        = 2;
-	
+
+	public static final boolean IS_PWD_EXPIRE        = false;
+
 	public static final String MQ_DEFAULT_USER       = "mq";
 	public static final String MQ_DEFAULT_PWD        = "ibsp_mq@123321";
 	public static final String MQ_DEFAULT_VHOST      = "/";
@@ -120,11 +122,16 @@ public class CONSTS {
 	public static final int    MQ_VHOST_MAX_CONNS    = 4096;
 	public static final int    MQ_VHOST_MAX_QUEUES   = 2048;
 	public static final int    STUCK_NO_OPER_MESSAGE = 1000000; //超过100W不进行拉起broker操作
-	public static final int    CMD_CHANNEL_ID = 1;
-	public static final int    SEND_CHANNEL_ID = 2;
-	public static final int    REV_CHANNEL_START = 3;
-	
-	
+	public static final int    CMD_CHANNEL_ID        = 1;
+	public static final int    SEND_CHANNEL_ID       = 2;
+	public static final int    REV_CHANNEL_START     = 3;
+
+	public static final long   ASYNC_CALL_TIMEOUT    = 2000L;
+
+	public static final String  USER_MAP              = "user_map";
+	public static final String  SESSION_MAP           = "session_map";
+	public static final boolean IS_AUTH               = true;
+
 	public static final String SERV_TYPE_MQ          = "MQ";
 	public static final String SERV_TYPE_CACHE       = "CACHE";
 	public static final String SERV_TYPE_DB          = "DB";

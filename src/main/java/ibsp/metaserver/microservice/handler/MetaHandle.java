@@ -46,7 +46,7 @@ public class MetaHandle {
         HttpUtils.outJsonArray(routeContext, json);
     }
 
-    @Service(id = "getMonitorData", name = "getMonitorData", auth = false, bwswitch = false)
+    @Service(id = "getMonitorData", name = "getMonitorData", auth = true, bwswitch = false)
     public static void getMonitorData(RoutingContext routeContext) {
         MonitorData monitorData = MonitorData.get();
         JsonObject json = JsonObject.mapFrom(monitorData.toJson());

@@ -4,12 +4,7 @@ import ibsp.metaserver.bean.*;
 import ibsp.metaserver.dbservice.MQService;
 import ibsp.metaserver.dbservice.MetaDataService;
 import ibsp.metaserver.eventbus.EventType;
-import ibsp.metaserver.utils.CONSTS;
-import ibsp.metaserver.utils.FixHeader;
-import ibsp.metaserver.utils.HttpUtils;
-import ibsp.metaserver.utils.SysConfig;
-import ibsp.metaserver.utils.Topology;
-import ibsp.metaserver.utils.UUIDUtils;
+import ibsp.metaserver.utils.*;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
@@ -21,8 +16,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.ReentrantLock;
 
+import io.vertx.core.shareddata.AsyncMap;
+import io.vertx.core.shareddata.SharedData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,7 +58,11 @@ public class MetaData {
 	private Map<String, PermnentTopicBean> permTopicMap;
 	private Map<String, IdSetBean<String>> queueId2ConsumerIdMap;
 
-	private Map<String, ServerBean> serverMap;
+	private Map<String, UserBean>    userMap;
+    private Map<String, JsonObject>  userMagicMap;
+    private Map<String, String>      sessionUserMap;
+
+    private Map<String, ServerBean> serverMap;
 
 	private JedisPool jedisPool;
 	
@@ -91,6 +95,10 @@ public class MetaData {
 		queueName2IdMap        = new ConcurrentHashMap<String, String>();
 		permTopicMap           = new ConcurrentHashMap<String, PermnentTopicBean>();
 		queueId2ConsumerIdMap  = new ConcurrentHashMap<String, IdSetBean<String>>();
+
+        userMap                = new ConcurrentHashMap<>();
+        userMagicMap           = new ConcurrentHashMap<>();
+        sessionUserMap         = new ConcurrentHashMap<>();
 
 		serverMap              = new ConcurrentHashMap<>();
 	}
@@ -128,6 +136,7 @@ public class MetaData {
 		LoadMetaServUrl();
 		LoadQueue();
 		LoadPermnentTopic();
+		LoadUser();
 		LoadServer();
 	}
 	
@@ -390,6 +399,20 @@ public class MetaData {
 			intanceLock.unlock();
 		}
 	}
+
+    private void LoadUser() {
+        List<UserBean> listUser = MetaDataService.getAllUser();
+        if (listUser == null) {
+            logger.info("LoadUser: no data loaded ......");
+            return;
+        }
+
+        for (UserBean userBean : listUser) {
+            userMap.put(userBean.getUserId(), userBean);
+        }
+
+        listUser.clear();
+    }
 
 	private void LoadServer() {
 		try {
@@ -1532,7 +1555,206 @@ public class MetaData {
 		return list;
 	}
 
-	public Map<String, ServerBean> getServerMap() {
+    public boolean doAuth(String userID, String userPwd, ResultBean result) {
+        boolean res = false;
+
+        String pwdEncypt = DES3.encrypt(userPwd);
+
+        UserBean userBean = null;
+        if (userMap != null) {
+            try {
+                intanceLock.lock();
+                userBean = userMap.get(userID);
+
+                if (userBean == null) {
+                    String info = String.format("User id:%s not exists in GlobalData!", userID);
+                    result.setRetCode(CONSTS.REVOKE_NOK);
+                    result.setRetInfo(info);
+                    return false;
+                }
+
+                if (!userBean.getLoginPwd().equals(pwdEncypt)) {
+                    result.setRetCode(CONSTS.REVOKE_NOK);
+                    result.setRetInfo(CONSTS.ERR_PWD_INCORRECT);
+                    return false;
+                }
+
+                boolean isPwdExpire = CONSTS.IS_PWD_EXPIRE;
+                if (isPwdExpire && System.currentTimeMillis() - userBean.getRecTime() > SysConfig.get().getPassword_expire()) {
+                    result.setRetCode(CONSTS.REVOKE_NOK);
+                    result.setRetInfo(CONSTS.ERR_PWD_EXPIRE);
+                    return false;
+                } else {
+                    res = true;
+                }
+            }finally {
+                intanceLock.unlock();
+            }
+        }
+
+        return res;
+    }
+
+    public String getMagicKeyByUserID(String userId) throws InterruptedException, ExecutionException, TimeoutException {
+        JsonObject userMagic = userMagicMap.get(userId);
+        String magic = userMagic == null ? "" : userMagic.getString(FixHeader.HEADER_MAGIC_KEY, "");
+        //如果内存没有的话，就去sharedmap去找
+        if(magic.length() == 0) {
+            SharedData sharedData = ServiceData.get().getSharedData();
+            if (sharedData != null) {
+                //MCenter集群的情况，sharedmap查找
+                AsyncCallResult<String> r = new AsyncCallResult<String>();
+                sharedData.<String, JsonObject>getClusterWideMap(CONSTS.USER_MAP, resHandler -> {
+                    if (resHandler.succeeded()) {
+                        AsyncMap<String, JsonObject> map = resHandler.result();
+                        map.get(userId, resGetHandler -> {
+                            if (resGetHandler.succeeded()) {
+                                JsonObject v = resGetHandler.result();
+                                if (v != null) {
+                                    r.setResult(v.getString(FixHeader.HEADER_MAGIC_KEY, null));
+                                } else {
+                                    r.setResult("");
+                                }
+                            } else {
+                                r.setResult("");
+                            }
+                        });
+                    } else {
+                        r.setResult("");
+                    }
+                });
+                magic = r.get(CONSTS.ASYNC_CALL_TIMEOUT, TimeUnit.MILLISECONDS);
+            }else {
+                //如果没有sharedData的话，代表单机，直接存入内存，然后直接返回magickey
+                magic = UUIDUtils.genUUID();
+            }
+
+            JsonObject data = new JsonObject();
+            data.put(FixHeader.HEADER_USER_ID,   userId);
+            data.put(FixHeader.HEADER_USER_PWD,  userMap.get(userId).getLoginPwd());
+            data.put(FixHeader.HEADER_MAGIC_KEY, magic);
+            data.put(FixHeader.HEADER_TIMESTAMP, System.currentTimeMillis());
+
+            //如果sharedMap里面也没有，那就代表是用户是第一次登录，生成一个新的UUID,并且存入sharedmap
+            if(magic == null || magic.length() == 0) {
+                magic = UUIDUtils.genUUID();
+                data.put(FixHeader.HEADER_MAGIC_KEY, magic);
+                putSessionData(userId, magic, data);
+            }
+
+            //内存中保存一份
+
+            userMagicMap.put(userId, data);
+            sessionUserMap.put(magic, userId);
+
+        }
+        return magic;
+    }
+
+    public boolean putSessionData(String userID, String key, JsonObject data) throws InterruptedException, ExecutionException, TimeoutException {
+        // compatable with no auth
+        boolean isParamNull = HttpUtils.isNull(userID) || HttpUtils.isNull(key);
+        boolean isAuth = CONSTS.IS_AUTH;
+        if (!isAuth && isParamNull) {
+            return true;
+        }
+
+        if (data == null)
+            return false;
+
+        SharedData sharedData = ServiceData.get().getSharedData();
+
+        AsyncCallResult<Boolean> resPutSession = new AsyncCallResult<Boolean>();
+        sharedData.<String, String>getClusterWideMap(CONSTS.SESSION_MAP, resHandler -> {
+            if (resHandler.succeeded()) {
+                AsyncMap<String, String> map = resHandler.result();
+                map.put(key, userID, resPutHandler -> {
+                    if (resPutHandler.succeeded()) {
+                        resPutSession.setResult(true);
+                    } else {
+                        resPutSession.setResult(false);
+                    }
+                });
+            } else {
+                resPutSession.setResult(false);
+            }
+        });
+
+        boolean bPutSession = resPutSession.get(CONSTS.ASYNC_CALL_TIMEOUT, TimeUnit.MILLISECONDS).booleanValue();
+        if (!bPutSession) {
+            logger.error(CONSTS.ERR_PUT_SESSION);
+            return false;
+        }
+
+        AsyncCallResult<Boolean> resPutUser = new AsyncCallResult<Boolean>();
+        sharedData.<String, JsonObject>getClusterWideMap(CONSTS.USER_MAP, resHandler -> {
+            if (resHandler.succeeded()) {
+                AsyncMap<String, JsonObject> map = resHandler.result();
+                map.put(userID, data, resPutHandler -> {
+                    if (resPutHandler.succeeded()) {
+                        resPutUser.setResult(true);
+                    } else {
+                        resPutUser.setResult(false);
+                    }
+                });
+            } else {
+                resPutUser.setResult(false);
+            }
+        });
+
+        return resPutUser.get(CONSTS.ASYNC_CALL_TIMEOUT, TimeUnit.MILLISECONDS).booleanValue();
+    }
+
+    public boolean isMagicKeyExists(String key) throws InterruptedException, ExecutionException, TimeoutException {
+        if (key == null || key.equals(""))
+            return false;
+
+        boolean res = sessionUserMap.containsKey(key);
+        //内存中没有，就去sharedMap中找，并且同步这个magic对应的userid到内存中
+
+        SharedData sharedData = ServiceData.get().getSharedData();
+
+        if(!res) {
+            AsyncCallResult<String> r = new AsyncCallResult<String>();
+            sharedData.<String, String>getClusterWideMap(CONSTS.SESSION_MAP, resHandler -> {
+                if (resHandler.succeeded()) {
+                    AsyncMap<String, String> map = resHandler.result();
+                    map.get(key, resGetHandler -> {
+                        if (resGetHandler.succeeded()) {
+                            String v = resGetHandler.result();
+                            if (v != null) {
+                                r.setResult(v);
+                            } else {
+                                r.setResult("");
+                            }
+                        } else {
+                            r.setResult("");
+                        }
+                    });
+                } else {
+                    r.setResult("");
+                }
+            });
+            String userId =  r.get(CONSTS.ASYNC_CALL_TIMEOUT, TimeUnit.MILLISECONDS);
+            res = userId.length() > 0;
+            //同步数据到内存
+            if(res) {
+                JsonObject data = new JsonObject();
+                data.put(FixHeader.HEADER_USER_ID,   userId);
+                data.put(FixHeader.HEADER_USER_PWD,  userMap.get(userId).getLoginPwd());
+                data.put(FixHeader.HEADER_MAGIC_KEY, key);
+                data.put(FixHeader.HEADER_TIMESTAMP, System.currentTimeMillis());
+                userMagicMap.put(userId, data);
+                sessionUserMap.put(key, userId);
+            }
+
+        }
+
+        return res;
+    }
+
+
+    public Map<String, ServerBean> getServerMap() {
 		return serverMap;
 	}
 

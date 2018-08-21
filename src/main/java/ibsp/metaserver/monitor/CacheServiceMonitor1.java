@@ -134,7 +134,6 @@ public class CacheServiceMonitor1 {
                 }
             }
         }
-        //TODO 同步集群数据 保存数据库
         CacheService.saveCollectInfo(servId, result);
         syncCollectData(servId);
     }

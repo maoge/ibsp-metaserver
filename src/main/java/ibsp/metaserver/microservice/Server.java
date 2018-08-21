@@ -4,6 +4,7 @@ import ibsp.metaserver.annotation.App;
 import ibsp.metaserver.annotation.Service;
 import ibsp.metaserver.dbpool.DbSource;
 import ibsp.metaserver.eventbus.SysEventHandler;
+import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.global.ServiceData;
 import ibsp.metaserver.microservice.handler.*;
 import ibsp.metaserver.monitor.ActiveCollect;
@@ -14,9 +15,12 @@ import ibsp.metaserver.utils.FixHeader;
 import ibsp.metaserver.utils.HttpUtils;
 import ibsp.metaserver.utils.SysConfig;
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.MultiMap;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.MessageConsumer;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.shareddata.SharedData;
 import io.vertx.ext.web.Router;
@@ -207,7 +211,7 @@ public class Server extends AbstractVerticle {
 		});
 	}
 	
-	/*private boolean doAuth(RoutingContext routingContext) throws InterruptedException, ExecutionException, TimeoutException {
+	private boolean doAuth(RoutingContext routingContext) throws InterruptedException, ExecutionException, TimeoutException {
 		HttpServerRequest request = routingContext.request();
 		HttpMethod method = request.method();
 		
@@ -227,11 +231,11 @@ public class Server extends AbstractVerticle {
 		if (key == null)
 			return false;
 		
-		return GlobalData.get().isMagicKeyExists(key);
-	}*/
-	private boolean doAuth(RoutingContext routingContext) throws InterruptedException, ExecutionException, TimeoutException {
-		return true;
+		return MetaData.get().isMagicKeyExists(key);
 	}
+	/*private boolean doAuth(RoutingContext routingContext) throws InterruptedException, ExecutionException, TimeoutException {
+		return true;
+	}*/
 	
 	/*private boolean doIpCheck(RoutingContext routingContext) {
 		HttpServerRequest request = routingContext.request();
