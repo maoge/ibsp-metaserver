@@ -84,6 +84,7 @@ public class HttpUtils {
 
 	public static void outJsonObject(HttpServerResponse response, JsonObject json) {
 		response.putHeader("Access-Control-Allow-Origin", "*");
+		response.putHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, MAGIC_KEY, Accept");
 		response.putHeader("Content-type", "application/json; charset=UTF-8");
 		
 		response.end(json != null ? json.toString() : "{}");

@@ -21,6 +21,7 @@ import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.shareddata.SharedData;
 import io.vertx.ext.web.Router;
@@ -152,10 +153,27 @@ public class Server extends AbstractVerticle {
 						// EventLoop 非阻塞, 操作扔到线程池完成
 						routingContext.vertx().executeBlocking(future -> {
 							try {
-								
 								if (SysConfig.get().isNeed_auth()) {
+								    //判断是不是OPTIONS请求，是的话 直接通过
+                                    HttpServerRequest request = routingContext.request();
+                                    HttpMethod method = request.method();
+                                    if(method.equals(HttpMethod.OPTIONS)) {
+                                        HttpServerResponse response = routingContext.response();
+                                        response.putHeader("Access-Control-Allow-Origin", "*");
+                                        response.putHeader("Access-Control-Allow-Headers", "MAGIC_KEY");
+                                        response.putHeader("Access-Control-Allow-Methods" ,"OPTIONS,HEAD,GET,POST,PUT,DELETE");
+                                        response.putHeader("Access-Control-Max-Age" ,"180000");
+                                        response.setStatusCode(200);
+                                        response.end();
+                                        future.complete();
+                                        return;
+                                    }
+
 									if (!doAuth(routingContext)) {
-										rejectServiceCall(routingContext);
+                                        HttpServerResponse response = routingContext.response();
+                                        response.putHeader("Access-Control-Allow-Origin", "*");
+										response.setStatusCode(401);
+										response.end("auth fail!");
 										future.complete();
 										return;
 									}
@@ -227,10 +245,13 @@ public class Server extends AbstractVerticle {
 		if (attrMap == null)
 			return false;
 		
-		String key = attrMap.get(FixHeader.HEADER_MAGIC_KEY);
-		if (key == null)
-			return false;
-		
+		String key = request.getHeader("MAGIC_KEY");
+		if (key == null){
+		    key = attrMap.get("MAGIC_KEY");
+            if(key == null)
+                return false;
+        }
+
 		return MetaData.get().isMagicKeyExists(key);
 	}
 	/*private boolean doAuth(RoutingContext routingContext) throws InterruptedException, ExecutionException, TimeoutException {
