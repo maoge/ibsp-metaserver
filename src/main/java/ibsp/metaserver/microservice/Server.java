@@ -153,23 +153,24 @@ public class Server extends AbstractVerticle {
 						// EventLoop 非阻塞, 操作扔到线程池完成
 						routingContext.vertx().executeBlocking(future -> {
 							try {
-								if (SysConfig.get().isNeed_auth()) {
-								    //判断是不是OPTIONS请求，是的话 直接通过
-                                    HttpServerRequest request = routingContext.request();
-                                    HttpMethod method = request.method();
-                                    if(method.equals(HttpMethod.OPTIONS)) {
-                                        HttpServerResponse response = routingContext.response();
-                                        response.putHeader("Access-Control-Allow-Origin", "*");
-                                        response.putHeader("Access-Control-Allow-Headers", "MAGIC_KEY");
-                                        response.putHeader("Access-Control-Allow-Methods" ,"OPTIONS,HEAD,GET,POST,PUT,DELETE");
-                                        response.putHeader("Access-Control-Max-Age" ,"180000");
-                                        response.setStatusCode(200);
-                                        response.end();
-                                        future.complete();
-                                        return;
-                                    }
 
-									if (!doAuth(routingContext)) {
+                                //判断是不是OPTIONS请求，是的话 直接通过
+                                HttpServerRequest request = routingContext.request();
+                                HttpMethod method = request.method();
+                                if(method.equals(HttpMethod.OPTIONS)) {
+                                    HttpServerResponse response = routingContext.response();
+                                    response.putHeader("Access-Control-Allow-Origin", "*");
+                                    response.putHeader("Access-Control-Allow-Headers", "MAGIC_KEY");
+                                    response.putHeader("Access-Control-Allow-Methods" ,"OPTIONS,HEAD,GET,POST,PUT,DELETE");
+                                    response.putHeader("Access-Control-Max-Age" ,"180000");
+                                    response.setStatusCode(200);
+                                    response.end();
+                                    future.complete();
+                                    return;
+                                }
+
+								if (SysConfig.get().isNeed_auth()) {
+                                    if (!doAuth(routingContext)) {
                                         HttpServerResponse response = routingContext.response();
                                         response.putHeader("Access-Control-Allow-Origin", "*");
 										response.setStatusCode(401);
