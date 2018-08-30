@@ -20,7 +20,7 @@ import io.vertx.ext.web.RoutingContext;
 @App(path = "/collectdata")
 public class CollectDataHandler {
 
-	@Service(id = "getCurrCollectData", name = "getCurrCollectData", auth = false, bwswitch = false)
+	@Service(id = "getCurrCollectData", name = "getCurrCollectData", auth = true, bwswitch = true)
 	public static void getCurrCollectData(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
 		
@@ -48,7 +48,7 @@ public class CollectDataHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 	
-	@Service(id = "getHisCollectData", name = "getHisCollectData", auth = false, bwswitch = false)
+	@Service(id = "getHisCollectData", name = "getHisCollectData", auth = true, bwswitch = true)
 	public static void getHisCollectData(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
 		
@@ -82,7 +82,7 @@ public class CollectDataHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 
-	@Service(id = "getVbrokerCurrentData", name = "getVbrokerCurrentData", auth = false, bwswitch = false)
+	@Service(id = "getVbrokerCurrentData", name = "getVbrokerCurrentData", auth = true, bwswitch = true)
 	public static void getVbrokerCurrentData(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
 
@@ -108,7 +108,7 @@ public class CollectDataHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 
-	@Service(id = "getQueueCurrentData", name = "getQueueCurrentData", auth = false, bwswitch = false)
+	@Service(id = "getQueueCurrentData", name = "getQueueCurrentData", auth = true, bwswitch = true)
 	public static void getQueueCurrentData(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
 
@@ -134,7 +134,7 @@ public class CollectDataHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 
-	@Service(id = "getVbrokerHisData", name = "getVbrokerHisData", auth = false, bwswitch = false)
+	@Service(id = "getVbrokerHisData", name = "getVbrokerHisData", auth = true, bwswitch = true)
 	public static void getVbrokerHisData(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
 
@@ -164,7 +164,7 @@ public class CollectDataHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 
-	@Service(id = "getAllVbrokerHisData", name = "getAllVbrokerHisData", auth = false, bwswitch = false)
+	@Service(id = "getAllVbrokerHisData", name = "getAllVbrokerHisData", auth = true, bwswitch = true)
 	public static void getAllVbrokerHisData(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
 
@@ -194,7 +194,7 @@ public class CollectDataHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 
-	@Service(id = "getQueueHisData", name = "getQueueHisData", auth = false, bwswitch = false)
+	@Service(id = "getQueueHisData", name = "getQueueHisData", auth = true, bwswitch = true)
 	public static void getQueueHisData(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
 
@@ -224,7 +224,7 @@ public class CollectDataHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 
-	@Service(id = "getProxyCurrentData", name = "getProxyCurrentData", auth = false, bwswitch = false)
+	@Service(id = "getProxyCurrentData", name = "getProxyCurrentData", auth = true, bwswitch = true)
 	public static void getProxyCurrentData(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
 
@@ -250,7 +250,7 @@ public class CollectDataHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 
-	@Service(id = "getRedisCurrentData", name = "getRedisCurrentData", auth = false, bwswitch = false)
+	@Service(id = "getRedisCurrentData", name = "getRedisCurrentData", auth = true, bwswitch = true)
 	public static void getRedisCurrentData(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
 
@@ -276,7 +276,7 @@ public class CollectDataHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 
-	@Service(id = "getProxyHisData", name = "getProxyHisData", auth = false, bwswitch = false)
+	@Service(id = "getProxyHisData", name = "getProxyHisData", auth = true, bwswitch = true)
 	public static void getProxyHisData(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
 
@@ -306,7 +306,7 @@ public class CollectDataHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 
-	@Service(id = "getRedisHisData", name = "getRedisHisData", auth = false, bwswitch = false)
+	@Service(id = "getRedisHisData", name = "getRedisHisData", auth = true, bwswitch = true)
 	public static void getRedisHisData(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
 
@@ -336,7 +336,7 @@ public class CollectDataHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 
-	@Service(id = "getTiDBCurrentData", name = "getTiDBCurrentData", auth = false, bwswitch = false)
+	@Service(id = "getTiDBCurrentData", name = "getTiDBCurrentData", auth = true, bwswitch = true)
 	public static void getTiDBCurrentData(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
 
@@ -362,7 +362,7 @@ public class CollectDataHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 
-	@Service(id = "getPDCurrentData", name = "getPDCurrentData", auth = false, bwswitch = false)
+	@Service(id = "getPDCurrentData", name = "getPDCurrentData", auth = true, bwswitch = true)
 	public static void getPDCurrentData(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
 
@@ -388,7 +388,7 @@ public class CollectDataHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 
-	@Service(id = "getTiKVCurrentData", name = "getTiKVCurrentData", auth = false, bwswitch = false)
+	@Service(id = "getTiKVCurrentData", name = "getTiKVCurrentData", auth = true, bwswitch = true)
 	public static void getTiKVCurrentData(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
 
@@ -415,7 +415,7 @@ public class CollectDataHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 
-	@Service(id = "getTiDBHisData", name = "getTiDBHisData", auth = false, bwswitch = false)
+	@Service(id = "getTiDBHisData", name = "getTiDBHisData", auth = true, bwswitch = true)
 	public static void getTiDBHisData(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
 
@@ -451,7 +451,7 @@ public class CollectDataHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 
-	@Service(id = "getPDHisData", name = "getPDHisData", auth = false, bwswitch = false)
+	@Service(id = "getPDHisData", name = "getPDHisData", auth = true, bwswitch = true)
 	public static void getPDHisData(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
 
@@ -487,7 +487,7 @@ public class CollectDataHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 
-	@Service(id = "getTiKVHisData", name = "getTiKVHisData", auth = false, bwswitch = false)
+	@Service(id = "getTiKVHisData", name = "getTiKVHisData", auth = true, bwswitch = true)
 	public static void getTiKVHisData(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
 

@@ -129,7 +129,7 @@ public class MQHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 	
-	@Service(id = "releaseQueue", name = "releaseQueue")
+	@Service(id = "releaseQueue", name = "releaseQueue", auth = true, bwswitch = true)
 	public static void releaseQueue(RoutingContext routeContext) {
 		ResultBean resultBean = new ResultBean();
 		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
@@ -141,7 +141,7 @@ public class MQHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 	
-	@Service(id = "createQueueByClient", name = "createQueueByClient")
+	@Service(id = "createQueueByClient", name = "createQueueByClient", auth = true, bwswitch = true)
 	public static void createQueueByClient(RoutingContext routeContext) {
 		ResultBean resultBean = new ResultBean();
 		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
@@ -153,7 +153,7 @@ public class MQHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 	
-	@Service(id = "deleteQueueByClient", name = "deleteQueueByClient")
+	@Service(id = "deleteQueueByClient", name = "deleteQueueByClient", auth = true, bwswitch = true)
 	public static void deleteQueueByClient(RoutingContext routeContext) {
 		ResultBean resultBean = new ResultBean();
 		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
@@ -165,7 +165,7 @@ public class MQHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 	
-	@Service(id = "getPermnentTopicList", name = "getPermnentTopicList")
+	@Service(id = "getPermnentTopicList", name = "getPermnentTopicList", auth = true, bwswitch = true)
 	public static void getPermnentTopicList(RoutingContext routeContext){
 		ResultBean resultBean = new ResultBean();
 		JsonObject json = new JsonObject();
@@ -185,7 +185,7 @@ public class MQHandler {
 		
 	}
 	
-	@Service(id = "getPermnentTopicCount", name="getPermnentTopicCount")
+	@Service(id = "getPermnentTopicCount", name="getPermnentTopicCount", auth = true, bwswitch = true)
 	public static void getPermnentTopicCount(RoutingContext routeContext){
 		ResultBean resultBean = new ResultBean();
 		JsonObject json = new JsonObject();
@@ -319,7 +319,7 @@ public class MQHandler {
 		HttpUtils.outJsonObject(routeContext, jsonObject);
 	}
 	
-	@Service(id = "genConsumerID", name = "genConsumerID")
+	@Service(id = "genConsumerID", name = "genConsumerID", auth = true, bwswitch = true)
 	public static void genConsumerID(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
 		json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);

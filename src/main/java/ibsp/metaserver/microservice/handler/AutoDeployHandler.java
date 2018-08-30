@@ -214,7 +214,7 @@ public class AutoDeployHandler {
 		
 	}
 	
-	@Service(id = "getDeployLog", name = "getDeployLog")
+	@Service(id = "getDeployLog", name = "getDeployLog", auth = true, bwswitch = true)
 	public static void getDeployLog(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
 		Map<String, String> params = HttpUtils.getParamForMap(routeContext);

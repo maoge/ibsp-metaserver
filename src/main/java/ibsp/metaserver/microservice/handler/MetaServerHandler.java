@@ -216,7 +216,7 @@ public class MetaServerHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 
-	@Service(id = "getAlarms", name = "getAlarms")
+	@Service(id = "getAlarms", name = "getAlarms", auth = true, bwswitch = true)
 	public static void getAlarms(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
 
@@ -235,7 +235,7 @@ public class MetaServerHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 
-	@Service(id = "getAlarmsCount", name = "getAlarmsCount")
+	@Service(id = "getAlarmsCount", name = "getAlarmsCount", auth = true, bwswitch = true)
 	public static void getAlarmsCount(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
 
@@ -251,7 +251,7 @@ public class MetaServerHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 
-	@Service(id = "clearAlarm", name = "clearAlarm")
+	@Service(id = "clearAlarm", name = "clearAlarm", auth = true, bwswitch = true)
 	public static void clearAlarm(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
 

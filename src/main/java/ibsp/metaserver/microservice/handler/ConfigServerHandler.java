@@ -169,7 +169,6 @@ public class ConfigServerHandler {
 		ResultBean result = new ResultBean();
 		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
 		JsonArray serviceList = ConfigDataService.getServiceList(params, result);
-//		HttpUtils.outJsonArray(routeContext, serviceList);
 		
 		if (serviceList != null) {
 			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
@@ -188,7 +187,6 @@ public class ConfigServerHandler {
 		ResultBean result = new ResultBean();
 		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
 		JsonObject serviceCount = ConfigDataService.getServiceCount(params, result);
-//		HttpUtils.outJsonObject(routeContext, serviceCount);
 		
 		if (serviceCount != null) {
 			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
