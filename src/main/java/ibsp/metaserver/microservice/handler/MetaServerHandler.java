@@ -186,7 +186,7 @@ public class MetaServerHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 	
-	@Service(id = "putClientStatisticInfo", name = "putClientStatisticInfo")
+	@Service(id = "putClientStatisticInfo", name = "putClientStatisticInfo", auth = false, bwswitch = false)
 	public static void putClientStatisticInfo(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
 		
