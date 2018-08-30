@@ -243,8 +243,6 @@ public class Server extends AbstractVerticle {
 			return true;   // 不需要认证的api直接pass
 		
 		MultiMap attrMap = method.equals(HttpMethod.POST) ? request.formAttributes() : request.params();
-		if (attrMap == null)
-			return false;
 		
 		String key = request.getHeader("MAGIC_KEY");
 		if (key == null){
