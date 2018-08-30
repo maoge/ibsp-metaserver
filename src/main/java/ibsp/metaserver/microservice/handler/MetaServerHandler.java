@@ -1,13 +1,5 @@
 package ibsp.metaserver.microservice.handler;
 
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import ibsp.metaserver.annotation.App;
 import ibsp.metaserver.annotation.Service;
 import ibsp.metaserver.bean.LongMargin;
@@ -26,6 +18,12 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.web.RoutingContext;
+
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @App(path = "/metasvr")
 public class MetaServerHandler {
@@ -55,31 +53,6 @@ public class MetaServerHandler {
 			json.put(FixHeader.HEADER_RET_INFO,    "HttpServerRequest null.");
 		}
 		
-		HttpUtils.outJsonObject(routeContext, json);
-	}
-
-	@Service(id = "login", name = "login", auth = false, bwswitch = false)
-	public static void login(RoutingContext routeContext) throws InterruptedException, ExecutionException, TimeoutException {
-		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
-
-		ResultBean result = new ResultBean();
-		boolean res = MetaDataService.login(params, result);
-
-		JsonObject json = new JsonObject();
-		if (res) {
-			String userId = params.get(FixHeader.HEADER_USER_ID);
-
-			String magicKey = MetaData.get().getMagicKeyByUserID(userId);
-
-			json.put(FixHeader.HEADER_RET_CODE,  CONSTS.REVOKE_OK);
-			json.put(FixHeader.HEADER_RET_INFO,  "");
-			json.put(FixHeader.HEADER_MAGIC_KEY, magicKey);
-
-		} else {
-			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
-			json.put(FixHeader.HEADER_RET_INFO, result.getRetInfo());
-		}
-
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 
