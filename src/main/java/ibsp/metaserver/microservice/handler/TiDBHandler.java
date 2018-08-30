@@ -65,7 +65,7 @@ public class TiDBHandler {
 				json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
 			} else {
 				ResultBean result = new ResultBean();
-				JsonObject object = TiDBService.explainSql(sql, servID, name, user, pwd, result);
+				JsonArray object = TiDBService.explainSql(sql, servID, name, user, pwd, result);
 				if (object!=null) {
 					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
 					json.put(FixHeader.HEADER_RET_INFO, object);

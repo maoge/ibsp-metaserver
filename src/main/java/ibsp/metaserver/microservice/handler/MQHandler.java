@@ -4,7 +4,6 @@ import ibsp.metaserver.annotation.App;
 import ibsp.metaserver.annotation.Service;
 import ibsp.metaserver.bean.ResultBean;
 import ibsp.metaserver.dbservice.MQService;
-import ibsp.metaserver.dbservice.TiDBService;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.FixHeader;
@@ -18,40 +17,6 @@ import java.util.Map;
 
 @App(path = "/mqsvr")
 public class MQHandler {
-
-	@Service(id = "sqlExplainService", name = "sqlExplainService", auth = true, bwswitch = true)
-	public static void sqlExplainService(RoutingContext routeContext) {
-		JsonObject json = new JsonObject();
-		
-		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
-		if(params == null) {
-			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
-			json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
-		} else {
-			String sql = params.get(FixHeader.HEADER_SQL_STR);
-			String servID = params.get(FixHeader.HEADER_SERV_ID);
-			String name = params.get(FixHeader.HEADER_SCHEMA_NAME);
-			String user = params.get(FixHeader.HEADER_USER_NAME);
-			String pwd = params.get(FixHeader.HEADER_USER_PWD);
-			if (!HttpUtils.isNotNull(sql) || !HttpUtils.isNotNull(servID) ||
-					!HttpUtils.isNotNull(name) || !HttpUtils.isNotNull(user)) {
-				json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
-				json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
-			} else {
-				ResultBean result = new ResultBean();
-				JsonObject object = TiDBService.explainSql(sql, servID, name, user, pwd, result);
-				if (object!=null) {
-					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
-					json.put(FixHeader.HEADER_RET_INFO, object);
-				} else {
-					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
-					json.put(FixHeader.HEADER_RET_INFO, result.getRetInfo());
-				}
-			}
-		}
-		
-		HttpUtils.outJsonObject(routeContext, json);
-	}
 	
 	@Service(id = "getQueueList", name = "getQueueList", auth = true, bwswitch = true)
 	public static void getQueueList(RoutingContext routeContext) {

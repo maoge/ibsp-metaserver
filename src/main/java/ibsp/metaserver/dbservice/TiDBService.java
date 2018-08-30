@@ -191,7 +191,7 @@ public class TiDBService {
 		return true;
 	}
 	
-	public static JsonObject explainSql(String sql, String servID, 
+	public static JsonArray explainSql(String sql, String servID,
 			String schema, String user, String pwd, ResultBean bean) {
 		sql = "EXPLAIN " + sql;
 		Connection conn = null;
@@ -220,7 +220,7 @@ public class TiDBService {
 			stmt = conn.createStatement();
 			rs = stmt.executeQuery(sql);
 			plan = resultSetToJson(rs);
-			return explainPlanToTree(plan);
+			return plan;
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 			bean.setRetCode(CONSTS.REVOKE_NOK);
@@ -236,111 +236,66 @@ public class TiDBService {
 		
 		return null;
 	}
-	
-	/**
-	 * 将sql执行计划转换成前台echarts所需的树状json格式
-	 * @param plan
-	 * @return
-	 */
+
 	private static JsonObject explainPlanToTree(JsonArray plan) {
-		Map<String, JsonArray> childrenMap = new HashMap<String, JsonArray>();
-		
-		//根据前序（后根）遍历的顺序将画树需要的信息提取出来
-		for (int i=0; i<plan.size(); i++) {
-			JsonObject object = plan.getJsonObject(i);
-			
-			//name信息
-			JsonObject resultObject = new JsonObject();
-			String name = object.getString("ID");
-			
-			//children信息
-			JsonArray children = new JsonArray();
-			if (childrenMap.containsKey("cop") && object.getString("TASK").equals("root")) {
-				for (Object o : childrenMap.get("cop")) {
-					JsonObject child = (JsonObject) o;
-					children.add(child);
-					if (child.containsKey("table")) {
-						if (!resultObject.containsKey("table")) {
-							resultObject.put("table", child.getString("table"));
-						}
-						child.remove("table");
-					}
-				}
-				childrenMap.remove("cop");
+		JsonObject resJson = new JsonObject();
+		JsonArray lastJson = null;
+		JsonArray preLastJson = null;
+
+		if(plan == null || plan.size() == 0) {
+			return null;
+		}
+
+		for(int i=0; i<plan.size(); i++) {
+			JsonObject row = plan.getJsonObject(i);
+
+			String task = row.getString("TASK");
+
+			if(i == 0 && plan.size() > 1) {
+				lastJson = new JsonArray();
+				resJson.put("children",lastJson);
+				String name = row.getString("ID");
+				resJson.put("name", name);
+				resJson.put("type", task);
+				resJson.put("value", row.getString("OPERATOR_INFO"));
+				continue;
 			}
-			if (childrenMap.containsKey(name)) {
-				for (Object o : childrenMap.get(name)) {
-					JsonObject child = (JsonObject) o;
-					children.add(child);
-					if (child.containsKey("table")) {
-						if (object.getString("TASK").equals("cop") && !resultObject.containsKey("table")) {
-							resultObject.put("table", child.getString("table"));
-						}
-						child.remove("table");
-					}
-				}
-				childrenMap.remove(name);
+
+			if("root".equals(task)) {
+				JsonArray childJson = new JsonArray();
+				JsonObject json = new JsonObject();
+
+				json.put("children",childJson);
+				String name = row.getString("ID");
+				json.put("name", name);
+				json.put("type", task);
+				json.put("value", row.getString("OPERATOR_INFO"));
+
+				lastJson.add(json);
+				lastJson = childJson;
+				preLastJson = null;
+				continue;
 			}
-			if (children.size()>0) {
-				resultObject.put("children", children);
-			}
-			
-			//value信息
-			StringBuilder value = new StringBuilder("");
-			if (object.getString("TASK").equals("cop")) {
-				value.append("类型: TiKV端<br/>");
-			} else {
-				value.append("类型: TiDB端<br/>");
-			}
-			if (HttpUtils.isNotNull(object.getString("OPERATOR INFO"))) {
-				for (String s : object.getString("OPERATOR INFO").split(", ")) {
-					if (object.getString("TASK").equals("cop") && 
-							s.indexOf(":")!=-1 && s.split(":")[0].equals("table")) {
-						resultObject.put("table", s.split(":")[1]);
-						continue;
-					}
-					if (s.indexOf(":")!=-1 || (name.indexOf("Join_")!=-1 && s.indexOf(" join")!=1)) {
-						if (!value.substring(value.length()-"<br/>".length(), value.length()).equals("<br/>")) {
-							value.append("<br/>");
-						}
-					} else {
-						if (!value.substring(value.length()-"<br/>".length(), value.length()).equals("<br/>")) {
-							value.append(", ");
-						}
-					}
-					value.append(s);
-				}
-			}
-			if (resultObject.containsKey("table") && object.getString("TASK").equals("root")) {
-				name += "\n表:"+resultObject.getString("table");
-				resultObject.remove("table");
-			}
-			name += "\n约"+Math.round(Double.parseDouble(object.getString("COUNT")))+"条数据";
-			
-			resultObject.put("name", name);
-			resultObject.put("value", value);
-			resultObject.put("type", object.getString("TASK"));
-			
-			//将JsonObject存放起来
-			String parentID = object.getString("PARENTS");
-			if (HttpUtils.isNull(parentID) && object.getString("TASK").equals("cop")) {
-				parentID = "cop";
-			}
-			if (HttpUtils.isNotNull(parentID)) {
-				if (childrenMap.containsKey(parentID)) {
-					childrenMap.get(parentID).add(resultObject);
-				} else {
-					JsonArray newArray = new JsonArray();
-					newArray.add(resultObject);
-					childrenMap.put(parentID, newArray);
-				}
-			} else {
-				return resultObject;
+
+			if("cop".equals(task)) {
+				JsonObject json = new JsonObject();
+
+				String name = row.getString("ID");
+				json.put("name", name);
+				json.put("type", task);
+				json.put("value", row.getString("OPERATOR_INFO"));
+
+				preLastJson = preLastJson == null ?lastJson : preLastJson;
+				preLastJson.add(json);
+
+				lastJson = resJson.getJsonArray("children");
+				continue;
 			}
 		}
-		return null;
+
+		return resJson;
 	}
-	
+
 	public static boolean getTikvStatusByTikvId(String servID, int tikvId, ResultBean bean) {
 		boolean res = false;
 		try {
