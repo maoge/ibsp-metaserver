@@ -123,7 +123,10 @@ public class CRUD {
 
 		boolean res = true;
 		try {
-			conn.setAutoCommit(false);
+			int size = this.queue.size();
+			if(size > 1){
+				conn.setAutoCommit(false);
+			}
 			while (true) {
 				SqlBean sb = queue.poll();
 				if (sb == null)
@@ -133,7 +136,9 @@ public class CRUD {
 				List<Object> objs = sb.getParams();
 				UPDATE(conn, sql, objs != null ? objs.toArray() : null);
 			}
-			conn.commit();
+			if(size > 1){
+				conn.commit();
+			}
 		} catch (Exception e) {
 			res = false;
 			try {
@@ -169,7 +174,10 @@ public class CRUD {
 
 		boolean res = true;
 		try {
-			conn.setAutoCommit(false);
+			int size = this.queue.size();
+			if(size > 1){
+				conn.setAutoCommit(false);
+			}
 			while (true) {
 				SqlBean sb = queue.poll();
 				if (sb == null)
@@ -179,7 +187,9 @@ public class CRUD {
 				List<Object> objs = sb.getParams();
 				UPDATE(conn, sql, objs != null ? objs.toArray() : null);
 			}
-			conn.commit();
+			if(size > 1){
+				conn.commit();
+			}
 		} catch (Exception e) {
 			res = false;
 			try {
@@ -680,7 +690,7 @@ public class CRUD {
 	/**
 	 * 数据库的更新操作
 	 * 
-	 * @param sql更新语句参数使用"?",类型必须和数据库字段类型匹配           
+	 * sql更新语句参数使用"?",类型必须和数据库字段类型匹配
 	 * @param params
 	 * @return 出现异常时返回-1
 	 * @throws CRUDException

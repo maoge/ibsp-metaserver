@@ -1545,6 +1545,9 @@ public class MetaData {
 			int cmptId = insDtlBean.getInstance().getCmptID();
 			if(cmptId == containerCmptID) {
 				Set<String> eles = topo.get(child, CONSTS.TOPO_TYPE_CONTAIN);
+				if(eles == null) {
+					return null;
+				}
 				for(String ele : eles) {
 					list.add(instanceDtlMap.get(ele));
 				}

@@ -43,11 +43,11 @@ public class ConfigServerHandler {
 
 		HttpUtils.outJsonObject(routeContext, json);
 	}
-	
-	@Service(id = "loadServiceTopoByInstID", name = "loadServiceTopoByInstID", auth = true, bwswitch = true)
+
+	@Service(id = "loadServiceTopoByInstID", name = "loadServiceTopoByInstID", auth = false, bwswitch = false)
 	public static void loadServiceTopoByInstID(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
-		
+
 		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
 		if(params == null) {
 			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
@@ -69,14 +69,14 @@ public class ConfigServerHandler {
 				}
 			}
 		}
-		
+
 		HttpUtils.outJsonObject(routeContext, json);
 	}
-	
+
 	@Service(id = "saveServiceTopoSkeleton", name = "saveServiceTopoSkeleton", auth = true, bwswitch = true)
 	public static void saveServiceTopoSkeleton(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
-		
+
 		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
 		if(params == null) {
 			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
@@ -98,14 +98,14 @@ public class ConfigServerHandler {
 				}
 			}
 		}
-		
+
 		HttpUtils.outJsonObject(routeContext, json);
 	}
-	
+
 	@Service(id = "saveServiceNode", name = "saveServiceNode", auth = true, bwswitch = true)
 	public static void saveServiceNode(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
-		
+
 		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
 		if(params == null) {
 			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
@@ -130,14 +130,14 @@ public class ConfigServerHandler {
 				}
 			}
 		}
-		
+
 		HttpUtils.outJsonObject(routeContext, json);
 	}
-	
+
 	@Service(id = "delServiceNode", name = "delServiceNode", auth = true, bwswitch = true)
 	public static void delServiceNode(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
-		
+
 		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
 		if(params == null) {
 			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
@@ -159,17 +159,17 @@ public class ConfigServerHandler {
 				}
 			}
 		}
-		
+
 		HttpUtils.outJsonObject(routeContext, json);
 	}
-	
+
 	@Service(id = "getServiceList", name = "getServiceList", auth = true, bwswitch = true)
 	public static void getServiceList(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
 		ResultBean result = new ResultBean();
 		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
 		JsonArray serviceList = ConfigDataService.getServiceList(params, result);
-		
+
 		if (serviceList != null) {
 			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
 			json.put(FixHeader.HEADER_RET_INFO, serviceList);
@@ -177,17 +177,17 @@ public class ConfigServerHandler {
 			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
 			json.put(FixHeader.HEADER_RET_INFO, result.getRetInfo());
 		}
-		
+
 		HttpUtils.outJsonObject(routeContext, json);
 	}
-	
+
 	@Service(id = "getServiceCount", name = "getServiceCount", auth = true, bwswitch = true)
 	public static void getServiceCount(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
 		ResultBean result = new ResultBean();
 		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
 		JsonObject serviceCount = ConfigDataService.getServiceCount(params, result);
-		
+
 		if (serviceCount != null) {
 			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
 			json.put(FixHeader.HEADER_RET_INFO, serviceCount);
@@ -195,14 +195,14 @@ public class ConfigServerHandler {
 			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
 			json.put(FixHeader.HEADER_RET_INFO, result.getRetInfo());
 		}
-		
+
 		HttpUtils.outJsonObject(routeContext, json);
 	}
-	
+
 	@Service(id = "getTreeMetaDataByInstId", name = "getTreeMetaDataByInstId", auth = true, bwswitch = true)
 	public static void getTreeMetaDataByInstId(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
-		
+
 		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
 		if(params == null) {
 			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
@@ -217,16 +217,16 @@ public class ConfigServerHandler {
 				JsonArray arr = ConfigDataService.getTreeMetaDataByInstId(sInstID, result);
 				json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
 				json.put(FixHeader.HEADER_RET_INFO, arr);
-			}			
+			}
 		}
-		
+
 		HttpUtils.outJsonObject(routeContext, json);
 	}
-	
+
 	@Service(id = "getMetaDataByInstId", name = "getMetaDataByInstId", auth = true, bwswitch = true)
 	public static void getMetaDataByInstId(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();
-		
+
 		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
 		if(params == null) {
 			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
@@ -248,7 +248,7 @@ public class ConfigServerHandler {
 				}
 			}
 		}
-		
+
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 }

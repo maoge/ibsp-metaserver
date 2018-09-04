@@ -16,7 +16,7 @@ import java.util.Map;
 @App(path = "/cachesvr")
 public class CacheHandler {
 
-	@Service(id = "getProxyInfoByID", name = "getProxyInfoByID", auth = true, bwswitch = true)
+	@Service(id = "getProxyInfoByID", name = "getProxyInfoByID", auth = false, bwswitch = false)
 	public static void getProxyInfoByID(RoutingContext routeContext) throws Exception {
 		JsonObject json = new JsonObject();
 		
@@ -45,7 +45,7 @@ public class CacheHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 	
-	@Service(id = "getDeployedProxyByServiceID", name = "getDeployedProxyByServiceID", auth = true, bwswitch = true)
+	@Service(id = "getDeployedProxyByServiceID", name = "getDeployedProxyByServiceID", auth = false, bwswitch = false)
 	public static void getDeployedProxyByServiceID(RoutingContext routeContext) throws Exception {
 		JsonObject json = new JsonObject();
 		
@@ -74,7 +74,7 @@ public class CacheHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 	
-	@Service(id = "getNodeClusterInfo", name = "getNodeClusterInfo", auth = true, bwswitch = true)
+	@Service(id = "getNodeClusterInfo", name = "getNodeClusterInfo", auth = false, bwswitch = false)
 	public static void getNodeClusterInfo(RoutingContext routeContext) throws Exception {
 		JsonObject json = new JsonObject();
 		
