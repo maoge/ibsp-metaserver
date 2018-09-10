@@ -26,7 +26,7 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
-@App(path = "/metrics/job")
+@App(path = "/metrics/job", auth = false)
 public class TiDBMericsHandle {
     private static Logger logger = LoggerFactory.getLogger(TiDBMericsHandle.class);
 
@@ -192,25 +192,32 @@ public class TiDBMericsHandle {
 
         private void calc(String instId, TiKVMetricsStatus tiKVMetricsStatus) {
             TiKVMetricsStatus prevTikvMetricsStatus = MonitorData.get().getTiKVMetricsStatusMap().get(instId);
-            if(prevTikvMetricsStatus == null) {
+            if(instId == null || prevTikvMetricsStatus == null) {
                 MonitorData.get().getTiKVMetricsStatusMap().put(instId, tiKVMetricsStatus);
                 return;
             }
 
             Histogram h1ScheduleHis = prevTikvMetricsStatus.getTikvSchedulerContextTotalHis();
             Histogram h2ScheduleHis = tiKVMetricsStatus.getTikvSchedulerContextTotalHis();
-            tiKVMetricsStatus.setTikvSchedulerContextTotal(
-                    Histogram.calc(h1ScheduleHis, h2ScheduleHis, 0.99));
+            if(h1ScheduleHis != null && h2ScheduleHis != null) {
+                tiKVMetricsStatus.setTikvSchedulerContextTotal(
+                        Histogram.calc(h1ScheduleHis, h2ScheduleHis, 0.99));
+
+            }
 
             Histogram h1SnapshotHis = prevTikvMetricsStatus.getStorageAsyncRequestDurationSnapshotHis();
             Histogram h2SnapshotHis = tiKVMetricsStatus.getStorageAsyncRequestDurationSnapshotHis();
-            tiKVMetricsStatus.setStorageAsyncRequestSnapshotDuration(
-                    Histogram.calc(h1SnapshotHis, h2SnapshotHis, 1));
+            if(h1SnapshotHis != null && h2SnapshotHis != null) {
+                tiKVMetricsStatus.setStorageAsyncRequestSnapshotDuration(
+                        Histogram.calc(h1SnapshotHis, h2SnapshotHis, 1));
+            }
 
             Histogram h1WriteHis = prevTikvMetricsStatus.getStorageAsyncRequestDurationWriteHis();
             Histogram h2WriteHis = tiKVMetricsStatus.getStorageAsyncRequestDurationWriteHis();
-            tiKVMetricsStatus.setStorageAsyncRequestWriteDuration(
-                    Histogram.calc(h1WriteHis, h2WriteHis, 1));
+            if(h1WriteHis != null && h2WriteHis != null) {
+                tiKVMetricsStatus.setStorageAsyncRequestWriteDuration(
+                        Histogram.calc(h1WriteHis, h2WriteHis, 1));
+            }
 
             tiKVMetricsStatus.setVoteRate(tiKVMetricsStatus.getVote() - prevTikvMetricsStatus.getVote());
             MonitorData.get().getTiKVMetricsStatusMap().put(instId, tiKVMetricsStatus);

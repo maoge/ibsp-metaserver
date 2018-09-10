@@ -10,4 +10,5 @@ import java.lang.annotation.Target;
 
 public @interface App {
 	String path();
+	boolean auth() default true;//为false的时候，不检查地下的所有的路径
 }

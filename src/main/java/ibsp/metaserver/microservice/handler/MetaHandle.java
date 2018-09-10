@@ -10,6 +10,7 @@ import ibsp.metaserver.global.MonitorData;
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.FixHeader;
 import ibsp.metaserver.utils.HttpUtils;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
@@ -67,6 +68,13 @@ public class MetaHandle {
     public static void getInstanceDtlMap(RoutingContext routeContext) {
         MetaData metaData = MetaData.get();
         JsonObject json = JsonObject.mapFrom(HttpUtils.mapToJson(metaData.getInstanceDtlMap()));
+        HttpUtils.outJsonObject(routeContext, json);
+    }
+
+    @Service(id = "getTopo", name = "getTopo", auth = false, bwswitch = false)
+    public static void getTopo(RoutingContext routeContext) {
+        MetaData metaData = MetaData.get();
+        JsonObject json = JsonObject.mapFrom(Json.encode(metaData.getTopo()));
         HttpUtils.outJsonObject(routeContext, json);
     }
 

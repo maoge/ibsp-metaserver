@@ -169,7 +169,7 @@ public class Server extends AbstractVerticle {
                                     return;
                                 }
 
-								if (SysConfig.get().isNeed_auth()) {
+								if (s.auth() && SysConfig.get().isNeed_auth()) {
                                     if (!doAuth(routingContext)) {
                                         HttpServerResponse response = routingContext.response();
                                         response.putHeader("Access-Control-Allow-Origin", "*");
@@ -179,6 +179,7 @@ public class Server extends AbstractVerticle {
 										return;
 									}
 								}
+
 								if(SysConfig.get().isCheck_blackwhite_list()) {
 									if(!doIpCheck(routingContext)) {
 										doIpLimitError(routingContext);

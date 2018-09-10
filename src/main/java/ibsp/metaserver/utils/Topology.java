@@ -108,4 +108,19 @@ public class Topology {
 		}	
 	}
 
+	public Map<String, Set<String>> getMapContain() {
+	    return mapContain;
+	}
+
+	public void setMapContain(Map<String, Set<String>> mapContain) {
+	    this.mapContain = mapContain;
+	}
+
+	public Map<String, Set<String>> getMapLink() {
+	    return mapLink;
+	}
+
+	public void setMapLink(Map<String, Set<String>> mapLink) {
+	    this.mapLink = mapLink;
+	}
 }
