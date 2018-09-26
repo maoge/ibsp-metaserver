@@ -211,13 +211,29 @@ public final class DES3 extends Cipher {
 	}
 
 	public static void main(String[] args) {
-		String str = "f8340fab03444ae87e5b59aac8d0be046479a9b41d87be7df81342b87ba4ee78";
-//		String enStr = encrypt(str);
-		String deStr = decrypt(str);
-//		System.out.println("************加密*************");
-//		System.out.println(enStr);
-		System.out.println("************解密*************");
-		System.out.println(deStr);
+		if(args != null && args.length == 2) {
+		    String arg1 = args[0];
+		    String arg2 = args[1];
+
+		    if("encode".equalsIgnoreCase(arg1)) {
+		        System.out.println("************加密*************");
+		        System.out.println(encrypt(arg2));
+			}else if("decode".equalsIgnoreCase(arg1)) {
+			    System.out.println("************解密*************");
+			    System.out.println(decrypt(arg2));
+			}else {
+			    throw new IllegalArgumentException("first param must be encode or decode");
+			}
+		}else {
+		    String str = "ibsp";
+		    String enStr = encrypt(str);
+//		    String deStr = decrypt(str);
+		    System.out.println("************加密*************");
+		    System.out.println(enStr);
+//		    System.out.println("************解密*************");
+//		    System.out.println(deStr);
+		}
+
 	}
 
 }
