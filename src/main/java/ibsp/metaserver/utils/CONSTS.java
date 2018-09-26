@@ -31,6 +31,8 @@ public class CONSTS {
 	public static final String PAGE_SIZE             = "pageSize";
 	public static final String PAGE_NUMBER           = "pageNumber";
 
+	public static final String MAGIC_KEY             = "MAGIC_KEY";
+
 	public static final String DEFAULT_PAGE_SIZE     = "10";
 	public static final String DEFAULT_PAGE_NUMBER   = "1";
 	

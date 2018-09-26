@@ -245,9 +245,9 @@ public class Server extends AbstractVerticle {
 		
 		MultiMap attrMap = method.equals(HttpMethod.POST) ? request.formAttributes() : request.params();
 		
-		String key = request.getHeader("MAGIC_KEY");
+		String key = request.getHeader(CONSTS.MAGIC_KEY);
 		if (key == null){
-		    key = attrMap.get("MAGIC_KEY");
+		    key = attrMap.get(CONSTS.MAGIC_KEY);
             if(key == null)
                 return false;
         }

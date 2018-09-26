@@ -15,10 +15,7 @@ import ibsp.metaserver.eventbus.EventType;
 import ibsp.metaserver.exception.CRUDException;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.schema.Validator;
-import ibsp.metaserver.utils.CONSTS;
-import ibsp.metaserver.utils.CRUD;
-import ibsp.metaserver.utils.FixHeader;
-import ibsp.metaserver.utils.HttpUtils;
+import ibsp.metaserver.utils.*;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
@@ -66,8 +63,11 @@ public class ConfigDataService {
 	
 	private static final String SEL_SERVICE_LIST  = "SELECT INST_ID, SERV_NAME, SERV_TYPE, IS_DEPLOYED FROM t_service WHERE 1=1 ";
 	private static final String COUNT_SERVICE_LIST= "SELECT count(0) count FROM t_service WHERE 1=1 ";
-	
-	static {
+
+    private static final String UPDATE_PASSWORD   = "UPDATE t_sys_user set LOGIN_PWD = ? WHERE USER_ID = ?";
+
+
+    static {
 		SKELETON_SCHEMA_MAPPER = new HashMap<String, String>();
 		SKELETON_SCHEMA_MAPPER.put(CONSTS.SERV_TYPE_MQ,    "mq_skeleton");
 		SKELETON_SCHEMA_MAPPER.put(CONSTS.SERV_TYPE_CACHE, "cache_skeleton");
@@ -707,6 +707,23 @@ public class ConfigDataService {
 			result.setRetInfo(e.getMessage());
 		}
 		return null;
+	}
+
+	public static boolean modPassWord(String userId, String password, ResultBean result) {
+
+        CRUD curd = new CRUD();
+        SqlBean sql = new SqlBean(UPDATE_PASSWORD);
+        sql.addParams(new Object[]{
+                 DES3.encrypt(password), userId
+        });
+		curd.putSqlBean(sql);
+        boolean isSuccess = curd.executeUpdate(result);
+
+		if(isSuccess) {
+		    return MetaData.get().modPassWord(userId, password, result);
+        }
+
+		return isSuccess;
 	}
 
 	private static void extendSQLForServiceList(Map<String, String> params, StringBuilder sb) {

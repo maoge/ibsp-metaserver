@@ -265,17 +265,20 @@ public class DeployServiceFactory {
 			
 				//set db root password
 				switch (serviceType) {
-				case CONSTS.SERV_TYPE_DB:
-					String pwd = UUIDUtils.genUUID();
-					sqlParams[sqlParams.length-1] = DES3.encrypt(pwd.substring(pwd.lastIndexOf("-")+1));
-					sqlParams[sqlParams.length-2] = "root";
-					break;
-				case CONSTS.SERV_TYPE_MQ:
-					//TODO
-					break;
-				case CONSTS.SERV_TYPE_CACHE:
-					//TODO
-					break;
+					case CONSTS.SERV_TYPE_DB:
+						String pwd = UUIDUtils.genUUID();
+						sqlParams[sqlParams.length-1] = DES3.encrypt(pwd.substring(pwd.lastIndexOf("-")+1));
+						sqlParams[sqlParams.length-2] = "root";
+						break;
+					case CONSTS.SERV_TYPE_MQ:
+						//TODO
+						break;
+					case CONSTS.SERV_TYPE_CACHE:
+						//TODO
+					    break;
+					default:
+					    break;
+
 				}
 			
 				SqlBean sqlServBean = new SqlBean(INS_SERVICE);

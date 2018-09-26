@@ -391,14 +391,20 @@ public class TiDBService {
 		HttpURLConnection con = (HttpURLConnection)url.openConnection();
         con.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
         con.connect();
-        BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream()));
-        
-        StringBuilder result = new StringBuilder("");
-        String temp;
-        while ((temp = br.readLine()) != null) {  
-            result.append(temp);  
-        }
-        con.disconnect();
+		StringBuilder result = new StringBuilder("");
+		BufferedReader br = null;
+		try {
+			br = new BufferedReader(new InputStreamReader(con.getInputStream()));
+			String temp;
+			while ((temp = br.readLine()) != null) {
+				result.append(temp);
+			}
+		}finally {
+			con.disconnect();
+			br.close();
+		}
+
+
         return new JsonObject(result.toString());
 	}
 

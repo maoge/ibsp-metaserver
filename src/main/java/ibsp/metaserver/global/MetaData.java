@@ -1598,6 +1598,34 @@ public class MetaData {
         return res;
     }
 
+    public boolean modPassWord(String userID, String userPwd, ResultBean result) {
+        boolean res = false;
+
+        String pwdEncypt = DES3.encrypt(userPwd);
+
+        UserBean userBean = null;
+        if (userMap != null) {
+            try {
+                intanceLock.lock();
+                userBean = userMap.get(userID);
+
+                if (userBean == null) {
+                    String info = String.format("User id:%s not exists in GlobalData!", userID);
+                    result.setRetCode(CONSTS.REVOKE_NOK);
+                    result.setRetInfo(info);
+                    return false;
+                }
+
+                userBean.setLoginPwd(pwdEncypt);
+                return true;
+            }finally {
+                intanceLock.unlock();
+            }
+        }
+
+        return res;
+    }
+
     public String getMagicKeyByUserID(String userId) throws InterruptedException, ExecutionException, TimeoutException {
         JsonObject userMagic = userMagicMap.get(userId);
         String magic = userMagic == null ? "" : userMagic.getString(FixHeader.HEADER_MAGIC_KEY, "");
@@ -1756,6 +1784,35 @@ public class MetaData {
         return res;
     }
 
+	public String getUserIdByMagicKey(String key) throws InterruptedException, ExecutionException, TimeoutException {
+		if (HttpUtils.isNull(key)) {
+			return null;
+		}
+
+		String userId = sessionUserMap.get(key);
+		if(userId != null) {
+			return userId;
+		}
+
+		SharedData sharedData = ServiceData.get().getSharedData();
+		AsyncCallResult<String> r = new AsyncCallResult<String>();
+		sharedData.<String, String>getClusterWideMap(CONSTS.SESSION_MAP, resHandler -> {
+			if (resHandler.succeeded()) {
+				AsyncMap<String, String> map = resHandler.result();
+				map.get(key, resPutHandler -> {
+					if (resPutHandler.succeeded()) {
+                        r.setResult(resPutHandler.result());
+					} else {
+                        r.setResult(null);
+					}
+				});
+			} else {
+                r.setResult(null);
+			}
+		});
+
+        return r.get(CONSTS.ASYNC_CALL_TIMEOUT, TimeUnit.MILLISECONDS);
+	}
 
     public Map<String, ServerBean> getServerMap() {
 		return serverMap;

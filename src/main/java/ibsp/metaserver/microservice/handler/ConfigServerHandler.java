@@ -44,6 +44,33 @@ public class ConfigServerHandler {
 		HttpUtils.outJsonObject(routeContext, json);
 	}
 
+	@Service(id = "modifyPassWord", name = "modifyPassWord", auth = true, bwswitch = true)
+	public static void modifyPassWord(RoutingContext routeContext) throws InterruptedException, ExecutionException, TimeoutException {
+		Map<String, String> params = HttpUtils.getParamForMap(routeContext);
+		JsonObject json = new JsonObject();
+
+		String passWord = params.get(FixHeader.HEADER_USER_PWD);
+		String magicKey = params.get(CONSTS.MAGIC_KEY);
+
+		if(passWord == null || magicKey == null) {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+			json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
+			return ;
+		}
+
+		String userId = MetaData.get().getUserIdByMagicKey(magicKey);
+		ResultBean result = new ResultBean();
+		if(ConfigDataService.modPassWord(userId, passWord,result)){
+			json.put(FixHeader.HEADER_RET_CODE,  CONSTS.REVOKE_OK);
+			json.put(FixHeader.HEADER_RET_INFO,  "");
+		}else {
+			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
+			json.put(FixHeader.HEADER_RET_INFO, result.getRetInfo());
+		}
+
+		HttpUtils.outJsonObject(routeContext, json);
+	}
+
 	@Service(id = "loadServiceTopoByInstID", name = "loadServiceTopoByInstID", auth = false, bwswitch = false)
 	public static void loadServiceTopoByInstID(RoutingContext routeContext) {
 		JsonObject json = new JsonObject();

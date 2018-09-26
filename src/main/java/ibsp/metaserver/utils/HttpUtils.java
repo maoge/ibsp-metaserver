@@ -58,15 +58,21 @@ public class HttpUtils {
 			} else if (method.equals(HttpMethod.GET)) {
 				map = request.params();
 			}
-			
+
+			String magicKey = request.getHeader(CONSTS.MAGIC_KEY);
+			if(magicKey != null) {
+				if(paramMap == null) {
+					paramMap = new HashMap<>();
+				}
+				paramMap.put(CONSTS.MAGIC_KEY, magicKey);
+			}
+
 			if (map != null) {
-				int i = 0;
 
 				Iterator<Entry<String, String>> it = map.iterator();
 				while (it.hasNext()) {
-					if (i == 0) {
-						paramMap = new HashMap<String, String>();
-						i++;
+					if (paramMap == null) {
+						paramMap = new HashMap<>();
 					}
 
 					Entry<String, String> e = it.next();
