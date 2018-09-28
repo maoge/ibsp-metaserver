@@ -72,11 +72,13 @@ public class ConfigDataService {
 		SKELETON_SCHEMA_MAPPER.put(CONSTS.SERV_TYPE_MQ,    "mq_skeleton");
 		SKELETON_SCHEMA_MAPPER.put(CONSTS.SERV_TYPE_CACHE, "cache_skeleton");
 		SKELETON_SCHEMA_MAPPER.put(CONSTS.SERV_TYPE_DB,    "tidb_skeleton");
-		
+		SKELETON_SCHEMA_MAPPER.put(CONSTS.SERV_TYPE_SEQUOIADB,    "sequoiadb_skeleton");
+
 		SERV_TYPE_NAME_MAPPER = new HashMap<String, String>();
 		SERV_TYPE_NAME_MAPPER.put(CONSTS.SERV_TYPE_MQ,    "MQ_SERV_CONTAINER");
 		SERV_TYPE_NAME_MAPPER.put(CONSTS.SERV_TYPE_CACHE, "CACHE_SERV_CONTAINER");
 		SERV_TYPE_NAME_MAPPER.put(CONSTS.SERV_TYPE_DB,    "DB_SERV_CONTAINER");
+		SERV_TYPE_NAME_MAPPER.put(CONSTS.SERV_TYPE_SEQUOIADB,    "SDB_SERV_CONTAINER");
 	}
 	
 	public static boolean saveServiceTopoSkeleton(String sTopoJson, String sServType, ResultBean result) {
@@ -139,7 +141,7 @@ public class ConfigDataService {
 				result.setRetInfo(info);
 				return false;
 			}
-			
+
 			if (!(subNode instanceof JsonArray)) {
 				result.setRetCode(CONSTS.REVOKE_NOK);
 				result.setRetInfo(CONSTS.ERR_JSONNODE_NOT_COMPLETE);
@@ -163,7 +165,7 @@ public class ConfigDataService {
 				}
 				String instID = instanceNode.getString(idAttrName);
 
-				if (isPortUsed(instanceNode, result)) {
+				if (cmptID != 124 && isPortUsed(instanceNode, result)) {
 					return false;
 				}
 				
@@ -630,7 +632,7 @@ public class ConfigDataService {
 			result.setRetCode(CONSTS.REVOKE_NOK);
 			result.setRetInfo(CONSTS.ERR_JSON_SCHEME_VALI_ERR);
 		}
-		
+
 		return ret;
 	}
 	

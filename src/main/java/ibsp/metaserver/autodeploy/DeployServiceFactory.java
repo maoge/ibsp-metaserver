@@ -36,6 +36,7 @@ public class DeployServiceFactory {
 		DEPLOY_FACTORY.put(CONSTS.SERV_TYPE_MQ,    MQDeployer.class);
 		DEPLOY_FACTORY.put(CONSTS.SERV_TYPE_CACHE, CacheDeployer.class);
 		DEPLOY_FACTORY.put(CONSTS.SERV_TYPE_DB,    TiDBDeployer.class);
+		DEPLOY_FACTORY.put(CONSTS.SERV_TYPE_SEQUOIADB, SequoiaDBDeployer.class);
 	}
 	
 	public static boolean deployService(String serviceID, String sessionKey, ResultBean result) {
@@ -275,12 +276,12 @@ public class DeployServiceFactory {
 						break;
 					case CONSTS.SERV_TYPE_CACHE:
 						//TODO
-					    break;
+						break;
 					default:
-					    break;
+						break;
 
 				}
-			
+
 				SqlBean sqlServBean = new SqlBean(INS_SERVICE);
 				sqlServBean.addParams(sqlParams);
 				curd.putSqlBean(sqlServBean);

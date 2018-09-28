@@ -79,7 +79,14 @@ insert into `t_meta_attr`(`ATTR_ID`,`ATTR_NAME`,`ATTR_NAME_CN`, `AUTO_GEN`) valu
 (241, 'ERL_COOKIE',                        'erlang cookie',          '0'),
 (242, 'ROOT_PWD',                          'root密码',                '0'),
 (243, 'MAX_MEMORY',                        '最大内存限制',                '0'),
-(244, 'RW_SEPARATE',                       '读写分离',                 '0');
+(244, 'RW_SEPARATE',                       '读写分离',                 '0'),
+
+(245, 'SDB_SVC_CONTAINER_ID',              'DB服务容器ID',             '1'),
+(246, 'SDB_SVC_CONTAINER_NAME',            'DB服务容器名字',           '0'),
+(247, 'PG_CONTAINER_ID',                   'PG容器ID',                 '1'),
+(248, 'PG_CONTAINER_NAME',                 'PG容器NAME',               '0'),
+(249, 'PG_ID',                             'PG ID',                    '1'),
+(250, 'PG_NAME',                           'PG Name',                  '0');
 
 
 /*Table structure for component table `t_meta_cmpt` */
@@ -88,6 +95,7 @@ CREATE TABLE `t_meta_cmpt` (
   `CMPT_ID`        int         NOT NULL COMMENT '组件ID',
   `CMPT_NAME`      varchar(48) NOT NULL COMMENT '组件名字(EN)',
   `CMPT_NAME_CN`   varchar(72) NOT NULL COMMENT '组件名字(CN)',
+
   `IS_NEED_DEPLOY` varchar(72) NOT NULL COMMENT '是否需要部署 0:不需要,1:需要',
   `SERV_CLAZZ`     varchar(16) NOT NULL COMMENT '服务分类',
   `SERV_TYPE`      varchar(32) NOT NULL COMMENT '组件类别',
@@ -117,7 +125,12 @@ insert into `t_meta_cmpt`(`CMPT_ID`,`CMPT_NAME`,`CMPT_NAME_CN`,`IS_NEED_DEPLOY`,
 (118, 'DB_PD',                 'PD服务器',               '1', 'DB',    'DB_PD',                 ''),
 (119, 'DB_TIDB',               'TiDB服务器',             '1', 'DB',    'DB_TIDB',               ''),
 (120, 'DB_TIKV',               'TiKV服务器',             '1', 'DB',    'DB_TIKV',               ''),
-(121, 'DB_COLLECTD',           'DB采集器',               '1', 'DB',    'DB_COLLECTD',           '');
+(121, 'DB_COLLECTD',           'DB采集器',               '1', 'DB',    'DB_COLLECTD',           ''),
+
+(122, 'SDB_SERV_CONTAINER',    'DB服务容器',             '0', 'SequoiaDB',    'SDB_SERV_CONTAINER',     'SDB_PG_CONTAINER'),
+(123, 'SDB_PG_CONTAINER',      'PG容器',                 '0', 'SequoiaDB',    'SDB_PG_CONTAINER',       'SDB_PG'),
+(124, 'SDB_PG',                'PG服务器',               '1', 'SequoiaDB',    'SDB_PG',       '');
+
 
 /*Table structure for component-attribute table `t_meta_cmpt_attr` */
 DROP TABLE IF EXISTS `t_meta_cmpt_attr`;
@@ -222,8 +235,18 @@ insert into `t_meta_cmpt_attr`(`CMPT_ID`,`ATTR_ID`) values
 (121, 100),
 (121, 101),
 (121, 108),
-(121, 109);
+(121, 109)，
 
+(122, 245),
+(122, 246),
+(123, 247),
+(123, 248),
+(124, 249),
+(124, 250),
+(124, 100),
+(124, 101),
+(124, 108),
+(124, 109);
 
 /*---------------采集指标编码对照表----------------*/
 DROP TABLE IF EXISTS `t_meta_collect_quota`;

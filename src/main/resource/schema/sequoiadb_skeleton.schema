@@ -1,0 +1,35 @@
+{
+	"$schema": "http://json-schema.org/draft-03/schema#",
+	"type":"object",
+	"properties": {
+		"SDB_SERV_CONTAINER":{
+			"type":"object",
+			"required":true,
+			"properties": {
+				"SDB_SVC_CONTAINER_ID": {"type":"string","required":true,"minLength":36,"description":"DB服务容器ID"},
+				"SDB_SVC_CONTAINER_NAME": {"type":"string","required":true,"description":"DB服务容器名字"},
+				
+				"SDB_PG_CONTAINER": {
+					"type":"object",
+					"required":true,
+					"properties": {
+						"PG_CONTAINER_ID": {"type":"string","required":true,"minLength":36,"description":"PG容器ID"},
+						"PG_CONTAINER_NAME": {"type":"string","required":true,"description":"PG容器名字"},
+						"POS": {
+							"type":"object",
+							"required":true,
+							"properties": {
+								"x": {"type":"integer","required":true},
+								"y": {"type":"integer","required":true},
+								"width": {"type":"integer"},
+								"height":{"type":"integer"},
+								"row":{"type":"integer"},
+								"col":{"type":"integer"}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}

@@ -75,6 +75,7 @@ public class MetaDataService {
 		SERVICE_TYPE_MAPPER.put(CONSTS.SERV_TYPE_DB, "tidb");
 		SERVICE_TYPE_MAPPER.put(CONSTS.SERV_TYPE_MQ, "mq");
 		SERVICE_TYPE_MAPPER.put(CONSTS.SERV_TYPE_CACHE, "cache");
+		SERVICE_TYPE_MAPPER.put(CONSTS.SERV_TYPE_SEQUOIADB, "sequoiadb");
 		
 		SEQ_LOCK = new ReentrantLock();
 	}

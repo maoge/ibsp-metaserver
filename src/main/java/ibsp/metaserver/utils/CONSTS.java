@@ -137,7 +137,8 @@ public class CONSTS {
 	public static final String SERV_TYPE_MQ          = "MQ";
 	public static final String SERV_TYPE_CACHE       = "CACHE";
 	public static final String SERV_TYPE_DB          = "DB";
-	
+	public static final String SERV_TYPE_SEQUOIADB   = "SequoiaDB";
+
 	public static final String SERV_DB_PD            = "DB_PD";
 	public static final String SERV_DB_TIDB          = "DB_TIDB";
 	public static final String SERV_DB_TIKV          = "DB_TIKV";
