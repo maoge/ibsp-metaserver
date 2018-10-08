@@ -82,7 +82,8 @@ public class ClientStatisticData {
 		
 		Map<String, IBSPClientInfo> subMap = mainMap.get(servID);
 		if (subMap == null) {
-			mainMap.put(servID, new ConcurrentHashMap<String, IBSPClientInfo>());
+			subMap = new ConcurrentHashMap<String, IBSPClientInfo>();
+			mainMap.put(servID, subMap);
 		}
 		
 		IBSPClientInfo clientInfo = subMap.get(address);
