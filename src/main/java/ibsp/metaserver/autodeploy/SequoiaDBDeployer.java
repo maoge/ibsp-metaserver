@@ -23,16 +23,16 @@ public class SequoiaDBDeployer implements Deployer {
 
     @Override
     public boolean deployService(String serviceID, String user, String pwd, String sessionKey, ResultBean result) {
-        List<InstanceDtlBean> pgList = new LinkedList<>();
+        List<InstanceDtlBean> engineList = new LinkedList<>();
 
-        if (!SequoiaDBService.loadServiceInfo(serviceID, pgList, result))
+        if (!SequoiaDBService.loadServiceInfo(serviceID, engineList, result))
             return false;
 
         boolean isServDeployed = MetaData.get().isServDepplyed(serviceID);
 
-        if (!isServDeployed && pgList != null) {
-            for(InstanceDtlBean pg : pgList) {
-                if(!deployInstance(serviceID, pg.getInstID(), sessionKey, result)) {
+        if (!isServDeployed && engineList != null) {
+            for(InstanceDtlBean engine : engineList) {
+                if(!deployInstance(serviceID, engine.getInstID(), sessionKey, result)) {
                     return false;
                 }
             }
@@ -47,16 +47,16 @@ public class SequoiaDBDeployer implements Deployer {
     @Override
     public boolean undeployService(String serviceID, String sessionKey, ResultBean result) {
 
-        List<InstanceDtlBean> pgList = new LinkedList<>();
+        List<InstanceDtlBean> engineList = new LinkedList<>();
 
-        if (!SequoiaDBService.loadServiceInfo(serviceID, pgList, result))
+        if (!SequoiaDBService.loadServiceInfo(serviceID, engineList, result))
             return false;
 
         boolean isServDeployed = MetaData.get().isServDepplyed(serviceID);
 
-        if (isServDeployed && pgList != null) {
-            for(InstanceDtlBean pg : pgList) {
-                if(!undeployInstance(serviceID, pg.getInstID(), sessionKey, result)) {
+        if (isServDeployed && engineList != null) {
+            for(InstanceDtlBean engine : engineList) {
+                if(!undeployInstance(serviceID, engine.getInstID(), sessionKey, result)) {
                     return false;
                 }
             }
@@ -85,7 +85,7 @@ public class SequoiaDBDeployer implements Deployer {
         boolean deployRet = false;
 
         switch (cmptID) {
-            case 124:    // SDB_PG
+            case 124:    // SDB_ENGINE
                 deployRet = ConfigDataService.modInstanceDeployFlag(instID, CONSTS.DEPLOYED, result);
                 if(deployRet) {
                     DeployUtils.publishDeployEvent(EventType.e23, instID);

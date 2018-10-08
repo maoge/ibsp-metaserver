@@ -83,10 +83,10 @@ insert into `t_meta_attr`(`ATTR_ID`,`ATTR_NAME`,`ATTR_NAME_CN`, `AUTO_GEN`) valu
 
 (245, 'SDB_SVC_CONTAINER_ID',              'DB服务容器ID',             '1'),
 (246, 'SDB_SVC_CONTAINER_NAME',            'DB服务容器名字',           '0'),
-(247, 'PG_CONTAINER_ID',                   'PG容器ID',                 '1'),
-(248, 'PG_CONTAINER_NAME',                 'PG容器NAME',               '0'),
-(249, 'PG_ID',                             'PG ID',                    '1'),
-(250, 'PG_NAME',                           'PG Name',                  '0');
+(247, 'ENGINE_CONTAINER_ID',               'ENGINE容器ID',             '1'),
+(248, 'ENGINE_CONTAINER_NAME',             'ENGINE容器NAME',           '0'),
+(249, 'ENGINE_ID',                         'ENGINE ID',                '1'),
+(250, 'ENGINE_NAME',                       'ENGINE Name',              '0');
 
 
 /*Table structure for component table `t_meta_cmpt` */
@@ -127,9 +127,9 @@ insert into `t_meta_cmpt`(`CMPT_ID`,`CMPT_NAME`,`CMPT_NAME_CN`,`IS_NEED_DEPLOY`,
 (120, 'DB_TIKV',               'TiKV服务器',             '1', 'DB',    'DB_TIKV',               ''),
 (121, 'DB_COLLECTD',           'DB采集器',               '1', 'DB',    'DB_COLLECTD',           ''),
 
-(122, 'SDB_SERV_CONTAINER',    'DB服务容器',             '0', 'SequoiaDB',    'SDB_SERV_CONTAINER',     'SDB_PG_CONTAINER'),
-(123, 'SDB_PG_CONTAINER',      'PG容器',                 '0', 'SequoiaDB',    'SDB_PG_CONTAINER',       'SDB_PG'),
-(124, 'SDB_PG',                'PG服务器',               '1', 'SequoiaDB',    'SDB_PG',       '');
+(122, 'SDB_SERV_CONTAINER',    'DB服务容器',             '0', 'SequoiaDB',    'SDB_SERV_CONTAINER',     'SDB_ENGINE_CONTAINER'),
+(123, 'SDB_ENGINE_CONTAINER',  '引擎容器',               '0', 'SequoiaDB',    'SDB_ENGINE_CONTAINER',   'SDB_ENGINE'),
+(124, 'SDB_ENGINE',            '引擎服务器',             '1', 'SequoiaDB',    'SDB_ENGINE',             '');
 
 
 /*Table structure for component-attribute table `t_meta_cmpt_attr` */
