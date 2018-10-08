@@ -3,7 +3,10 @@ package ibsp.metaserver.microservice.handler;
 import ibsp.metaserver.annotation.App;
 import ibsp.metaserver.annotation.Service;
 import ibsp.metaserver.bean.ResultBean;
+import ibsp.metaserver.bean.ServiceBean;
+import ibsp.metaserver.dbservice.SequoiaDBService;
 import ibsp.metaserver.dbservice.TiDBService;
+import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.FixHeader;
 import ibsp.metaserver.utils.HttpUtils;
@@ -31,7 +34,13 @@ public class TiDBHandler {
 				json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
 			} else {
 				ResultBean result = new ResultBean();
-				JsonArray array = TiDBService.getTidbInfoByService(servID, result);
+				ServiceBean serviceBean = MetaData.get().getService(servID);
+				JsonArray array = null;
+				if(CONSTS.SERV_TYPE_DB.equalsIgnoreCase(serviceBean.getServType())) {
+					array = TiDBService.getTidbInfoByService(servID, result);
+				}else if(CONSTS.SERV_TYPE_SEQUOIADB.equalsIgnoreCase(serviceBean.getServType())) {
+					array = SequoiaDBService.getSdbInfoByService(servID, result);
+				}
 				if (array!=null) {
 					json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_OK);
 					json.put(FixHeader.HEADER_RET_INFO, array);

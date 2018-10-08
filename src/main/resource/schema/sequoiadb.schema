@@ -1,0 +1,52 @@
+{
+	"$schema": "http://json-schema.org/draft-03/schema#",
+	"type":"object",
+	"properties": {
+		"SDB_SERV_CONTAINER":{
+			"type":"object",
+			"required":true,
+			"properties": {
+				"SDB_SVC_CONTAINER_ID": {"type":"string","required":true,"minLength":36,"description":"DB服务容器ID"},
+				"SDB_SVC_CONTAINER_NAME": {"type":"string","required":true,"description":"DB服务容器名字"},
+				
+				"SDB_ENGINE_CONTAINER": {
+					"type":"object",
+					"required":true,
+					"properties": {
+						"ENGINE_CONTAINER_ID": {"type":"string","required":true,"minLength":36,"description":"ENGINE容器ID"},
+						"ENGINE_CONTAINER_NAME": {"type":"string","required":true,"description":"ENGINE容器名字"},
+						"POS": {
+							"type":"object",
+							"required":true,
+							"properties": {
+								"x": {"type":"integer","required":true},
+								"y": {"type":"integer","required":true},
+								"width": {"type":"integer"},
+								"height":{"type":"integer"},
+								"row":{"type":"integer"},
+								"col":{"type":"integer"}
+							}
+						},
+						
+						"SDB_ENGINE": {
+							"type":"array",
+							"required":true,
+							"items": {
+								"type":"object",
+								"properties": {
+									"ENGINE_ID": {"type":"string","required":true,"minLength":36,"description":"ENGINE ID","inputDisabled":true},
+									"ENGINE_NAME": {"type":"string","required":true,"description":"ENGINE Name"},
+									"IP": {"type":"string","required":true,"description":"IP"},
+									"PORT": {"type":"string","required":true,"description":"服务端口"},
+									"OS_USER": {"type":"string","required":true,"description":"系统账户"},
+									"OS_PWD": {"type":"string","required":true,"description":"系统密码"}
+								},
+								"minItems":2
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
