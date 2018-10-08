@@ -7,6 +7,7 @@ public class FixHeader {
 	public static final String HEADER_NAME                     = "NAME";
 	public static final String HEADER_OP_TYPE                  = "OP_TYPE";
 	public static final String HEADER_SESSION_KEY              = "SESSION_KEY";
+	public static final String HEADER_SERVICE_ID               = "SERVICE_ID";
 	
 	public static final String HEADER_TS                       = "TS";
 	public static final String HEADER_CPU                      = "CPU";

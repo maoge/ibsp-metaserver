@@ -194,6 +194,7 @@ public class MetaServerHandler {
 		String clientType = params != null ? params.get(FixHeader.HEADER_CLIENT_TYPE) : null;
 		String clientInfo = params != null ? params.get(FixHeader.HEADER_CLIENT_INFO) : null;
 		String lsnrAddr = params != null ? params.get(FixHeader.HEADER_LSNR_ADDR) : null;
+		String servID = params != null ? params.get(FixHeader.HEADER_SERVICE_ID) : null;
 		if (!HttpUtils.isNotNull(clientType) || !HttpUtils.isNotNull(clientInfo) || !HttpUtils.isNotNull(lsnrAddr)) {
 			json.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_NOK);
 			json.put(FixHeader.HEADER_RET_INFO, CONSTS.ERR_PARAM_INCOMPLETE);
@@ -203,6 +204,7 @@ public class MetaServerHandler {
 			paramsJson.put(FixHeader.HEADER_CLIENT_TYPE, clientType);
 			paramsJson.put(FixHeader.HEADER_CLIENT_INFO, clientType);
 			paramsJson.put(FixHeader.HEADER_LSNR_ADDR, lsnrAddr);
+			paramsJson.put(FixHeader.HEADER_SERVICE_ID, servID);
 			
 			EventBean evBean = new EventBean();
 			evBean.setEvType(EventType.e98);
