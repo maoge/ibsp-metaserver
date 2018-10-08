@@ -126,7 +126,7 @@ public class SysEventHandler implements Handler<Message<String>> {
 			case e56:
 				if (uuid.equals(MetaData.get().getUUID())) {
 					generalNotify(type, servId, jsonStr,
-							ClientStatisticData.get().getMqClients());
+							ClientStatisticData.get().getClients(CONSTS.CLIENT_TYPE_MQ, servId));
 				}
 				break;
 				
@@ -137,9 +137,9 @@ public class SysEventHandler implements Handler<Message<String>> {
 					JsonObject proxyInfo = CacheService.getProxyInfoByID(
 							json.getString(FixHeader.HEADER_INSTANCE_ID), new ResultBean());
 					generalNotify(type, servId, proxyInfo.toString(),
-							ClientStatisticData.get().getCacheClients());
+							ClientStatisticData.get().getClients(CONSTS.CLIENT_TYPE_CACHE, servId));
 				}
-				break;				
+				break;
 			
 			//redis故障切换
 			case e63:
@@ -163,7 +163,7 @@ public class SysEventHandler implements Handler<Message<String>> {
 			case e72:
 				if (uuid.equals(MetaData.get().getUUID())) {
 					generalNotify(type, servId, jsonStr, 
-							ClientStatisticData.get().getDbClients());
+							ClientStatisticData.get().getClients(CONSTS.CLIENT_TYPE_DB, servId));
 				}
 				break;	
 				
@@ -172,8 +172,8 @@ public class SysEventHandler implements Handler<Message<String>> {
 				JsonObject obj = new JsonObject(jsonStr);
 				String clientType = obj.getString(FixHeader.HEADER_CLIENT_TYPE);
 				String lsnrAddr = obj.getString(FixHeader.HEADER_LSNR_ADDR);
-				//TODO deal client info
-				ClientStatisticData.get().put(clientType, lsnrAddr);
+				String servID = obj.getString(FixHeader.HEADER_SERVICE_ID);
+				ClientStatisticData.get().put(clientType, lsnrAddr, servID);
 				
 				break;
 			case e99:
