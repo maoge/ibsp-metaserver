@@ -87,6 +87,8 @@ public class MonitorData {
             return;
 
         QueueBean queueBean = MetaData.get().getQueueBeanByRealQueueName(mqQueueInfoBean.getQueueName());
+        if(queueBean == null)
+            return;
         String queueName = queueBean.getQueueName();
         String queueId   = queueBean.getQueueId();
 

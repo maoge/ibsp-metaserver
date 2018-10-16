@@ -76,6 +76,7 @@ public class Server extends AbstractVerticle {
 		clazzToReg.add(ResourceServerHandler.class);
 		clazzToReg.add(MetaHandle.class);
 		clazzToReg.add(TiDBMericsHandle.class);
+		clazzToReg.add(SequoiaDBHandle.class);
 		
 		registerRoute(router, clazzToReg);
 		

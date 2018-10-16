@@ -960,6 +960,50 @@ public class SSHExecutor {
 
 		return  context.indexOf("tidb-server") != -1;
 	}
+
+	public String execSdbSql(String command) throws InterruptedException {
+		String cmd = String.format("sdb --shell 'var db = new Sdb();var cmd = \"%s\";jsonFormat(false);db.exec(cmd);'\n", command);
+		return execSdb(cmd);
+	}
+
+	public String execSdbCmd(String command) throws InterruptedException {
+		String cmd = String.format("sdb --shell 'var db = new Sdb();jsonFormat(false);%s;'\n", command);
+		return execSdb(cmd);
+	}
+
+	private String execSdb(String command) throws InterruptedException {
+		boolean fund = false;
+		String context = generalCommand(command);
+		String res = null;
+
+		int begin = context.indexOf(command);
+		begin = context.indexOf(command, begin + command.length());
+		begin = context.indexOf(CONSTS.LINE_SEP, begin + command.length());
+		if (begin != -1) {
+			begin += CONSTS.LINE_SEP.length();
+			int last = 0;
+			int preLast = 0;
+			while(true) {
+				int end = context.indexOf(CONSTS.LINE_SEP, last == 0 ? begin : last + CONSTS.LINE_SEP.length());
+				if (end != -1) {
+					preLast = last;
+					last = end;
+				}else {
+					fund = true;
+					if(preLast == 0 && last == 0) {
+					    res = "";
+                    }else if (preLast == 0) {
+						res = context.substring(begin, last);
+					}else {
+						res = context.substring(begin, preLast);
+					}
+					break;
+				}
+			}
+		}
+
+		return fund ? res : null;
+	}
 	
 	public JschUserInfo getUserInfo() {
 		return ui;

@@ -339,7 +339,7 @@ public class MetaDataService {
 		for (String subCmpt : subCmptArr) {
 			String subNodeType = skeleton.get(subCmpt);
 			//attrJson
-			if (subNodeType.equals(CONSTS.SCHEMA_ARRAY)) {
+			if (CONSTS.SCHEMA_ARRAY.equals(subNodeType)) {
 				//attrJson.put(subCmpt, new JsonArray());
 				parentJson.put(subCmpt, new JsonArray());
 			} else {

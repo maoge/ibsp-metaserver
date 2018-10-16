@@ -96,11 +96,19 @@ public class ClientStatisticData {
 	}
 
 	public Set<String> getCacheClients() {
-		return this.cacheClientMap.keySet();
+		Set<String> res = new HashSet<>();
+		for(Map<String, IBSPClientInfo> map : this.cacheClientMap.values()){
+			res.addAll(map.keySet());
+		}
+		return res;
 	}
 	
 	public Set<String> getCacheProxies() {
-		return this.cacheProxyMap.keySet();
+		Set<String> res = new HashSet<>();
+		for(Map<String, IBSPClientInfo> map : this.cacheProxyMap.values()){
+			res.addAll(map.keySet());
+		}
+		return res;
 	}
 
 	public Set<String> getCacheProxies(String servId) {
@@ -115,11 +123,19 @@ public class ClientStatisticData {
 	}
 	
 	public Set<String> getDbClients() {
-		return this.dbClientMap.keySet();
+		Set<String> res = new HashSet<>();
+		for(Map<String, IBSPClientInfo> map : this.dbClientMap.values()){
+			res.addAll(map.keySet());
+		}
+		return res;
 	}
 	
 	public Set<String> getMqClients() {
-		return this.mqClientMap.keySet();
+		Set<String> res = new HashSet<>();
+		for(Map<String, IBSPClientInfo> map : this.mqClientMap.values()){
+			res.addAll(map.keySet());
+		}
+		return res;
 	}
 	
 	public Set<String> getClients(String type, String servId) {
