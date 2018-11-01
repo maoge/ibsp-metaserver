@@ -10,12 +10,15 @@ import ibsp.metaserver.microservice.handler.*;
 import ibsp.metaserver.monitor.ActiveCollect;
 import ibsp.metaserver.singleton.AllServiceMap;
 import ibsp.metaserver.singleton.ServiceStatInfo;
+import ibsp.metaserver.threadpool.WorkerPool;
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.FixHeader;
 import ibsp.metaserver.utils.HttpUtils;
 import ibsp.metaserver.utils.SysConfig;
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
+import io.vertx.core.WorkerExecutor;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.http.HttpMethod;
@@ -44,6 +47,8 @@ public class Server extends AbstractVerticle {
 	private static JsonObject errJson;
 	private static JsonObject ipLimitJosn;
 	
+	private WorkerExecutor workerPool;
+	
 	static {
 		rejectJson = new JsonObject();
 		rejectJson.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_AUTH_FAIL);
@@ -64,6 +69,8 @@ public class Server extends AbstractVerticle {
 		
 		SharedData sharedData = vertx.sharedData();
 		ServiceData.get().setSharedData(sharedData);
+		
+		workerPool = vertx.createSharedWorkerExecutor("vertx_worker_pool");
 		
 		Vector<Class<?>> clazzToReg = new Vector<Class<?>>();
 		clazzToReg.add(MetaServerHandler.class);
@@ -110,6 +117,10 @@ public class Server extends AbstractVerticle {
 			});
 		}
 		
+		if (workerPool != null) {
+		    workerPool.close();
+		}
+		
 		if (SysConfig.get().isActiveCollect()) {
 			ActiveCollect.get().Stop();
 		}
@@ -147,64 +158,58 @@ public class Server extends AbstractVerticle {
 				
 				router.route(path).handler(BodyHandler.create());
 				router.route(path).handler(routingContext -> {
-					try {
-						// entLoop 阻塞方式
-						//m.invoke(null, routingContext);
+					// entLoop 阻塞方式
+					//m.invoke(null, routingContext);
+					//Runnable runner = new EventTaskRunner(s, m, routingContext);
+					//WorkerPool.get().execute(runner);
 						
-						// EventLoop 非阻塞, 操作扔到线程池完成
-						routingContext.vertx().executeBlocking(future -> {
-							try {
-
-                                //判断是不是OPTIONS请求，是的话 直接通过
-                                HttpServerRequest request = routingContext.request();
-                                HttpMethod method = request.method();
-                                if(method.equals(HttpMethod.OPTIONS)) {
-                                    HttpServerResponse response = routingContext.response();
-                                    response.putHeader("Access-Control-Allow-Origin", "*");
-                                    response.putHeader("Access-Control-Allow-Headers", "MAGIC_KEY");
-                                    response.putHeader("Access-Control-Allow-Methods" ,"OPTIONS,HEAD,GET,POST,PUT,DELETE");
-                                    response.putHeader("Access-Control-Max-Age" ,"180000");
-                                    response.setStatusCode(200);
-                                    response.end();
-                                    future.complete();
-                                    return;
-                                }
-
-								if (s.auth() && SysConfig.get().isNeed_auth()) {
-                                    if (!doAuth(routingContext)) {
-                                        HttpServerResponse response = routingContext.response();
-                                        response.putHeader("Access-Control-Allow-Origin", "*");
-										response.setStatusCode(401);
-										response.end("auth fail!");
-										future.complete();
-										return;
-									}
-								}
-
-								if(SysConfig.get().isCheck_blackwhite_list()) {
-									if(!doIpCheck(routingContext)) {
-										doIpLimitError(routingContext);
-										future.complete();
-										return;
-									}
-								}
-								
-								// service call statistic
-								doStatistic(routingContext);
-								
-								m.invoke(null, routingContext);
-								future.complete();
-							} catch (Exception e) {
-								doError(routingContext);
-								future.complete();
-								logger.error(e.getMessage(), e);
-							}
-						}, false, null);
-					} catch (Exception e) {
-						logger.error(e.getMessage(), e);
-					}
+					// EventLoop 非阻塞, 操作扔到线程池完成
+					routingContext.vertx().executeBlocking(future -> {
+					    try {
+    					    //判断是不是OPTIONS请求，是的话 直接通过
+    			            HttpServerRequest request = routingContext.request();
+    			            HttpMethod method = request.method();
+    			            if (method.equals(HttpMethod.OPTIONS)) {
+    			                HttpServerResponse response = routingContext.response();
+    			                response.putHeader("Access-Control-Allow-Origin", "*");
+    			                response.putHeader("Access-Control-Allow-Headers", "MAGIC_KEY");
+    			                response.putHeader("Access-Control-Allow-Methods" ,"OPTIONS,HEAD,GET,POST,PUT,DELETE");
+    			                response.putHeader("Access-Control-Max-Age" ,"180000");
+    			                response.setStatusCode(200);
+    			                response.end();
+    			                return;
+    			            }
+			                    
+    			            if (s.auth() && SysConfig.get().isNeed_auth()) {
+    			                if (!doAuth(routingContext)) {
+    			                    HttpServerResponse response = routingContext.response();
+    			                    response.putHeader("Access-Control-Allow-Origin", "*");
+    			                    response.setStatusCode(401);
+    			                    response.end("auth fail!");
+    			                    return;
+    			                }
+    			            }
+			                
+    			            if (SysConfig.get().isCheck_blackwhite_list()) {
+    			                if(!doIpCheck(routingContext)) {
+    			                    doIpLimitError(routingContext);
+    			                    return;
+    			                }
+    			            }
+			                
+    			            // service call statistic
+    			            doStatistic(routingContext);
+    			                
+    			            m.invoke(null, routingContext);
+					    } catch (Exception e) {
+				            doError(routingContext);
+				            logger.error(e.getMessage(), e);
+				        } finally {
+				            future.complete();
+				        }
+					        
+					}, false, null);
 				});
-
 			}
 		}
 
