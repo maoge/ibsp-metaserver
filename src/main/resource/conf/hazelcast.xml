@@ -13,8 +13,8 @@
   </properties>
 
   <group>
-    <name>grp.dev.gz</name>
-    <password>grp.dev.gz</password>
+    <name>grp.dev.lb</name>
+    <password>grp.dev.lb</password>
   </group>
   <management-center enabled="false">http://127.0.0.1:8080/mancenter</management-center>
   <network>
@@ -29,7 +29,7 @@
       </multicast>
       <tcp-ip enabled="true">
         <!-- interface>192.168.1.10</interface-->
-        <member>172.20.1.37</member>
+        <members>172.20.1.30</members>
       </tcp-ip>
     </join>
     <interfaces enabled="false">
