@@ -39,7 +39,6 @@ public class BootStrap {
 		bootLoggerConfig();
 		bootSingleInstance();
 		bootMicroService();
-		ClusterActiveCollect.get();
 	}
 	
 	private static void bootLoggerConfig() {
@@ -54,6 +53,7 @@ public class BootStrap {
 		ServiceData.get();
 		ActiveCollect.get();
 		ClientStatisticData.get();
+		ClusterActiveCollect.get();
 	}
 	
 	private static void bootMicroService() {
