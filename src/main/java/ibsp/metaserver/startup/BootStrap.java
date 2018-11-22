@@ -53,7 +53,10 @@ public class BootStrap {
 		ServiceData.get();
 		ActiveCollect.get();
 		ClientStatisticData.get();
-		ClusterActiveCollect.get();
+		
+		if (SysConfig.get().isVertxClustered()) {
+		    ClusterActiveCollect.get();
+		}
 	}
 	
 	private static void bootMicroService() {
@@ -94,7 +97,7 @@ public class BootStrap {
 			});
 		} else {
 			Vertx vertx = Vertx.vertx(vertxOptions);
-			vertx.deployVerticle("com.ffcs.mq.startup.Server", deployOptions);  // new Server()
+			vertx.deployVerticle(Server.class.getName(), deployOptions);  // new Server()
 		}
 	}
 
