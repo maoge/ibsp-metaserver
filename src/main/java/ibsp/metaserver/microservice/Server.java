@@ -16,7 +16,7 @@ import ibsp.metaserver.utils.HttpUtils;
 import ibsp.metaserver.utils.SysConfig;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.MultiMap;
-import io.vertx.core.WorkerExecutor;
+//import io.vertx.core.WorkerExecutor;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.http.HttpMethod;
@@ -45,7 +45,7 @@ public class Server extends AbstractVerticle {
 	private static JsonObject errJson;
 	private static JsonObject ipLimitJosn;
 	
-	private WorkerExecutor workerPool;
+//	private WorkerExecutor workerPool;
 	
 	static {
 		rejectJson = new JsonObject();
@@ -68,7 +68,7 @@ public class Server extends AbstractVerticle {
 		SharedData sharedData = vertx.sharedData();
 		ServiceData.get().setSharedData(sharedData);
 		
-		workerPool = vertx.createSharedWorkerExecutor("vertx_worker_pool");
+//		workerPool = vertx.createSharedWorkerExecutor("vertx_worker_pool");
 		
 		Vector<Class<?>> clazzToReg = new Vector<Class<?>>();
 		clazzToReg.add(MetaServerHandler.class);
@@ -88,7 +88,8 @@ public class Server extends AbstractVerticle {
 		int port = SysConfig.get().getWebApiPort();
 		HttpServer server = vertx.createHttpServer();
 		
-		server.requestHandler(router::accept).listen(port, res -> {
+		// server.requestHandler(router::accept).listen(port, res -> {
+		server.requestHandler(router).listen(port, res -> {
 			ServiceData.get().setHttpServer(server);
 			
 			if (res.succeeded()) {
@@ -115,9 +116,9 @@ public class Server extends AbstractVerticle {
 			});
 		}
 		
-		if (workerPool != null) {
-		    workerPool.close();
-		}
+//		if (workerPool != null) {
+//		    workerPool.close();
+//		}
 		
 		if (SysConfig.get().isActiveCollect()) {
 			ActiveCollect.get().Stop();

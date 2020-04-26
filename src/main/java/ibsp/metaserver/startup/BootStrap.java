@@ -11,6 +11,7 @@ import ibsp.metaserver.monitor.ActiveCollect;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
+import io.vertx.core.eventbus.EventBusOptions;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.spi.cluster.hazelcast.HazelcastClusterManager;
 
@@ -66,15 +67,23 @@ public class BootStrap {
 		VertxOptions vertxOptions = new VertxOptions();
 		vertxOptions.setMaxEventLoopExecuteTime(SysConfig.get().getMaxEventLoopExecuteTime());
 		vertxOptions.setEventLoopPoolSize(nEvLoopPoolSize);
-		vertxOptions.setWorkerPoolSize(nWorkerPoolSize);
+//		vertxOptions.setWorkerPoolSize(nWorkerPoolSize);
 		
 		DeploymentOptions deployOptions = new DeploymentOptions();
 		deployOptions.setWorker(true);
+		deployOptions.setWorkerPoolName("verticle.worker.pool");
+		deployOptions.setWorkerPoolSize(nWorkerPoolSize);
+		deployOptions.setInstances(nEvLoopPoolSize);
 		
 		if (SysConfig.get().isVertxClustered()) {
-			vertxOptions.setClustered(true);
-			vertxOptions.setClusterHost(SysConfig.get().getVertxClusterHost());
-			vertxOptions.setClusterPort(SysConfig.get().getVertxClusterPort());
+			// vertxOptions.setClustered(true);
+			// vertxOptions.setClusterHost(SysConfig.get().getVertxClusterHost());
+			// vertxOptions.setClusterPort(SysConfig.get().getVertxClusterPort());
+			
+			EventBusOptions evBusOptions = new EventBusOptions();
+			evBusOptions.setClustered(true);
+			evBusOptions.setClusterPublicHost(SysConfig.get().getVertxClusterHost());
+			evBusOptions.setClusterPublicPort(SysConfig.get().getVertxClusterPort());
 						
 			Config cfg = null;
 			
@@ -85,11 +94,13 @@ public class BootStrap {
 			ClusterManager mgr = new HazelcastClusterManager(hzInstance);
 			ServiceData.get().setHzInstance(hzInstance);
 			vertxOptions.setClusterManager(mgr);
+			vertxOptions.setEventBusOptions(evBusOptions);
 			
 			Vertx.clusteredVertx(vertxOptions, res -> {
 				if (res.succeeded()) {
 					Vertx vertx = res.result();
-					vertx.deployVerticle(new Server(), deployOptions);  // new DeploymentOptions().setWorker(true)
+					//vertx.deployVerticle(new Server(), deployOptions);  // new DeploymentOptions().setWorker(true)
+					vertx.deployVerticle(Server.class.getName(), deployOptions);
 				} else {
 					logger.error("create cluster vert.x error, cause:{}", res.cause());
 					System.exit(0);
