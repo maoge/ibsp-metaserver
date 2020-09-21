@@ -323,7 +323,7 @@ public class MQDeployer implements Deployer {
 
 		if (vbrokerInstanceDtl.getInstance().getIsDeployed().equals(CONSTS.NOT_DEPLOYED)) {
 			String info = String.format("mq vbroker id:%s is deployed ......", vbrokerId);
-
+			logger.info(info);
 			return true;
 		}
 

@@ -2,11 +2,8 @@ package ibsp.metaserver.monitor;
 
 import java.io.IOException;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,18 +12,14 @@ import ibsp.metaserver.autodeploy.utils.JschUserInfo;
 import ibsp.metaserver.autodeploy.utils.SSHExecutor;
 import ibsp.metaserver.bean.InstanceDtlBean;
 import ibsp.metaserver.bean.ResultBean;
-import ibsp.metaserver.bean.ServiceBean;
 import ibsp.metaserver.dbservice.CacheService;
-import ibsp.metaserver.dbservice.MetaDataService;
 import ibsp.metaserver.eventbus.EventBean;
 import ibsp.metaserver.eventbus.EventBusMsg;
 import ibsp.metaserver.eventbus.EventType;
-import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.utils.CONSTS;
-import ibsp.metaserver.utils.FixHeader;
-import ibsp.metaserver.utils.HttpUtils;
 import ibsp.metaserver.utils.RedisUtils;
 import io.vertx.core.json.JsonObject;
+
 
 public class CacheServiceMonitor implements Runnable {
 	
@@ -176,16 +169,20 @@ public class CacheServiceMonitor implements Runnable {
 	/**
      * 尝试拉起一个redis实例
      */
-    private void pullUpInstance(InstanceDtlBean instance, InstanceDtlBean master) {
+    @SuppressWarnings("unused")
+	private void pullUpInstance(InstanceDtlBean instance, InstanceDtlBean master) {
 		
     	String ip = instance.getAttribute("IP").getAttrValue();
-		String port = instance.getAttribute("PORT").getAttrValue();
+		String sPort = instance.getAttribute("PORT").getAttrValue();
 		String user = instance.getAttribute("OS_USER").getAttrValue();
 		String pwd = instance.getAttribute("OS_PWD").getAttrValue();
-		String masterIp = "", masterPort = "";
+		String masterIp = "", sMasterPort = "";
+		int port = Integer.valueOf(sPort).intValue();
+		int masterPort = 0;
 		if (master != null) {
 			masterIp = master.getAttribute("IP").getAttrValue();
-			masterPort = master.getAttribute("PORT").getAttrValue();
+			sMasterPort = master.getAttribute("PORT").getAttrValue();
+			masterPort = Integer.valueOf(sMasterPort).intValue();
 		}
     	
         logger.info("尝试拉起实例" + ip + ":" + port);
@@ -214,7 +211,7 @@ public class CacheServiceMonitor implements Runnable {
         	
         	executor.cd("$HOME/" + deployRootPath);
         	executor.execSingleLine("./redis.sh start", null);
-        	if (executor.waitProcessStart(port, null)) {
+        	if (executor.waitProcessStart(sPort, null)) {
     			logger.info("拉起节点成功！Host:" + ip + ":" + port);
     			if (master != null) {
     				replicationCountMap.put(ip+":"+port, 0);
@@ -235,14 +232,18 @@ public class CacheServiceMonitor implements Runnable {
     /**
      * 进行主从切换
      */
-    private boolean doSwitch(String servID, String clusterID, InstanceDtlBean master, InstanceDtlBean slave) {
+    @SuppressWarnings("unused")
+	private boolean doSwitch(String servID, String clusterID, InstanceDtlBean master, InstanceDtlBean slave) {
     	
 		String slaveIP = slave.getAttribute("IP").getAttrValue();
-		String slavePort = slave.getAttribute("PORT").getAttrValue();
+		String sSlavePort = slave.getAttribute("PORT").getAttrValue();
 		String slaveUser = slave.getAttribute("OS_USER").getAttrValue();
 		String slavePwd = slave.getAttribute("OS_PWD").getAttrValue();
 		String masterIP = master.getAttribute("IP").getAttrValue();
-		String masterPort = master.getAttribute("PORT").getAttrValue();
+		String sMasterPort = master.getAttribute("PORT").getAttrValue();
+		
+		int slavePort = Integer.valueOf(sSlavePort).intValue();
+		int masterPort = Integer.valueOf(sMasterPort).intValue();
 		
 		if (!isServerAlive(servID, clusterID, slave))
 			return false;

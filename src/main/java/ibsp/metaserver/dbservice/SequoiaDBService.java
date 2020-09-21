@@ -13,8 +13,8 @@ import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+//import java.text.ParseException;
+//import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class SequoiaDBService {
@@ -267,7 +267,8 @@ public class SequoiaDBService {
 
 
     //------------------------------------private method-----------------------------------
-    private static JsonArray execSingleSql(String ip, String sdbUser, String sdbPwd, String sql) {
+    @SuppressWarnings("unused")
+	private static JsonArray execSingleSql(String ip, String sdbUser, String sdbPwd, String sql) {
         return connSdbAndExec(ip, sdbUser, sdbPwd, executor -> {
             String res = executor.execSdbSql(sql);
             res = "[" + res.replaceAll("\r\n", ",") + "]";

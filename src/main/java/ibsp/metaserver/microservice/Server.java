@@ -3,7 +3,8 @@ package ibsp.metaserver.microservice;
 import ibsp.metaserver.annotation.App;
 import ibsp.metaserver.annotation.Service;
 import ibsp.metaserver.dbpool.DbSource;
-import ibsp.metaserver.eventbus.SysEventHandler;
+//import ibsp.metaserver.eventbus.SysEventHandler;
+import ibsp.metaserver.global.GlobalRes;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.global.ServiceData;
 import ibsp.metaserver.microservice.handler.*;
@@ -16,9 +17,8 @@ import ibsp.metaserver.utils.HttpUtils;
 import ibsp.metaserver.utils.SysConfig;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.MultiMap;
-//import io.vertx.core.WorkerExecutor;
-import io.vertx.core.eventbus.EventBus;
-import io.vertx.core.eventbus.MessageConsumer;
+//import io.vertx.core.eventbus.EventBus;
+//import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerRequest;
@@ -45,8 +45,6 @@ public class Server extends AbstractVerticle {
 	private static JsonObject errJson;
 	private static JsonObject ipLimitJosn;
 	
-//	private WorkerExecutor workerPool;
-	
 	static {
 		rejectJson = new JsonObject();
 		rejectJson.put(FixHeader.HEADER_RET_CODE, CONSTS.REVOKE_AUTH_FAIL);
@@ -67,8 +65,6 @@ public class Server extends AbstractVerticle {
 		
 		SharedData sharedData = vertx.sharedData();
 		ServiceData.get().setSharedData(sharedData);
-		
-//		workerPool = vertx.createSharedWorkerExecutor("vertx_worker_pool");
 		
 		Vector<Class<?>> clazzToReg = new Vector<Class<?>>();
 		clazzToReg.add(MetaServerHandler.class);
@@ -93,7 +89,7 @@ public class Server extends AbstractVerticle {
 			ServiceData.get().setHttpServer(server);
 			
 			if (res.succeeded()) {
-				registerEventBus();
+				// registerEventBus();
 				logger.info("http server listen on port:{} succeeded!", port);
 			} else {
 				Throwable t = res.cause();
@@ -107,18 +103,16 @@ public class Server extends AbstractVerticle {
 		super.stop();
 		
 		if (SysConfig.get().isVertxClustered()) {
-			ServiceData.get().getSysEvMsgConsumer().unregister(res -> {
-				if (res.succeeded()) {
-					logger.info("unregister msgConsumer success!");
-				} else {
-					logger.error("unregister msgConsumer fail!");
-				}
-			});
+//			ServiceData.get().getSysEvMsgConsumer().unregister(res -> {
+//				if (res.succeeded()) {
+//					logger.info("unregister msgConsumer success!");
+//				} else {
+//					logger.error("unregister msgConsumer fail!");
+//				}
+//			});
+			
+			ServiceData.get().closeEventBus();
 		}
-		
-//		if (workerPool != null) {
-//		    workerPool.close();
-//		}
 		
 		if (SysConfig.get().isActiveCollect()) {
 			ActiveCollect.get().Stop();
@@ -126,6 +120,8 @@ public class Server extends AbstractVerticle {
 		
 		ServiceData.get().getHttpServer().close();
 		DbSource.close();
+		
+		GlobalRes.release();
 		
 		logger.info("http server listen on port:{} stopped!", SysConfig.get().getWebApiPort());
 	}
@@ -214,7 +210,7 @@ public class Server extends AbstractVerticle {
 
 	}
 	
-	private void registerEventBus() {
+	/*private void registerEventBus() {
 		EventBus eb = vertx.eventBus();
 		ServiceData.get().setEventBus(eb);
 		
@@ -234,7 +230,7 @@ public class Server extends AbstractVerticle {
 				logger.error(t.getMessage(), t);
 			}
 		});
-	}
+	}*/
 	
 	private boolean doAuth(RoutingContext routingContext) throws InterruptedException, ExecutionException, TimeoutException {
 		HttpServerRequest request = routingContext.request();
@@ -300,9 +296,9 @@ public class Server extends AbstractVerticle {
 		ServiceStatInfo.get().inc(routingContext.request().path());
 	}
 	
-	private void rejectServiceCall(RoutingContext routingContext) {
-		HttpUtils.outJsonObject(routingContext, rejectJson);
-	}
+//	private void rejectServiceCall(RoutingContext routingContext) {
+//		HttpUtils.outJsonObject(routingContext, rejectJson);
+//	}
 	
 	private void doError(RoutingContext routingContext) {
 		HttpUtils.outJsonObject(routingContext, errJson);

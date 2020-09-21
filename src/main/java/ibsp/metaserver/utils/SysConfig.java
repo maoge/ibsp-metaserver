@@ -22,82 +22,88 @@ public class SysConfig {
 		return SysConfig.config;
 	}
 	
-	private int    web_api_port = 9990;
-	private String dbsource_id = "ibsp";
+	private int    web_api_port                   = 9990;
+	private String dbsource_id                    = "ibsp";
 	
-	private boolean vertx_clustered = true;
-	private String  vertx_cluster_host = "127.0.0.1";
-	private int     vertx_cluster_port = 29990;
-	private long    max_event_loop_execute_time = 30000;
-	private int     vertx_evloopsize = 32;
-	private int     vertx_workerpoolsize = 400;
+	private boolean vertx_clustered               = true;
+	private String  vertx_cluster_host            = "127.0.0.1";
+	private int     vertx_cluster_port            = 29990;
+	private long    max_event_loop_execute_time   = 30000;
+	private int     vertx_evloopsize              = 32;
+	private int     vertx_workerpoolsize          = 400;
 	private final String vertx_sysevent_queuename = "sys.event";
 	
-	private int thread_pool_coresize = 20;
-	private int thread_pool_maxsize = 40;
-	private int thread_pool_keepalivetime = 3;
-	private int thread_pool_workqueue_len = 1000;
+	private int thread_pool_coresize              = 20;
+	private int thread_pool_maxsize               = 40;
+	private int thread_pool_keepalivetime         = 3;
+	private int thread_pool_workqueue_len         = 1000;
 	
-	private boolean active_collect = false;
-	private int active_collect_interval = 10000;
-	private int active_collect_retry = 3;
-	private int active_collect_retry_interval=1000;
-	private int alarm_time_window=600000;
+	private boolean active_collect                = false;
+	private int active_collect_interval           = 10000;
+	private int active_collect_retry              = 3;
+	private int active_collect_retry_interval     = 1000;
+	private int alarm_time_window                 = 600000;
 	
-	private String redis_host = "127.0.0.1";
-	private int redis_port = 6379;
-	private String redis_auth = "";
-	private int redis_pool_size = 5;
+	private String redis_host                     = "127.0.0.1";
+	private int redis_port                        = 6379;
+	private String redis_auth                     = "";
+	private int redis_pool_size                   = 5;
 	
-	private int  conn_highwater_mark = 1000;
-	private long mem_highwater_mark  = 10000000000L;            // 10G byte
-	private	long diskreamin_highwater_mark     = 30000000000L;  // 磁盘剩余不少于 10G byte
-	private int  msg_accumulate_highwater_mark = 100000;        // 按队列, 消息堆积到一定数量触发告警阀值
+	private int  conn_highwater_mark              = 1000;
+	private long mem_highwater_mark               = 10000000000L;            // 10G byte
+	private	long diskreamin_highwater_mark        = 30000000000L;  // 磁盘剩余不少于 10G byte
+	private int  msg_accumulate_highwater_mark    = 100000;        // 按队列, 消息堆积到一定数量触发告警阀值
 	
-	private long password_expire = 7776000; //密码过期时间
+	private long password_expire                  = 7776000; //密码过期时间
 	
-	private boolean check_blackwhite_list = false;
-	private boolean need_auth = true;
+	private boolean check_blackwhite_list         = false;
+	private boolean need_auth                     = true;
+	
+	private String eventbus_broker_ip             = "127.0.0.1";
+	private int    eventbus_broker_port           = 6650;
+	private String eventbus_consumer_subscription = "sub_001";
 	
 	public SysConfig() {
-		this.web_api_port = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("web.api.port");
-		this.dbsource_id  = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).get("dbsource.id");
+		this.web_api_port                   = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("web.api.port");
+		this.dbsource_id                    = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).get("dbsource.id");
 		
-		this.vertx_clustered      = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getBoolean("vertx.clustered");
-		this.vertx_cluster_host   = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).get("vertx.cluster.host");
-		this.vertx_cluster_port   = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("vertx.cluster.port");
-		this.vertx_evloopsize     = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("vertx.evloopsize");
-		this.vertx_workerpoolsize = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("vertx.workerpoolsize");
+		this.vertx_clustered                = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getBoolean("vertx.clustered");
+		this.vertx_cluster_host             = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).get("vertx.cluster.host");
+		this.vertx_cluster_port             = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("vertx.cluster.port");
+		this.vertx_evloopsize               = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("vertx.evloopsize");
+		this.vertx_workerpoolsize           = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("vertx.workerpoolsize");
 		
-		this.max_event_loop_execute_time = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getLong("vertx.option.maxEventLoopExecuteTime");
+		this.max_event_loop_execute_time    = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getLong("vertx.option.maxEventLoopExecuteTime");
 		
-		this.thread_pool_coresize      = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("thread.pool.coresize");
-		this.thread_pool_maxsize       = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("thread.pool.maxsize");
-		this.thread_pool_keepalivetime = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("thread.pool.keepalivetime");
-		this.thread_pool_workqueue_len = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("thread.pool.workqueue.len");
+		this.thread_pool_coresize           = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("thread.pool.coresize");
+		this.thread_pool_maxsize            = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("thread.pool.maxsize");
+		this.thread_pool_keepalivetime      = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("thread.pool.keepalivetime");
+		this.thread_pool_workqueue_len      = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("thread.pool.workqueue.len");
 		
-		this.active_collect                = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getBoolean("active.collect");
-		this.active_collect_interval       = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("active.collect.interval");
-		this.active_collect_retry          = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("active.collect.retry");
-		this.active_collect_retry_interval = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("active.collect.retry.interval");
-		this.alarm_time_window             = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("alarm.time.window");
+		this.active_collect                 = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getBoolean("active.collect");
+		this.active_collect_interval        = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("active.collect.interval");
+		this.active_collect_retry           = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("active.collect.retry");
+		this.active_collect_retry_interval  = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("active.collect.retry.interval");
+		this.alarm_time_window              = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("alarm.time.window");
 		
-		this.redis_host = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).get("redis.host");
-		this.redis_port = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("redis.port");
-		String authStr  = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).get("redis.auth");
-		this.redis_auth = DES3.decrypt(authStr);
-		this.redis_pool_size = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("redis.pool.size");
+		this.redis_host                     = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).get("redis.host");
+		this.redis_port                     = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("redis.port");
+		String authStr                      = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).get("redis.auth");
+		this.redis_auth                     = DES3.decrypt(authStr);
+		this.redis_pool_size                = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("redis.pool.size");
 		
-		this.conn_highwater_mark  = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("connection.highwater.mark");
-		this.mem_highwater_mark   = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getLong("memory.highwater.mark");
-		this.diskreamin_highwater_mark  = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getLong("diskremain.highwater.mark");
-		this.msg_accumulate_highwater_mark = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("msg.accumulate.highwater.mark");
+		this.eventbus_broker_ip             = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).get("eventbus.broker.ip", "127.0.0.1");
+		this.eventbus_broker_port           = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("eventbus.broker.port", 6650);
+		this.eventbus_consumer_subscription = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).get("eventbus.consumer.subscription", "sub_001");
+		
+		this.conn_highwater_mark            = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("connection.highwater.mark");
+		this.mem_highwater_mark             = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getLong("memory.highwater.mark");
+		this.diskreamin_highwater_mark      = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getLong("diskremain.highwater.mark");
+		this.msg_accumulate_highwater_mark  = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("msg.accumulate.highwater.mark");
 	
-		this.password_expire = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("password.expire");
-		
-		this.check_blackwhite_list = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getBoolean("check.blackwhite.list",Boolean.FALSE);
-		
-		this.need_auth = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getBoolean("need.auth",Boolean.TRUE);
+		this.password_expire                = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getInt("password.expire");
+		this.check_blackwhite_list          = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getBoolean("check.blackwhite.list",Boolean.FALSE);
+		this.need_auth                      = PropertiesUtils.getInstance(CONSTS.INIT_PROP_FILE).getBoolean("need.auth",Boolean.TRUE);
 	}
 	
 	public int getWebApiPort() {
@@ -202,6 +208,18 @@ public class SysConfig {
 
 	public void setThreadPoolWorkqueueLen(int thread_pool_workqueue_len) {
 		this.thread_pool_workqueue_len = thread_pool_workqueue_len;
+	}
+	
+	public String getEventBusBrokerIP() {
+		return eventbus_broker_ip;
+	}
+	
+	public int getEventBusBrokerPort() {
+		return eventbus_broker_port;
+	}
+	
+	public String getEventBusConsumerSubscription() {
+		return eventbus_consumer_subscription;
 	}
 	
 	public boolean isActiveCollect() {

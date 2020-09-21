@@ -2,6 +2,7 @@ package ibsp.metaserver.dbservice;
 
 import ibsp.metaserver.bean.QuotaMeanBean;
 import ibsp.metaserver.bean.SqlBean;
+import ibsp.metaserver.global.GlobalRes;
 import ibsp.metaserver.global.MetaData;
 import ibsp.metaserver.utils.CRUD;
 import ibsp.metaserver.utils.FixHeader;
@@ -16,16 +17,16 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.redisson.api.RMap;
+import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import redis.clients.jedis.Jedis;
 
 public class QuotaDataService {
 	
 	private static Logger logger = LoggerFactory.getLogger(QuotaDataService.class);
 	
-	private static final String REDIS_OK = "OK";
 	private static final String INS_MONITOR_COLLECT = "insert into t_monitor_history(INST_ID,TS,QUOTA_CODE,QUOTA_MEAN) values(?,?,?,?)";
 	private static final String SEL_MONITOR_COLLECT = "select TS,QUOTA_CODE,QUOTA_MEAN from t_monitor_history where INST_ID=? and (TS>? and TS<=?)";
 	
@@ -52,18 +53,19 @@ public class QuotaDataService {
 		if (quotas == null || quotas.size() == 0)
 			return;
 		
-		Jedis jedis = MetaData.get().getJedis();
-		if (jedis == null) {
-			logger.error("jedis pool get resource fail!");
-			return;
-		}
-		
 		try {
-			if (!jedis.hmset(id, quotas).equals(REDIS_OK)) {
-				logger.error("save collect data to redis fail!");
+			Set<Entry<String, String>> quotasEntrySet = quotas.entrySet();
+			
+			RedissonClient redission = GlobalRes.get().getRedissionClient();
+			RMap<String, String> rmap = redission.getMap(id);
+			
+			for (Entry<String, String> entry : quotasEntrySet) {
+				String key = entry.getKey();
+				String val = entry.getValue();
+				rmap.fastPut(key, val);
 			}
-		} finally {
-			jedis.close();
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
 		}
 	}
 	
@@ -71,26 +73,27 @@ public class QuotaDataService {
 		if (HttpUtils.isNull(instID))
 			return null;
 		
-		Jedis jedis = MetaData.get().getJedis();
-		if (jedis == null) {
-			logger.error("jedis pool get resource fail!");
+		RedissonClient redission = GlobalRes.get().getRedissionClient();
+		if (redission == null) {
+			logger.error("redission pool is null!");
 			return null;
 		}
 		
 		JsonObject json = null;
 		try {
-			Map<String, String> map = jedis.hgetAll(instID);
 			json = new JsonObject();
 			
-			Set<Entry<String, String>> entrySet = map.entrySet();
+			RMap<String, String> rmap = redission.getMap(instID);
+			Set<Entry<String, String>> entrySet = rmap.entrySet();
+			
 			for (Entry<String, String> entry : entrySet) {
 				String key = entry.getKey();
 				String val = entry.getValue();
 				
 				json.put(key, val);
 			}
-		} finally {
-			jedis.close();
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
 		}
 		
 		return json;

@@ -1,9 +1,9 @@
 package ibsp.metaserver.eventbus;
 
-import ibsp.metaserver.global.ServiceData;
-import ibsp.metaserver.utils.CONSTS;
-import io.vertx.core.eventbus.EventBus;
+import ibsp.metaserver.global.GlobalRes;
 
+import org.apache.pulsar.client.api.Producer;
+import org.apache.pulsar.client.api.PulsarClientException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,13 +18,17 @@ public class EventBusMsg {
 		}
 		
 		String msg = evBean.asJsonString();
-		
 		logger.debug("EventBus public messages:{}", msg);
-		EventBus evBus = ServiceData.get().getEventBus();
-		if (evBus != null) {
-			evBus.publish(CONSTS.SYS_EVENT_QUEUE, msg);
-		} else {
-			logger.info("event bus not ready!");
+		
+		Producer<byte[]> evBusSender = GlobalRes.get().getProducer();
+		try {
+			if (evBusSender != null) {
+				evBusSender.send(msg.getBytes());
+			} else {
+				logger.info("event bus not ready!");
+			}
+		} catch (PulsarClientException e) {
+			logger.error("event bus send error:" + e.getMessage());
 		}
 	}
 

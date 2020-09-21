@@ -69,9 +69,10 @@ public class DeployServiceFactory {
 		String pwd = service.getPassword();
 		
 		try {
-			Deployer o = (Deployer) clazz.newInstance();
+			// Deployer o = (Deployer) clazz.newInstance();
+			Deployer o = (Deployer) clazz.getDeclaredConstructor().newInstance();
 			res = o.deployService(serviceID, user, pwd, sessionKey, result);
-		} catch (InstantiationException | IllegalAccessException e) {
+		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 			result.setRetCode(CONSTS.REVOKE_NOK);
 			result.setRetInfo(e.getMessage());
@@ -108,9 +109,10 @@ public class DeployServiceFactory {
 		
 		boolean res = false;
 		try {
-			Deployer o = (Deployer) clazz.newInstance();
+			// Deployer o = (Deployer) clazz.newInstance();
+			Deployer o = (Deployer) clazz.getDeclaredConstructor().newInstance();
 			res = o.undeployService(serviceID, sessionKey, result);
-		} catch (InstantiationException | IllegalAccessException e) {
+		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 			result.setRetCode(CONSTS.REVOKE_NOK);
 			result.setRetInfo(e.getMessage());
@@ -149,9 +151,10 @@ public class DeployServiceFactory {
 		
 		boolean res = false;
 		try {
-			Deployer o = (Deployer) clazz.newInstance();
+			// Deployer o = (Deployer) clazz.newInstance();
+			Deployer o = (Deployer) clazz.getDeclaredConstructor().newInstance();
 			res = o.deployInstance(serviceID, instanceID, sessionKey, result);
-		} catch (InstantiationException | IllegalAccessException e) {
+		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 			result.setRetCode(CONSTS.REVOKE_NOK);
 			result.setRetInfo(e.getMessage());
@@ -190,9 +193,10 @@ public class DeployServiceFactory {
 		
 		boolean res = false;
 		try {
-			Deployer o = (Deployer) clazz.newInstance();
+			// Deployer o = (Deployer) clazz.newInstance();
+			Deployer o = (Deployer) clazz.getDeclaredConstructor().newInstance();
 			res = o.undeployInstance(serviceID, instanceID, sessionKey, result);
-		} catch (InstantiationException | IllegalAccessException e) {
+		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 			result.setRetCode(CONSTS.REVOKE_NOK);
 			result.setRetInfo(e.getMessage());
@@ -230,9 +234,10 @@ public class DeployServiceFactory {
 
 		boolean res = false;
 		try {
-			Deployer o = (Deployer) clazz.newInstance();
+			// Deployer o = (Deployer) clazz.newInstance();
+			Deployer o = (Deployer) clazz.getDeclaredConstructor().newInstance();
 			res = o.forceUndeployInstance(serviceID, instanceID,  result);
-		} catch (InstantiationException | IllegalAccessException e) {
+		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 			result.setRetCode(CONSTS.REVOKE_NOK);
 			result.setRetInfo(e.getMessage());
@@ -347,9 +352,10 @@ public class DeployServiceFactory {
 		
 		boolean res = false;
 		try {
-			Deployer o = (Deployer) clazz.newInstance();
+			// Deployer o = (Deployer) clazz.newInstance();
+			Deployer o = (Deployer) clazz.getDeclaredConstructor().newInstance();
 			res = o.deleteService(serviceID, sessionKey, result);
-		} catch (InstantiationException | IllegalAccessException e) {
+		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 			result.setRetCode(CONSTS.REVOKE_NOK);
 			result.setRetInfo(e.getMessage());

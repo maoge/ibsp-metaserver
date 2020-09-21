@@ -76,6 +76,8 @@ public class SequoiaDBDeployer implements Deployer {
 
         if (instDtl == null) {
             String err = String.format("instance id:%s not found!", instID);
+            logger.error(err);
+            
             result.setRetCode(CONSTS.REVOKE_NOK);
             result.setRetInfo(err);
             return false;
@@ -105,6 +107,8 @@ public class SequoiaDBDeployer implements Deployer {
 
         if (instDtl == null) {
             String err = String.format("instance id:%s not found!", instID);
+            logger.error(err);
+            
             result.setRetCode(CONSTS.REVOKE_NOK);
             result.setRetInfo(err);
             return false;

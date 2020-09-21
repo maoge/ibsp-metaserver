@@ -52,8 +52,11 @@ public class RedisReplicationChecker {
 				for (String address : replicationCountMap.keySet()) {
 
 					try {
-						Map<String, String> replicationInfo = 
-								RedisUtils.getInstanceInfo(address.split(":")[0], address.split(":")[1], "replication");
+						String[] arr = address.split(":");
+						String ip = arr[0];
+						int port = Integer.valueOf(arr[1]).intValue();
+						
+						Map<String, String> replicationInfo = RedisUtils.getInstanceInfo(ip, port, "replication");
 				
 						String status = replicationInfo.get("master_link_status");
 						//this address is a master, no need to check replication
@@ -67,7 +70,7 @@ public class RedisReplicationChecker {
 							if (count>=3) {
 								removeAddress.add(address);
 								String masterIp = replicationInfo.get("master_host");
-								String masterPort = replicationInfo.get("master_port");
+								int masterPort = Integer.valueOf(replicationInfo.get("master_port")).intValue();
 								RedisUtils.recoverConfigForReplication(masterIp, masterPort);
 							} else {
 								replicationCountMap.put(address, count);

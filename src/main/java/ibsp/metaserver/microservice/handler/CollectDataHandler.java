@@ -9,7 +9,6 @@ import ibsp.metaserver.dbservice.CacheService;
 import ibsp.metaserver.dbservice.MQService;
 import ibsp.metaserver.dbservice.QuotaDataService;
 import ibsp.metaserver.dbservice.TiDBService;
-import ibsp.metaserver.global.MonitorData;
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.FixHeader;
 import ibsp.metaserver.utils.HttpUtils;

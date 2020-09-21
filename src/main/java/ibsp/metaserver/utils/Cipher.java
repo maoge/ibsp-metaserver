@@ -11,7 +11,8 @@ public abstract class Cipher {
 		Class<?> c;
 		try {
 			c = Class.forName("Cipher." + algorithm);
-			return (Cipher) c.newInstance();
+			// return (Cipher) c.newInstance();
+			return (Cipher) c.getDeclaredConstructor().newInstance();
 		} catch (Throwable t) {
 			logger.error("Cipher: unable to load instance of '"
 					+ algorithm + "'", t);

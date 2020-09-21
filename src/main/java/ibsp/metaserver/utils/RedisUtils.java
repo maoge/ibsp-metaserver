@@ -16,8 +16,8 @@ public class RedisUtils {
 	
 	private static Logger logger = LoggerFactory.getLogger(RedisUtils.class);
 	
-	public static boolean updateConfForRemoveSlave(String ip, String port, String user, String pwd) {
-		String deployRootPath = String.format("cache_node_deploy/%s", port);
+	public static boolean updateConfForRemoveSlave(String ip, int port, String user, String pwd) {
+		String deployRootPath = String.format("cache_node_deploy/%d", port);
 		
 		JschUserInfo ui = null;
 		SSHExecutor executor = null;
@@ -44,9 +44,9 @@ public class RedisUtils {
 		return true;
     }
 
-    public static boolean updateConfForAddSlave(String ip, String port, String user, String pwd,
-    		String targetIp, String targetPort) {
-    	String deployRootPath = String.format("cache_node_deploy/%s", port);
+    public static boolean updateConfForAddSlave(String ip, int port, String user, String pwd,
+    		String targetIp, int targetPort) {
+    	String deployRootPath = String.format("cache_node_deploy/%d", port);
     	
     	JschUserInfo ui = null;
 		SSHExecutor executor = null;
@@ -62,7 +62,7 @@ public class RedisUtils {
 			executor.cd(confPath, null);
 			executor.rmLine(CONSTS.REDIS_SLAVEOF, CONSTS.REDIS_PROPERTIES, null);
 			
-			String slaveof = String.format("%s %s %s", CONSTS.REDIS_SLAVEOF, targetIp, targetPort);
+			String slaveof = String.format("%s %s %d", CONSTS.REDIS_SLAVEOF, targetIp, targetPort);
 			executor.addLine(slaveof, CONSTS.REDIS_PROPERTIES, null);
 			
 		} catch (Exception e) {
@@ -77,10 +77,10 @@ public class RedisUtils {
     	return true;
     }
 	
-	public static boolean removeSlave(String ip, String port) {
+	public static boolean removeSlave(String ip, int port) {
     	Jedis jedis = null;
 		try {
-			jedis = new Jedis(ip, new Integer(port));
+			jedis = new Jedis(ip, port);
 			jedis.slaveofNoOne();
 			return true;
 		} catch (Exception e) {
@@ -93,11 +93,11 @@ public class RedisUtils {
 		}
 	}
     
-	public static boolean addSlave(String ip, String port, String targetIp, String targetPort) {
+	public static boolean addSlave(String ip, int port, String targetIp, int targetPort) {
     	Jedis jedis = null;
 		try {
-			jedis = new Jedis(ip, new Integer(port));
-			jedis.slaveof(targetIp, new Integer(targetPort));
+			jedis = new Jedis(ip, port);
+			jedis.slaveof(targetIp, targetPort);
 			return true;
 		} catch (Exception e) {
 			logger.error("Remove slave for redis failed.", e);
@@ -112,10 +112,10 @@ public class RedisUtils {
     /**
      * 当有新的从节点挂上来时，需要修改主节点的参数，否则大数据量时主从同步会一直不成功，并导致主节点一直写盘
      */
-    public static boolean setConfigForReplication(String ip, String port) {
+    public static boolean setConfigForReplication(String ip, int port) {
     	Jedis jedis = null;
 		try {
-			jedis = new Jedis(ip, new Integer(port));
+			jedis = new Jedis(ip, port);
 			jedis.configSet("client-output-buffer-limit", "normal 0 0 0 slave 0 0 0 pubsub 33554432 8388608 60");
 			jedis.configSet("repl-timeout", "6000");
 			return true;
@@ -129,10 +129,10 @@ public class RedisUtils {
 		}
     }
     
-	public static boolean recoverConfigForReplication(String ip, String port) {
+	public static boolean recoverConfigForReplication(String ip, int port) {
 		Jedis jedis = null;
 		try {
-			jedis = new Jedis(ip, new Integer(port));
+			jedis = new Jedis(ip, port);
 			jedis.configSet("client-output-buffer-limit", "normal 0 0 0 slave 268435456 67108864 60 pubsub 33554432 8388608 60");
 			jedis.configSet("repl-timeout", "60");
 			return true;
@@ -146,12 +146,12 @@ public class RedisUtils {
 		}
 	}
 	
-	public static Map<String, String> getReplicationInfo(String ip, String port) {
+	public static Map<String, String> getReplicationInfo(String ip, int port) {
 		
 		Jedis jedis = null;
 		try {
 			Map<String, String> result = new HashMap<String, String>();
-			jedis = new Jedis(ip, new Integer(port));
+			jedis = new Jedis(ip, port);
 //			String[] replicationInfo = jedis.info("replication").split(System.lineSeparator());
 			String[] replicationInfo = jedis.info("replication").split("\r\n");
 			for (String info : replicationInfo) {
@@ -170,12 +170,12 @@ public class RedisUtils {
 		}
 	}
 
-    public static Map<String, String> getInstanceInfo(String ip, String port, String type) {
+    public static Map<String, String> getInstanceInfo(String ip, int port, String type) {
 
         Jedis jedis = null;
         try {
             Map<String, String> result = new HashMap<String, String>();
-            jedis = new Jedis(ip, new Integer(port));
+            jedis = new Jedis(ip, port);
 
             String[] infoArray = null;
             if (HttpUtils.isNull(type)) {
@@ -199,12 +199,12 @@ public class RedisUtils {
         }
     }
 
-    public static Map<String, String> getInstanceConfig(String ip, String port, String pattern) {
+    public static Map<String, String> getInstanceConfig(String ip, int port, String pattern) {
 
         Jedis jedis = null;
         try {
             Map<String, String> result = new HashMap<String, String>();
-            jedis = new Jedis(ip, new Integer(port));
+            jedis = new Jedis(ip, port);
             List<String> configList = null;
             if (HttpUtils.isNull(pattern)) {
                 configList = jedis.configGet("*");

@@ -5,8 +5,8 @@ import ibsp.metaserver.eventbus.EventBean;
 import ibsp.metaserver.eventbus.EventBusMsg;
 import ibsp.metaserver.eventbus.EventType;
 import ibsp.metaserver.exception.CRUDException;
+import ibsp.metaserver.global.GlobalRes;
 import ibsp.metaserver.global.MetaData;
-import ibsp.metaserver.global.ServiceData;
 import ibsp.metaserver.schema.Validator;
 import ibsp.metaserver.utils.CONSTS;
 import ibsp.metaserver.utils.CRUD;
@@ -18,14 +18,12 @@ import io.vertx.core.json.JsonObject;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
 
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.ILock;
 
 public class MetaDataService {
 	
@@ -68,16 +66,12 @@ public class MetaDataService {
 	private static final String CLEAR_ALARM       = "DELETE FROM t_alarm WHERE ALARM_CODE=? AND SERVICE_ID=? " +
 			"AND INSTANCE_ID = ?";
 
-	private static ReentrantLock SEQ_LOCK = null;
-	
 	static {
 		SERVICE_TYPE_MAPPER = new ConcurrentHashMap<String, String>();
 		SERVICE_TYPE_MAPPER.put(CONSTS.SERV_TYPE_DB, "tidb");
 		SERVICE_TYPE_MAPPER.put(CONSTS.SERV_TYPE_MQ, "mq");
 		SERVICE_TYPE_MAPPER.put(CONSTS.SERV_TYPE_CACHE, "cache");
 		SERVICE_TYPE_MAPPER.put(CONSTS.SERV_TYPE_SEQUOIADB, "sequoiadb");
-		
-		SEQ_LOCK = new ReentrantLock();
 	}
 
 	public static boolean login(Map<String, String> params, ResultBean result) {
@@ -124,15 +118,12 @@ public class MetaDataService {
 	
 	public static LongMargin getNextSeqMargin(String seqName, int step, ResultBean result) {
 		LongMargin ret = null;
-		HazelcastInstance hzInstance = ServiceData.get().getHzInstance();
-		ILock hzLock = hzInstance.getLock(SEQ_LOCK_NAME);
+		
+		RedissonClient redissonClient = GlobalRes.get().getRedissionClient();
+		RLock lock = redissonClient.getLock(SEQ_LOCK_NAME);
 		
 		try {
-			while (hzLock.isLocked()) {
-				Thread.sleep(1);
-			}
-			hzLock.tryLock(3000, TimeUnit.MILLISECONDS);
-			//SEQ_LOCK.lock();
+			lock.lock();
 			
 			CRUD c = new CRUD();
 			
@@ -149,11 +140,10 @@ public class MetaDataService {
 			if (result.getRetCode() == CONSTS.REVOKE_NOK)
 				return null;
 			
-		} catch (InterruptedException e) {
+		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 		} finally {
-			//SEQ_LOCK.unlock();
-			hzLock.unlock();
+			lock.unlock();
 		}
 		
 		return ret;

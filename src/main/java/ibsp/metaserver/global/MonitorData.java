@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+
 public class MonitorData {
     private static final Logger logger = LoggerFactory.getLogger(MonitorData.class);
     private static MonitorData monitorData = new MonitorData();
@@ -206,29 +207,30 @@ public class MonitorData {
 
         JsonObject vbJsonObject = jsonObject.getJsonObject("vbrokers");
         Iterator<Map.Entry<String, Object>> vbIter = vbJsonObject.iterator();
-        while(vbIter.hasNext()) {
+        while (vbIter.hasNext()) {
             Map.Entry<String, Object> entry = vbIter.next();
             String key = entry.getKey();
             JsonObject json = new JsonObject(entry.getValue().toString());
-            if(json == null)
-                continue;
+            
             try {
-                mqVbrokerCollectInfoMap.put(key, Json.decodeValue(json.toString(), MQVbrokerCollectInfo.class));
-            }catch (Exception e) {
+            	if (json != null)
+            		mqVbrokerCollectInfoMap.put(key, Json.decodeValue(json.toString(), MQVbrokerCollectInfo.class));
+            } catch (Exception e) {
+            	logger.error(e.getMessage(), e);
             }
         }
 
         JsonObject queueJsonObject = jsonObject.getJsonObject("queues");
 
         Iterator<Map.Entry<String, Object>> queueIter = queueJsonObject.iterator();
-        while(queueIter.hasNext()) {
+        while (queueIter.hasNext()) {
             Map.Entry<String, Object> entry = queueIter.next();
             String key = entry.getKey();
             JsonObject json = new JsonObject(entry.getValue().toString());
-            if(json == null)
-                continue;
+            
             try {
-                mqQueueCollectInfoMap.put(key, Json.decodeValue(json.toString(), MQQueueCollectInfo.class));
+            	if (json != null)
+            		mqQueueCollectInfoMap.put(key, Json.decodeValue(json.toString(), MQQueueCollectInfo.class));
             }catch (Exception e) {
                 logger.error("sync queue data fail : {}", e.getMessage());
             }
@@ -246,10 +248,10 @@ public class MonitorData {
             Map.Entry<String, Object> entry = proxyIter.next();
             String key = entry.getKey();
             JsonObject json = new JsonObject(entry.getValue().toString());
-            if(json == null)
-                continue;
+            
             try {
-                cacheProxyCollectInfoMap.put(key, Json.decodeValue(json.toString(), CacheProxyCollectInfo.class));
+            	if (json != null)
+            		cacheProxyCollectInfoMap.put(key, Json.decodeValue(json.toString(), CacheProxyCollectInfo.class));
             }catch (Exception e) {
                 logger.error("sync proxy data fail : {}", e.getMessage());
             }
@@ -262,10 +264,10 @@ public class MonitorData {
             Map.Entry<String, Object> entry = cacheNodeIter.next();
             String key = entry.getKey();
             JsonObject json = new JsonObject(entry.getValue().toString());
-            if(json == null)
-                continue;
+            
             try {
-                cacheNodeCollectInfoMap.put(key, Json.decodeValue(json.toString(), CacheNodeCollectInfo.class));
+            	if (json != null)
+            		cacheNodeCollectInfoMap.put(key, Json.decodeValue(json.toString(), CacheNodeCollectInfo.class));
             }catch (Exception e) {
                 logger.error("sync queue data fail : {}", e.getMessage());
             }

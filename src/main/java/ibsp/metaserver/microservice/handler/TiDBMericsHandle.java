@@ -66,7 +66,7 @@ public class TiDBMericsHandle {
             ByteArrayInputStream bin = new ByteArrayInputStream(bytes);
 
             Metrics.MetricFamily metricFamily = null;
-            StringBuffer sb = new StringBuffer();
+//            StringBuffer sb = new StringBuffer();
 
             List<Metrics.MetricFamily> metricFamilyList = new ArrayList<>();
 

@@ -282,13 +282,16 @@ public class CacheServiceMonitor1 {
     private static void pullUpInstance(InstanceDtlBean instance, InstanceDtlBean master) {
 
         String ip = instance.getAttribute(FixHeader.HEADER_IP).getAttrValue();
-        String port = instance.getAttribute(FixHeader.HEADER_PORT).getAttrValue();
+        String sPort = instance.getAttribute(FixHeader.HEADER_PORT).getAttrValue();
         String user = instance.getAttribute(FixHeader.HEADER_OS_USER).getAttrValue();
         String pwd = instance.getAttribute(FixHeader.HEADER_OS_PWD).getAttrValue();
-        String masterIp = "", masterPort = "";
+        String masterIp = "", sMasterPort = "";
+        int masterPort = 0;
+        int port = Integer.valueOf(sPort).intValue();
         if (master != null) {
             masterIp = master.getAttribute(FixHeader.HEADER_IP).getAttrValue();
-            masterPort = master.getAttribute(FixHeader.HEADER_PORT).getAttrValue();
+            sMasterPort = master.getAttribute(FixHeader.HEADER_PORT).getAttrValue();
+            masterPort = Integer.valueOf(sMasterPort).intValue();
         }
 
         logger.info("尝试拉起实例" + ip + ":" + port);
@@ -317,7 +320,7 @@ public class CacheServiceMonitor1 {
 
             executor.cd("$HOME/" + deployRootPath);
             executor.execSingleLine("./redis.sh start", null);
-            if (executor.waitProcessStart(port, null)) {
+            if (executor.waitProcessStart(sPort, null)) {
                 logger.info("拉起节点成功！Host:" + ip + ":" + port);
                 if (master != null) {
                     RedisReplicationChecker.get().addReplicationCheckSlave(ip+":"+port);
@@ -342,12 +345,15 @@ public class CacheServiceMonitor1 {
     private static boolean doSwitch(String servID, InstanceDtlBean cluster, InstanceDtlBean master, InstanceDtlBean slave) {
 
         String slaveIP = slave.getAttribute(FixHeader.HEADER_IP).getAttrValue();
-        String slavePort = slave.getAttribute(FixHeader.HEADER_PORT).getAttrValue();
+        String sSlavePort = slave.getAttribute(FixHeader.HEADER_PORT).getAttrValue();
         String slaveUser = slave.getAttribute(FixHeader.HEADER_OS_USER).getAttrValue();
         String slavePwd = slave.getAttribute(FixHeader.HEADER_OS_PWD).getAttrValue();
         String masterIP = master.getAttribute(FixHeader.HEADER_IP).getAttrValue();
-        String masterPort = master.getAttribute(FixHeader.HEADER_PORT).getAttrValue();
+        String sMasterPort = master.getAttribute(FixHeader.HEADER_PORT).getAttrValue();
 
+        int slavePort = Integer.valueOf(sSlavePort).intValue();
+        int masterPort = Integer.valueOf(sMasterPort).intValue();
+        
         if (!isServerAlive(servID, slave, EventType.e64, true))
             return false;
 
@@ -383,9 +389,10 @@ public class CacheServiceMonitor1 {
      */
     private static CacheNodeCollectInfo collectRedisInfo(InstanceDtlBean node, InstanceDtlBean master, InstanceDtlBean cluster) {
         String ip = node.getAttribute(FixHeader.HEADER_IP).getAttrValue();
-        String port = node.getAttribute(FixHeader.HEADER_PORT).getAttrValue();
+        String sPort = node.getAttribute(FixHeader.HEADER_PORT).getAttrValue();
         CacheNodeCollectInfo info = new CacheNodeCollectInfo();
         info.setId(node.getInstID());
+        int port = Integer.valueOf(sPort).intValue();
 
         Map<String, String> redisInfo = RedisUtils.getInstanceInfo(ip, port, "");
         Map<String, String> redisConfig = RedisUtils.getInstanceConfig(ip, port, "");
@@ -405,7 +412,8 @@ public class CacheServiceMonitor1 {
                         String user = node.getAttribute(FixHeader.HEADER_OS_USER).getAttrValue();
                         String pwd = node.getAttribute(FixHeader.HEADER_OS_PWD).getAttrValue();
                         String masterIp = master.getAttribute(FixHeader.HEADER_IP).getAttrValue();
-                        String masterPort = master.getAttribute(FixHeader.HEADER_PORT).getAttrValue();
+                        String sMasterPort = master.getAttribute(FixHeader.HEADER_PORT).getAttrValue();
+                        int masterPort = Integer.valueOf(sMasterPort).intValue();
 
                         if (!RedisUtils.setConfigForReplication(masterIp, masterPort))
                             return null;

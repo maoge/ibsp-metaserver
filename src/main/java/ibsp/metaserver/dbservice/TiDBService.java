@@ -10,7 +10,6 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -237,6 +236,7 @@ public class TiDBService {
 		return null;
 	}
 
+	@SuppressWarnings("unused")
 	private static JsonObject explainPlanToTree(JsonArray plan) {
 		JsonObject resJson = new JsonObject();
 		JsonArray lastJson = null;

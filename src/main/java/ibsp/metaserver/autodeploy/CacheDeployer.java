@@ -166,7 +166,8 @@ public class CacheDeployer implements Deployer {
 			} else {
 				String masterID = cluster.getAttribute("MASTER_ID").getAttrValue();
 				String masterIp = cluster.getSubInstances().get(masterID).getAttribute("IP").getAttrValue();
-				String masterPort = cluster.getSubInstances().get(masterID).getAttribute("PORT").getAttrValue();
+				String sMasterPort = cluster.getSubInstances().get(masterID).getAttribute("PORT").getAttrValue();
+				int masterPort = Integer.valueOf(sMasterPort).intValue();
 				
 				if (!RedisUtils.setConfigForReplication(masterIp, masterPort))
 					return false;

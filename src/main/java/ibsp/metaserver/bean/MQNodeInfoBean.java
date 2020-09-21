@@ -1,6 +1,5 @@
 package ibsp.metaserver.bean;
 
-import io.vertx.core.json.Json;
 
 public class MQNodeInfoBean {
     private String instId;

@@ -23,48 +23,43 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import io.vertx.core.shareddata.AsyncMap;
 import io.vertx.core.shareddata.SharedData;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisPoolConfig;
 
 public class MetaData {
 	
 	private static Logger logger = LoggerFactory.getLogger(MetaData.class);
 	
 	private static String ID_INDEX = "_ID";
-	
 	private String uuid;
-	
-	private Map<Integer, MetaAttributeBean> metaAttrMap;
-	private Map<Integer, MetaComponentBean> metaCmptMap;
-	private Map<String,  Integer> metaCmptName2IDMap;
-	private Map<Integer, IdSetBean<Integer>> metaCmpt2AttrMap;
-	private Map<String, DeployFileBean> deployFileMap;
-	private Map<String, ServiceBean> serviceMap;
-	private Map<String, InstanceDtlBean> instanceDtlMap;
-	private Map<String, Integer> quotaName2Code;
-	private Map<Integer, String> quotaCode2Name;
+	private String metaServUrls;
 	private Topology topo;
 	
-	private Map<Integer, MetaServUrl> metaServMap;
-	private String metaServUrls;
+	private Map<Integer, MetaAttributeBean>  metaAttrMap;
+	private Map<Integer, MetaComponentBean>  metaCmptMap;
+	private Map<String,  Integer>            metaCmptName2IDMap;
+	private Map<Integer, IdSetBean<Integer>> metaCmpt2AttrMap;
+	private Map<String, DeployFileBean>      deployFileMap;
+	private Map<String, ServiceBean>         serviceMap;
+	private Map<String, InstanceDtlBean>     instanceDtlMap;
+	private Map<String, Integer>             quotaName2Code;
+	private Map<Integer, String>             quotaCode2Name;
 	
-	private Map<String, IdSetBean<String>> servId2QueueIdMap;
-	private Map<String, QueueBean> queueMap;
-	private Map<String, String> queueName2IdMap;
-	private Map<String, PermnentTopicBean> permTopicMap;
-	private Map<String, IdSetBean<String>> queueId2ConsumerIdMap;
+	private Map<Integer, MetaServUrl>        metaServMap;
+	
+	private Map<String, IdSetBean<String>>   servId2QueueIdMap;
+	private Map<String, QueueBean>           queueMap;
+	private Map<String, String>              queueName2IdMap;
+	private Map<String, PermnentTopicBean>   permTopicMap;
+	private Map<String, IdSetBean<String>>   queueId2ConsumerIdMap;
 
-	private Map<String, UserBean>    userMap;
-    private Map<String, JsonObject>  userMagicMap;
-    private Map<String, String>      sessionUserMap;
+	private Map<String, UserBean>            userMap;
+    private Map<String, JsonObject>          userMagicMap;
+    private Map<String, String>              sessionUserMap;
 
-    private Map<String, ServerBean> serverMap;
-
-	private JedisPool jedisPool;
+    private Map<String, ServerBean>          serverMap;
 	
 	private static MetaData theInstance = null;
 	private static ReentrantLock intanceLock = null;
@@ -121,7 +116,6 @@ public class MetaData {
 	
 	private void init() {
 		initData();
-		initJedisPool();
 	}
 	
 	private void initData() {
@@ -144,31 +138,8 @@ public class MetaData {
 		initData();
 	}
 	
-	private void initJedisPool() {
-		JedisPoolConfig jedisConfig = new JedisPoolConfig();
-		jedisConfig.setMaxIdle(SysConfig.get().getRedisPoolSize());
-		jedisConfig.setMaxWaitMillis(10000);
-		jedisConfig.setTestOnBorrow(true);
-		
-		jedisPool = new JedisPool(jedisConfig, SysConfig.get().getRedisHost(), SysConfig.get().getRedisPort(), 3000, SysConfig.get().getRedisAuth());
-	}
-	
 	public String getUUID() {
 		return uuid;
-	}
-	
-	public Jedis getJedis() {
-		Jedis jedis = null;
-		try {
-			intanceLock.lock();
-			
-			jedis = jedisPool.getResource();
-		} catch (Exception e) {
-			logger.error(e.getMessage(), e);
-		} finally {
-			intanceLock.unlock();
-		}
-		return jedis;
 	}
 	
 	private void LoadCollectQuota() {
@@ -450,22 +421,28 @@ public class MetaData {
 			return false;
 
 		switch (type) {
-			case e14:
+		case e14:
+			{
 				if(HttpUtils.isNull(hostname))
 					return false;
-
+	
 				ServerBean server = new ServerBean(ip, hostname);
 				serverMap.put(ip, server);
 				res = true;
-				break;
-			case e15:
+			}
+			break;
+		case e15:
+			{
 				String ipsString = ip.replaceAll("'", "");
 				String[] ips = ipsString.split(",");
 				for(String s : ips) {
 					serverMap.remove(s);
 				}
 				res = true;
-				break;
+			}
+			break;
+		default:
+			break;
 		}
 
 		return res;
